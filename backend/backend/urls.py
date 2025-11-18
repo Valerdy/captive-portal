@@ -15,8 +15,31 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.http import JsonResponse
+
+
+def api_root(request):
+    """API root endpoint"""
+    return JsonResponse({
+        'message': 'Captive Portal API',
+        'version': '1.0.0',
+        'endpoints': {
+            'admin': '/admin/',
+            'api': '/api/',
+            'core': '/api/core/',
+            'mikrotik': '/api/mikrotik/',
+            'radius': '/api/radius/',
+        }
+    })
+
 
 urlpatterns = [
+    path('', api_root, name='api-root'),
     path('admin/', admin.site.urls),
+
+    # API endpoints
+    path('api/core/', include('core.urls')),
+    path('api/mikrotik/', include('mikrotik.urls')),
+    path('api/radius/', include('radius.urls')),
 ]
