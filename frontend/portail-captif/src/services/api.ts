@@ -1,4 +1,5 @@
-import axios, type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
+import axios from 'axios'
+import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
 import type { APIError } from '@/types'
 
 // Configuration de l'URL de base de l'API
