@@ -7,6 +7,10 @@ from .serializers import (
     MikrotikHotspotUserSerializer, MikrotikActiveConnectionSerializer,
     MikrotikLogSerializer
 )
+from .utils import MikrotikAgentClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class MikrotikRouterViewSet(viewsets.ModelViewSet):
@@ -30,12 +34,44 @@ class MikrotikRouterViewSet(viewsets.ModelViewSet):
     def test_connection(self, request, pk=None):
         """Test connection to Mikrotik router"""
         router = self.get_object()
-        # This would call the Mikrotik Agent API
-        # Implementation depends on how you want to integrate with the agent
-        return Response({
-            'status': 'success',
-            'message': f'Connection test for {router.name} - implement actual test'
-        })
+
+        try:
+            # Create agent client
+            client = MikrotikAgentClient()
+
+            # Test connection
+            result = client.test_connection()
+
+            # Log the test
+            MikrotikLog.objects.create(
+                router=router,
+                operation='test_connection',
+                level='info',
+                message=f'Connection test successful for {router.name}',
+                details=result
+            )
+
+            return Response({
+                'status': 'success',
+                'message': f'Successfully connected to {router.name}',
+                'data': result
+            })
+
+        except Exception as e:
+            # Log the error
+            MikrotikLog.objects.create(
+                router=router,
+                operation='test_connection',
+                level='error',
+                message=f'Connection test failed for {router.name}',
+                details={'error': str(e)}
+            )
+
+            return Response({
+                'status': 'error',
+                'message': f'Failed to connect to {router.name}',
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class MikrotikHotspotUserViewSet(viewsets.ModelViewSet):
@@ -95,12 +131,48 @@ class MikrotikActiveConnectionViewSet(viewsets.ReadOnlyModelViewSet):
     def disconnect(self, request, pk=None):
         """Disconnect an active session"""
         connection = self.get_object()
-        # This would call the Mikrotik Agent API to disconnect
-        # Implementation depends on integration with agent
-        return Response({
-            'status': 'success',
-            'message': f'Disconnection requested for {connection.session_id}'
-        })
+
+        try:
+            # Create agent client
+            client = MikrotikAgentClient()
+
+            # Disconnect the session
+            result = client.disconnect_session(connection.session_id)
+
+            # Log the disconnection
+            MikrotikLog.objects.create(
+                router=connection.router,
+                operation='disconnect_session',
+                level='info',
+                message=f'Session {connection.session_id} disconnected',
+                details=result
+            )
+
+            # Update connection status
+            connection.delete()  # Remove from active connections
+
+            return Response({
+                'status': 'success',
+                'message': f'Session {connection.session_id} disconnected successfully',
+                'data': result
+            })
+
+        except Exception as e:
+            # Log the error
+            if hasattr(connection, 'router'):
+                MikrotikLog.objects.create(
+                    router=connection.router,
+                    operation='disconnect_session',
+                    level='error',
+                    message=f'Failed to disconnect session {connection.session_id}',
+                    details={'error': str(e)}
+                )
+
+            return Response({
+                'status': 'error',
+                'message': f'Failed to disconnect session',
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class MikrotikLogViewSet(viewsets.ReadOnlyModelViewSet):

@@ -116,15 +116,25 @@ class SessionViewSet(viewsets.ModelViewSet):
         user = request.user
         sessions = Session.objects.filter(user=user)
 
+        # Calculate average session duration
+        completed_sessions = sessions.filter(end_time__isnull=False)
+        total_duration = 0
+        session_count = 0
+
+        for session in completed_sessions:
+            if session.start_time and session.end_time:
+                duration = (session.end_time - session.start_time).total_seconds()
+                total_duration += duration
+                session_count += 1
+
+        avg_duration = total_duration / session_count if session_count > 0 else 0
+
         stats = {
             'total_sessions': sessions.count(),
             'active_sessions': sessions.filter(status='active').count(),
             'total_data_transferred': sum(s.total_bytes for s in sessions),
-            'average_session_duration': sessions.filter(
-                end_time__isnull=False
-            ).aggregate(
-                avg_duration=timezone.now() - timezone.now()
-            )
+            'average_session_duration_seconds': avg_duration,
+            'average_session_duration_minutes': round(avg_duration / 60, 2) if avg_duration > 0 else 0
         }
         return Response(stats)
 
