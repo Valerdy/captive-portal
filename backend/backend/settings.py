@@ -190,6 +190,10 @@ MIKROTIK_CONFIG = {
     'USE_SSL': env.bool('MIKROTIK_USE_SSL', default=False),
 }
 
+# Mikrotik Agent Configuration
+MIKROTIK_AGENT_URL = env('MIKROTIK_AGENT_URL', default='http://localhost:3001')
+MIKROTIK_AGENT_TIMEOUT = env.int('MIKROTIK_AGENT_TIMEOUT', default=10)
+
 # RADIUS Configuration
 RADIUS_CONFIG = {
     'SERVER': env('RADIUS_SERVER', default='127.0.0.1'),
