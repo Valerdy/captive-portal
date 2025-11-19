@@ -124,3 +124,50 @@ def update_profile(request):
         return Response(serializer.data)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    """
+    Change user password endpoint
+    """
+    current_password = request.data.get('current_password')
+    new_password = request.data.get('new_password')
+    confirm_password = request.data.get('confirm_password')
+
+    if not all([current_password, new_password, confirm_password]):
+        return Response(
+            {'error': 'All password fields are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Verify current password
+    if not request.user.check_password(current_password):
+        return Response(
+            {'error': 'Current password is incorrect'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Verify new password matches confirmation
+    if new_password != confirm_password:
+        return Response(
+            {'error': 'New passwords do not match'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Check password strength (minimum 8 characters)
+    if len(new_password) < 8:
+        return Response(
+            {'error': 'Password must be at least 8 characters long'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Change password
+    request.user.set_password(new_password)
+    request.user.save()
+
+    return Response(
+        {'message': 'Password changed successfully'},
+        status=status.HTTP_200_OK
+    )
