@@ -14,7 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Getters
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
-  const isAdmin = computed(() => user.value?.is_staff || false)
+  const isAdmin = computed(() => user.value?.is_staff || user.value?.is_superuser || false)
 
   // Actions
   async function login(credentials: LoginCredentials) {
@@ -128,6 +128,53 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function adminLogin(username: string, password: string) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const response = await authService.login({ username, password })
+
+      // Vérifier si l'utilisateur a les droits admin
+      if (!response.user.is_staff && !response.user.is_superuser) {
+        error.value = 'Accès refusé : droits administrateur requis'
+        throw new Error('Accès refusé : droits administrateur requis')
+      }
+
+      // Sauvegarder dans le state
+      user.value = response.user
+      accessToken.value = response.tokens.access
+      refreshToken.value = response.tokens.refresh
+
+      // Sauvegarder dans localStorage
+      localStorage.setItem('access_token', response.tokens.access)
+      localStorage.setItem('refresh_token', response.tokens.refresh)
+      localStorage.setItem('user', JSON.stringify(response.user))
+
+      return response
+    } catch (err) {
+      error.value = getErrorMessage(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function changePassword(data: { current_password: string; new_password: string; confirm_password: string }) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      await authService.changePassword(data)
+      return true
+    } catch (err) {
+      error.value = getErrorMessage(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   function initializeAuth() {
     // Restaurer depuis localStorage au démarrage
     const storedToken = localStorage.getItem('access_token')
@@ -168,6 +215,8 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     fetchProfile,
     updateProfile,
+    adminLogin,
+    changePassword,
     initializeAuth,
     clearError
   }
