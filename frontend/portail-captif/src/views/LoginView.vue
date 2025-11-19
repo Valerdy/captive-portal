@@ -21,7 +21,7 @@ async function handleLogin() {
 
     // Redirection vers le dashboard ou l'URL d'origine
     const redirect = router.currentRoute.value.query.redirect as string
-    router.push(redirect || '/')
+    router.push(redirect || '/dashboard')
   } catch (error) {
     errorMessage.value = authStore.error || 'Erreur de connexion'
   }
