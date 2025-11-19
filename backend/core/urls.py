@@ -20,6 +20,7 @@ urlpatterns = [
     # User profile endpoints
     path('auth/profile/', views.user_profile, name='user_profile'),
     path('auth/profile/update/', views.update_profile, name='update_profile'),
+    path('auth/password/change/', views.change_password, name='change_password'),
 
     # Router URLs
     path('', include(router.urls)),
