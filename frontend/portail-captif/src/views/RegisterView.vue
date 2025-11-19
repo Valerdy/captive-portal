@@ -21,7 +21,7 @@ async function handleRegister() {
 
   try {
     await authStore.register(formData.value)
-    router.push('/')
+    router.push('/dashboard')
   } catch (error) {
     errorMessage.value = authStore.error || 'Erreur lors de l\'inscription'
   }
