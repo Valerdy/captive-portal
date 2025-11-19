@@ -211,7 +211,7 @@ function goToLogin() {
   height: 100%;
   background: url('https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2000') center/cover;
   z-index: 0;
-  animation: zoomImage 20s ease-in-out infinite alternate;
+  animation: zoomImage 10s ease-in-out infinite alternate;
 }
 
 .image-background::after {
@@ -361,14 +361,13 @@ function goToLogin() {
 .btn::before {
   content: '';
   position: absolute;
-  top: 15%;
-  left: 20%;
-  width: 40%;
-  height: 30%;
-  background: rgba(255, 255, 255, 0.4);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  filter: blur(12px);
-  transform: rotate(-45deg);
+  background: radial-gradient(circle at 50% 50%, transparent 60%, rgba(255, 255, 255, 0.3) 70%, transparent 80%);
+  pointer-events: none;
 }
 
 .btn svg {
