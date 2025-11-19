@@ -2,9 +2,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
+import ErrorAlert from '@/components/ErrorAlert.vue'
+import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 
 const formData = ref({
   username: '',
@@ -21,9 +25,14 @@ async function handleRegister() {
 
   try {
     await authStore.register(formData.value)
+
+    // Notification de succès
+    notificationStore.success('Inscription réussie ! Bienvenue.')
+
     router.push('/dashboard')
   } catch (error) {
     errorMessage.value = authStore.error || 'Erreur lors de l\'inscription'
+    notificationStore.error(errorMessage.value)
   }
 }
 </script>
@@ -155,17 +164,15 @@ async function handleRegister() {
             />
           </div>
 
-          <div v-if="errorMessage" class="error-message">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            {{ errorMessage }}
-          </div>
+          <ErrorAlert
+            v-if="errorMessage"
+            :message="errorMessage"
+            dismissible
+            @dismiss="errorMessage = ''"
+          />
 
           <button type="submit" :disabled="authStore.isLoading" class="btn-primary">
-            <span v-if="authStore.isLoading">Inscription en cours...</span>
+            <LoadingSpinner v-if="authStore.isLoading" size="small" color="white" />
             <span v-else>S'inscrire</span>
           </button>
         </form>
