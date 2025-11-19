@@ -238,10 +238,14 @@ function goToLogin() {
   position: relative;
   z-index: 1;
   text-align: center;
-  padding: 2rem;
-  max-width: 800px;
+  padding: 1.5rem 2rem;
+  max-width: 900px;
   width: 100%;
   animation: fadeInUp 0.8s ease-out;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
 }
 
 @keyframes fadeInUp {
@@ -257,14 +261,14 @@ function goToLogin() {
 
 /* Header Section */
 .header-section {
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
   color: white;
 }
 
 .logo-main {
-  width: 90px;
-  height: 90px;
-  margin: 0 auto 1.5rem;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
   border-radius: 50%;
@@ -288,17 +292,17 @@ function goToLogin() {
 }
 
 .logo-main svg {
-  width: 45px;
-  height: 45px;
+  width: 40px;
+  height: 40px;
   color: white;
 }
 
 .header-section h1 {
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: 900;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   background: linear-gradient(135deg, #fff 0%, #f97316 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -306,9 +310,9 @@ function goToLogin() {
 }
 
 .header-section h2 {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   opacity: 0.95;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -325,15 +329,15 @@ function goToLogin() {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  gap: 3rem;
-  margin-bottom: 2rem;
+  gap: 2.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .btn-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .btn {
@@ -346,14 +350,33 @@ function goToLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  border: 3px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.4),
+    0 12px 28px rgba(0, 0, 0, 0.3),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.3),
+    inset 0 8px 16px rgba(255, 255, 255, 0.2);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: 20%;
+  width: 40%;
+  height: 30%;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  filter: blur(12px);
+  transform: rotate(-45deg);
 }
 
 .btn svg {
   width: 36px;
   height: 36px;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .btn-label {
@@ -365,45 +388,57 @@ function goToLogin() {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  background: radial-gradient(circle at 30% 30%, #ef4444, #dc2626 50%, #991b1b);
   color: white;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-  transform: translateY(-5px) scale(1.1);
-  box-shadow: 0 12px 32px rgba(220, 38, 38, 0.6);
+  background: radial-gradient(circle at 30% 30%, #f87171, #ef4444 50%, #b91c1c);
+  transform: translateY(-8px) scale(1.08);
+  box-shadow:
+    0 15px 35px rgba(220, 38, 38, 0.6),
+    0 20px 45px rgba(220, 38, 38, 0.4),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.4),
+    inset 0 10px 20px rgba(255, 255, 255, 0.25);
 }
 
 .btn-secondary {
-  background: linear-gradient(135deg, rgba(107, 114, 128, 0.9) 0%, rgba(75, 85, 99, 0.9) 100%);
+  background: radial-gradient(circle at 30% 30%, #9ca3af, #6b7280 50%, #374151);
   color: white;
 }
 
 .btn-secondary:hover {
-  background: linear-gradient(135deg, rgba(75, 85, 99, 0.95) 0%, rgba(55, 65, 81, 0.95) 100%);
-  transform: translateY(-5px) scale(1.1);
-  box-shadow: 0 12px 32px rgba(107, 114, 128, 0.6);
+  background: radial-gradient(circle at 30% 30%, #d1d5db, #9ca3af 50%, #4b5563);
+  transform: translateY(-8px) scale(1.08);
+  box-shadow:
+    0 15px 35px rgba(107, 114, 128, 0.6),
+    0 20px 45px rgba(107, 114, 128, 0.4),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.4),
+    inset 0 10px 20px rgba(255, 255, 255, 0.25);
 }
 
 .btn-accent {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  background: radial-gradient(circle at 30% 30%, #fb923c, #f97316 50%, #c2410c);
   color: white;
 }
 
 .btn-accent:hover {
-  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-  transform: translateY(-5px) scale(1.1);
-  box-shadow: 0 12px 32px rgba(249, 115, 22, 0.6);
+  background: radial-gradient(circle at 30% 30%, #fdba74, #fb923c 50%, #ea580c);
+  transform: translateY(-8px) scale(1.08);
+  box-shadow:
+    0 15px 35px rgba(249, 115, 22, 0.6),
+    0 20px 45px rgba(249, 115, 22, 0.4),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.4),
+    inset 0 10px 20px rgba(255, 255, 255, 0.25);
 }
 
 /* Footer */
 .footer {
   color: white;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   opacity: 0.8;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-  margin-top: 1rem;
+  margin-top: 0.75rem;
 }
 
 /* Modal */
@@ -605,33 +640,37 @@ function goToLogin() {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 900px) and (max-height: 700px) {
+  .content {
+    padding: 1rem 1.5rem;
+  }
+
   .header-section {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
   }
 
   .header-section h1 {
-    font-size: 2.25rem;
+    font-size: 2rem;
   }
 
   .header-section h2 {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
   }
 
   .logo-main {
-    width: 75px;
-    height: 75px;
-    margin-bottom: 1rem;
+    width: 70px;
+    height: 70px;
+    margin-bottom: 0.75rem;
   }
 
   .logo-main svg {
-    width: 38px;
-    height: 38px;
+    width: 35px;
+    height: 35px;
   }
 
   .action-buttons {
     gap: 2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
   }
 
   .btn {
@@ -640,8 +679,61 @@ function goToLogin() {
   }
 
   .btn svg {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .btn-label {
+    font-size: 0.85rem;
+  }
+
+  .footer {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .header-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .header-section h1 {
+    font-size: 2rem;
+  }
+
+  .header-section h2 {
+    font-size: 1.15rem;
+  }
+
+  .logo-main {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 0.75rem;
+  }
+
+  .logo-main svg {
+    width: 35px;
+    height: 35px;
+  }
+
+  .action-buttons {
+    gap: 2rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .btn {
+    width: 85px;
+    height: 85px;
+  }
+
+  .btn svg {
+    width: 32px;
+    height: 32px;
   }
 
   .btn-label {
@@ -655,34 +747,34 @@ function goToLogin() {
 
 @media (max-width: 600px) {
   .content {
-    padding: 1.5rem 1rem;
+    padding: 1rem;
   }
 
   .header-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
   }
 
   .header-section h1 {
-    font-size: 1.85rem;
+    font-size: 1.75rem;
   }
 
   .header-section h2 {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 
   .subtitle {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
 
   .logo-main {
-    width: 65px;
-    height: 65px;
-    margin-bottom: 0.75rem;
+    width: 60px;
+    height: 60px;
+    margin-bottom: 0.6rem;
   }
 
   .logo-main svg {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
   }
 
   .action-buttons {
@@ -696,8 +788,8 @@ function goToLogin() {
   }
 
   .btn svg {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
   }
 
   .btn-label {
@@ -705,22 +797,47 @@ function goToLogin() {
   }
 
   .footer {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    margin-top: 0.5rem;
   }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 450px) {
+  .content {
+    padding: 0.75rem;
+  }
+
+  .header-section {
+    margin-bottom: 1rem;
+  }
+
   .header-section h1 {
-    font-size: 1.65rem;
+    font-size: 1.5rem;
     letter-spacing: 1px;
   }
 
   .header-section h2 {
-    font-size: 1rem;
+    font-size: 0.95rem;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+  }
+
+  .logo-main {
+    width: 55px;
+    height: 55px;
+    margin-bottom: 0.5rem;
+  }
+
+  .logo-main svg {
+    width: 28px;
+    height: 28px;
   }
 
   .action-buttons {
-    gap: 1rem;
+    gap: 1.25rem;
+    margin-bottom: 0.75rem;
   }
 
   .btn {
@@ -729,12 +846,48 @@ function goToLogin() {
   }
 
   .btn svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .btn-label {
+    font-size: 0.75rem;
+  }
+
+  .footer {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .header-section h1 {
+    font-size: 1.35rem;
+  }
+
+  .header-section h2 {
+    font-size: 0.9rem;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+  }
+
+  .action-buttons {
+    gap: 1rem;
+  }
+
+  .btn {
+    width: 65px;
+    height: 65px;
+  }
+
+  .btn svg {
     width: 24px;
     height: 24px;
   }
 
   .btn-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
 }
 </style>
