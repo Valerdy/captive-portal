@@ -232,13 +232,13 @@ onMounted(() => {
 
 /* Header UCAC-ICAM (Réutilisé) */
 .dashboard-header {
-  background: linear-gradient(135deg, #c31432 0%, #e85d04 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
   color: white;
   padding: 1.5rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(195, 20, 50, 0.2);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
 }
 
 .header-brand {
@@ -260,7 +260,7 @@ onMounted(() => {
 .logo-small svg {
   width: 26px;
   height: 26px;
-  color: #c31432;
+  color: #dc2626;
 }
 
 .brand-text h1 {
@@ -353,13 +353,13 @@ onMounted(() => {
 }
 
 .nav-item:hover {
-  color: #e85d04;
+  color: #f97316;
   background: #fff8f5;
 }
 
 .nav-item.router-link-active {
-  color: #c31432;
-  border-bottom-color: #c31432;
+  color: #dc2626;
+  border-bottom-color: #dc2626;
   background: #fff5f5;
 }
 
@@ -383,7 +383,7 @@ onMounted(() => {
 .page-content h2 svg {
   width: 32px;
   height: 32px;
-  color: #e85d04;
+  color: #f97316;
 }
 
 .profile-container {
@@ -408,14 +408,14 @@ onMounted(() => {
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #c31432 0%, #e85d04 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 3rem;
   font-weight: 800;
-  box-shadow: 0 8px 24px rgba(195, 20, 50, 0.3);
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
   flex-shrink: 0;
 }
 
@@ -438,7 +438,7 @@ onMounted(() => {
 .member-since svg {
   width: 18px;
   height: 18px;
-  color: #e85d04;
+  color: #f97316;
 }
 
 .profile-form {
@@ -468,7 +468,7 @@ label {
 label svg {
   width: 18px;
   height: 18px;
-  color: #e85d04;
+  color: #f97316;
   flex-shrink: 0;
 }
 
@@ -484,9 +484,9 @@ input {
 
 input:focus {
   outline: none;
-  border-color: #e85d04;
+  border-color: #f97316;
   background: white;
-  box-shadow: 0 0 0 3px rgba(232, 93, 4, 0.1);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
 }
 
 input::placeholder {
@@ -534,7 +534,7 @@ input::placeholder {
 .btn-primary {
   width: 100%;
   padding: 1.125rem;
-  background: linear-gradient(135deg, #c31432 0%, #e85d04 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
   color: white;
   border: none;
   border-radius: 12px;
@@ -542,7 +542,7 @@ input::placeholder {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(195, 20, 50, 0.3);
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -556,7 +556,7 @@ input::placeholder {
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(195, 20, 50, 0.4);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
 }
 
 .btn-primary:active:not(:disabled) {

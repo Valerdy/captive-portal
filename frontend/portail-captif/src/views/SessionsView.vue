@@ -193,13 +193,13 @@ onMounted(() => {
 
 /* Header UCAC-ICAM (Réutilisé du Dashboard) */
 .dashboard-header {
-  background: linear-gradient(135deg, #c31432 0%, #e85d04 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
   color: white;
   padding: 1.5rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(195, 20, 50, 0.2);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
 }
 
 .header-brand {
@@ -221,7 +221,7 @@ onMounted(() => {
 .logo-small svg {
   width: 26px;
   height: 26px;
-  color: #c31432;
+  color: #dc2626;
 }
 
 .brand-text h1 {
@@ -314,13 +314,13 @@ onMounted(() => {
 }
 
 .nav-item:hover {
-  color: #e85d04;
+  color: #f97316;
   background: #fff8f5;
 }
 
 .nav-item.router-link-active {
-  color: #c31432;
-  border-bottom-color: #c31432;
+  color: #dc2626;
+  border-bottom-color: #dc2626;
   background: #fff5f5;
 }
 
@@ -344,7 +344,7 @@ onMounted(() => {
 .page-content h2 svg {
   width: 32px;
   height: 32px;
-  color: #e85d04;
+  color: #f97316;
 }
 
 .loading {
@@ -362,7 +362,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border: 4px solid #f0f0f0;
-  border-top: 4px solid #e85d04;
+  border-top: 4px solid #f97316;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -426,7 +426,7 @@ tbody tr:hover {
 }
 
 .data-badge {
-  background: linear-gradient(135deg, #c31432 0%, #e85d04 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
   color: white;
   padding: 0.375rem 0.75rem;
   border-radius: 12px;
