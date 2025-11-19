@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSessionStore } from '@/stores/session'
+import { useNotificationStore } from '@/stores/notification'
+import DataTable from '@/components/DataTable.vue'
+import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
+const notificationStore = useNotificationStore()
+
+const statusFilter = ref<string>('all')
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -16,9 +22,70 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+function formatDate(value: string): string {
+  return new Date(value).toLocaleString('fr-FR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+function formatStatus(value: string): string {
+  const statusMap: Record<string, string> = {
+    active: 'Actif',
+    expired: 'Expiré',
+    terminated: 'Terminé'
+  }
+  return statusMap[value] || value
+}
+
+const columns = [
+  { key: 'ip_address', label: 'Adresse IP', sortable: true },
+  { key: 'mac_address', label: 'MAC Address', sortable: true },
+  {
+    key: 'start_time',
+    label: 'Début',
+    sortable: true,
+    formatter: (value: string) => formatDate(value)
+  },
+  {
+    key: 'end_time',
+    label: 'Fin',
+    sortable: true,
+    formatter: (value: string | null) => value ? formatDate(value) : '-'
+  },
+  {
+    key: 'total_bytes',
+    label: 'Données',
+    sortable: true,
+    formatter: (value: number) => formatBytes(value)
+  },
+  {
+    key: 'status',
+    label: 'Statut',
+    sortable: true,
+    formatter: (value: string) => formatStatus(value)
+  },
+  { key: 'actions', label: 'Actions', sortable: false }
+]
+
+const filteredSessions = computed(() => {
+  if (statusFilter.value === 'all') {
+    return sessionStore.sessions
+  }
+  return sessionStore.sessions.filter(session => session.status === statusFilter.value)
+})
+
 async function handleTerminate(sessionId: number) {
   if (confirm('Voulez-vous vraiment terminer cette session ?')) {
-    await sessionStore.terminateSession(sessionId)
+    try {
+      await sessionStore.terminateSession(sessionId)
+      notificationStore.success('Session terminée avec succès')
+    } catch (error) {
+      notificationStore.error('Erreur lors de la terminaison de la session')
+    }
   }
 }
 
@@ -111,70 +178,89 @@ onMounted(() => {
         Mes Sessions
       </h2>
 
-      <div v-if="sessionStore.isLoading" class="loading">
-        <div class="spinner"></div>
-        Chargement des sessions...
+      <!-- Status Filter Tabs -->
+      <div class="filter-tabs">
+        <button
+          @click="statusFilter = 'all'"
+          :class="['filter-tab', { active: statusFilter === 'all' }]"
+        >
+          Tous
+          <span class="count">{{ sessionStore.sessions.length }}</span>
+        </button>
+        <button
+          @click="statusFilter = 'active'"
+          :class="['filter-tab', { active: statusFilter === 'active' }]"
+        >
+          Actifs
+          <span class="count active">
+            {{ sessionStore.sessions.filter(s => s.status === 'active').length }}
+          </span>
+        </button>
+        <button
+          @click="statusFilter = 'expired'"
+          :class="['filter-tab', { active: statusFilter === 'expired' }]"
+        >
+          Expirés
+          <span class="count expired">
+            {{ sessionStore.sessions.filter(s => s.status === 'expired').length }}
+          </span>
+        </button>
+        <button
+          @click="statusFilter = 'terminated'"
+          :class="['filter-tab', { active: statusFilter === 'terminated' }]"
+        >
+          Terminés
+          <span class="count terminated">
+            {{ sessionStore.sessions.filter(s => s.status === 'terminated').length }}
+          </span>
+        </button>
       </div>
 
-      <div v-else-if="sessionStore.sessions.length > 0" class="section">
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Adresse IP</th>
-                <th>MAC Address</th>
-                <th>Début</th>
-                <th>Fin</th>
-                <th>Données</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="session in sessionStore.sessions" :key="session.id">
-                <td>
-                  <span class="ip-address">{{ session.ip_address }}</span>
-                </td>
-                <td>
-                  <span class="mac-address">{{ session.mac_address }}</span>
-                </td>
-                <td>{{ new Date(session.start_time).toLocaleString() }}</td>
-                <td>{{ session.end_time ? new Date(session.end_time).toLocaleString() : '-' }}</td>
-                <td>
-                  <span class="data-badge">{{ formatBytes(session.total_bytes) }}</span>
-                </td>
-                <td>
-                  <span :class="['badge', session.status]">
-                    {{ session.status === 'active' ? 'Actif' : session.status === 'expired' ? 'Expiré' : 'Terminé' }}
-                  </span>
-                </td>
-                <td>
-                  <button
-                    v-if="session.status === 'active'"
-                    @click="handleTerminate(session.id)"
-                    class="btn-danger"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                      <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    Terminer
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <!-- Data Table -->
+      <DataTable
+        :columns="columns"
+        :data="filteredSessions"
+        :loading="sessionStore.isLoading"
+        export-filename="sessions-ucac-icam"
+      >
+        <!-- Custom IP Address Cell -->
+        <template #cell-ip_address="{ value }">
+          <span class="ip-address">{{ value }}</span>
+        </template>
 
-      <div v-else class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-          <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <h3>Aucune session trouvée</h3>
-        <p>Vous n'avez pas encore de sessions enregistrées.</p>
-      </div>
+        <!-- Custom MAC Address Cell -->
+        <template #cell-mac_address="{ value }">
+          <span class="mac-address">{{ value }}</span>
+        </template>
+
+        <!-- Custom Total Bytes Cell -->
+        <template #cell-total_bytes="{ value }">
+          <span class="data-badge">{{ formatBytes(value) }}</span>
+        </template>
+
+        <!-- Custom Status Cell -->
+        <template #cell-status="{ value }">
+          <span :class="['badge', value]">
+            {{ formatStatus(value) }}
+          </span>
+        </template>
+
+        <!-- Custom Actions Cell -->
+        <template #cell-actions="{ row }">
+          <button
+            v-if="row.status === 'active'"
+            @click="handleTerminate(row.id)"
+            class="btn-danger"
+          >
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Terminer
+          </button>
+          <span v-else class="action-disabled">—</span>
+        </template>
+      </DataTable>
     </main>
   </div>
 </template>
@@ -191,7 +277,7 @@ onMounted(() => {
   background: #f5f7fa;
 }
 
-/* Header UCAC-ICAM (Réutilisé du Dashboard) */
+/* Header UCAC-ICAM */
 .dashboard-header {
   background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
   color: white;
@@ -284,7 +370,7 @@ onMounted(() => {
   transform: translateY(-1px);
 }
 
-/* Navigation (Réutilisé du Dashboard) */
+/* Navigation */
 .nav-menu {
   background: white;
   padding: 0 2rem;
@@ -333,7 +419,7 @@ onMounted(() => {
 
 .page-content h2 {
   margin-bottom: 2rem;
-  color: #333;
+  color: #111827;
   font-size: 1.75rem;
   font-weight: 700;
   display: flex;
@@ -347,82 +433,69 @@ onMounted(() => {
   color: #f97316;
 }
 
-.loading {
-  text-align: center;
-  padding: 4rem 2rem;
-  color: #666;
+/* Filter Tabs */
+.filter-tabs {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  font-size: 1.1rem;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f0f0f0;
-  border-top: 4px solid #f97316;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.section {
+.filter-tab {
+  padding: 0.75rem 1.5rem;
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-thead {
-  background: linear-gradient(135deg, #f8f9fa 0%, #f0f1f3 100%);
-}
-
-th,
-td {
-  padding: 1.125rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-th {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
   font-weight: 600;
-  color: #666;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 0.95rem;
+  color: #6b7280;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-tbody tr {
-  transition: background 0.2s;
+.filter-tab:hover {
+  border-color: #f97316;
+  color: #f97316;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.15);
 }
 
-tbody tr:hover {
-  background: #f8f9fa;
+.filter-tab.active {
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
+  border-color: #dc2626;
+  color: white;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
+.filter-tab .count {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+}
+
+.filter-tab.active .count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Custom Cell Styles */
 .ip-address,
 .mac-address {
   font-family: 'Courier New', monospace;
   font-size: 0.9rem;
-  color: #555;
-  background: #f8f9fa;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  color: #111827;
+  background: #f9fafb;
+  padding: 0.375rem 0.625rem;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-weight: 500;
 }
 
 .data-badge {
@@ -432,6 +505,7 @@ tbody tr:hover {
   border-radius: 12px;
   font-size: 0.875rem;
   font-weight: 600;
+  display: inline-block;
 }
 
 .badge {
@@ -444,22 +518,25 @@ tbody tr:hover {
 }
 
 .badge.active {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .badge.expired {
-  background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
 .badge.terminated {
-  background: linear-gradient(135deg, #e91e63 0%, #f48fb1 100%);
+  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -471,6 +548,7 @@ tbody tr:hover {
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
 }
 
 .btn-danger svg {
@@ -480,33 +558,12 @@ tbody tr:hover {
 
 .btn-danger:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
 }
 
-.empty-state {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  padding: 4rem 2rem;
-  text-align: center;
-}
-
-.empty-state svg {
-  width: 80px;
-  height: 80px;
-  color: #e0e0e0;
-  margin-bottom: 1.5rem;
-}
-
-.empty-state h3 {
-  color: #666;
-  font-size: 1.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.empty-state p {
-  color: #999;
-  font-size: 1.1rem;
+.action-disabled {
+  color: #d1d5db;
+  font-size: 1.25rem;
 }
 
 /* Responsive */
@@ -540,13 +597,17 @@ tbody tr:hover {
     padding: 1rem;
   }
 
-  table {
-    font-size: 0.875rem;
+  .page-content h2 {
+    font-size: 1.5rem;
   }
 
-  th,
-  td {
-    padding: 0.75rem 0.5rem;
+  .filter-tabs {
+    gap: 0.5rem;
+  }
+
+  .filter-tab {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
   }
 }
 
@@ -566,7 +627,7 @@ tbody tr:hover {
   }
 
   .page-content h2 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .page-content h2 svg {
