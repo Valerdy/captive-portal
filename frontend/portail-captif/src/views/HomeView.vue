@@ -357,7 +357,9 @@ function goToRegister() {
   box-shadow:
     0 0 8px rgba(255, 255, 255, 0.2),
     0 0 15px rgba(255, 255, 255, 0.1),
-    0 4px 8px rgba(0, 0, 0, 0.3);
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.3),
+    inset 0 6px 20px rgba(255, 255, 255, 0.2);
 }
 
 .btn::before {
@@ -404,7 +406,9 @@ function goToRegister() {
     0 0 15px rgba(220, 38, 38, 0.6),
     0 0 30px rgba(220, 38, 38, 0.4),
     0 0 45px rgba(220, 38, 38, 0.2),
-    0 6px 12px rgba(0, 0, 0, 0.3);
+    0 6px 12px rgba(0, 0, 0, 0.3),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.35),
+    inset 0 8px 16px rgba(255, 255, 255, 0.25);
 }
 
 .btn-secondary {
@@ -421,7 +425,9 @@ function goToRegister() {
     0 0 15px rgba(107, 114, 128, 0.6),
     0 0 30px rgba(107, 114, 128, 0.4),
     0 0 45px rgba(107, 114, 128, 0.2),
-    0 6px 12px rgba(0, 0, 0, 0.3);
+    0 6px 12px rgba(0, 0, 0, 0.3),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.35),
+    inset 0 8px 16px rgba(255, 255, 255, 0.25);
 }
 
 .btn-accent {
@@ -438,7 +444,9 @@ function goToRegister() {
     0 0 15px rgba(249, 115, 22, 0.6),
     0 0 30px rgba(249, 115, 22, 0.4),
     0 0 45px rgba(249, 115, 22, 0.2),
-    0 6px 12px rgba(0, 0, 0, 0.3);
+    0 6px 12px rgba(0, 0, 0, 0.3),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.35),
+    inset 0 8px 16px rgba(255, 255, 255, 0.25);
 }
 
 /* Footer */
@@ -652,6 +660,10 @@ function goToRegister() {
   font-size: 1.1rem;
   font-weight: 600;
   border: 2px solid rgba(220, 38, 38, 0.5);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.25),
+    inset 0 4px 12px rgba(255, 255, 255, 0.15);
 }
 
 .btn-full:hover:not(:disabled) {
@@ -660,7 +672,9 @@ function goToRegister() {
     0 0 12px rgba(220, 38, 38, 0.5),
     0 0 25px rgba(220, 38, 38, 0.3),
     0 0 35px rgba(220, 38, 38, 0.15),
-    0 4px 10px rgba(0, 0, 0, 0.3);
+    0 6px 12px rgba(0, 0, 0, 0.3),
+    inset 0 -5px 10px rgba(0, 0, 0, 0.3),
+    inset 0 5px 10px rgba(255, 255, 255, 0.2);
 }
 
 .btn-full:disabled {
