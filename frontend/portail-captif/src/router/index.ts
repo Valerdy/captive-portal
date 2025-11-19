@@ -51,6 +51,43 @@ const router = createRouter({
       name: 'profile',
       component: () => import('../views/ProfileView.vue'),
       meta: { requiresAuth: true }
+    },
+    // Routes Admin
+    {
+      path: '/admin/login',
+      name: 'admin-login',
+      component: () => import('../views/AdminLoginView.vue'),
+      meta: { requiresGuest: true }
+    },
+    {
+      path: '/admin/dashboard',
+      name: 'admin-dashboard',
+      component: () => import('../views/AdminDashboardView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: () => import('../views/AdminUsersView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/monitoring',
+      name: 'admin-monitoring',
+      component: () => import('../views/AdminMonitoringView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/sites',
+      name: 'admin-sites',
+      component: () => import('../views/AdminSitesView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/quotas',
+      name: 'admin-quotas',
+      component: () => import('../views/AdminQuotasView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })
@@ -66,13 +103,19 @@ router.beforeEach((to, from, next) => {
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
   const requiresGuest = to.matched.some((record) => record.meta.requiresGuest)
+  const requiresAdmin = to.matched.some((record) => record.meta.requiresAdmin)
 
   if (requiresAuth && !authStore.isAuthenticated) {
     // Rediriger vers login si auth requise et pas connecté
-    next({ name: 'login', query: { redirect: to.fullPath } })
+    const redirectRoute = requiresAdmin ? 'admin-login' : 'login'
+    next({ name: redirectRoute, query: { redirect: to.fullPath } })
+  } else if (requiresAdmin && !authStore.isAdmin) {
+    // Rediriger si droits admin requis mais pas admin
+    next({ name: 'home' })
   } else if (requiresGuest && authStore.isAuthenticated) {
     // Rediriger vers dashboard si déjà connecté
-    next({ name: 'dashboard' })
+    const redirectRoute = authStore.isAdmin ? 'admin-dashboard' : 'dashboard'
+    next({ name: redirectRoute })
   } else {
     next()
   }

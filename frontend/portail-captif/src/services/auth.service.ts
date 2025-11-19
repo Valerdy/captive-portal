@@ -49,6 +49,13 @@ export const authService = {
   },
 
   /**
+   * Changer le mot de passe utilisateur
+   */
+  async changePassword(data: { current_password: string; new_password: string; confirm_password: string }): Promise<void> {
+    await api.post('/api/core/auth/password/change/', data)
+  },
+
+  /**
    * Rafraîchir le token d'accès
    */
   async refreshToken(refreshToken: string): Promise<{ access: string; refresh: string }> {

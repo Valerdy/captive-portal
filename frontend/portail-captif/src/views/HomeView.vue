@@ -51,12 +51,25 @@ function goToInternet() {
 function goToRegister() {
   router.push('/register')
 }
+
+function goToAdminLogin() {
+  router.push('/admin/login')
+}
 </script>
 
 <template>
   <div class="home-page">
     <!-- Image de fond -->
     <div class="image-background"></div>
+
+    <!-- Bouton Admin en haut à droite -->
+    <button @click="goToAdminLogin" class="admin-btn" title="Connexion administrateur">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>Admin</span>
+    </button>
 
     <div class="content">
       <!-- Logo et Titre -->
@@ -449,6 +462,65 @@ function goToRegister() {
     inset 0 8px 16px rgba(255, 255, 255, 0.25);
 }
 
+/* Bouton Admin */
+.admin-btn {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 100;
+  background: rgba(17, 24, 39, 0.9);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(249, 115, 22, 0.5);
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  box-shadow:
+    0 0 10px rgba(249, 115, 22, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 2px 8px rgba(255, 255, 255, 0.1);
+}
+
+.admin-btn svg {
+  width: 20px;
+  height: 20px;
+  color: #f97316;
+  animation: rotate 8s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.admin-btn:hover {
+  background: rgba(17, 24, 39, 1);
+  border-color: rgba(249, 115, 22, 0.8);
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 20px rgba(249, 115, 22, 0.6),
+    0 0 40px rgba(249, 115, 22, 0.3),
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.4),
+    inset 0 3px 6px rgba(255, 255, 255, 0.15);
+}
+
+.admin-btn:hover svg {
+  animation: rotate 2s linear infinite;
+  color: #fb923c;
+}
+
 /* Footer */
 .footer {
   color: white;
@@ -685,6 +757,18 @@ function goToRegister() {
 
 /* Responsive */
 @media (max-width: 900px) and (max-height: 700px) {
+  .admin-btn {
+    top: 1.5rem;
+    right: 1.5rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .admin-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
   .content {
     padding: 1rem 1.5rem;
   }
@@ -738,6 +822,18 @@ function goToRegister() {
 }
 
 @media (max-width: 768px) {
+  .admin-btn {
+    top: 1.25rem;
+    right: 1.25rem;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.85rem;
+  }
+
+  .admin-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
   .content {
     padding: 1.25rem 1.5rem;
   }
