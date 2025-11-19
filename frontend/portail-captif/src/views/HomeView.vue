@@ -48,8 +48,8 @@ function goToInternet() {
   window.open('http://portail.local', '_blank')
 }
 
-function goToLogin() {
-  router.push('/login')
+function goToRegister() {
+  router.push('/register')
 }
 </script>
 
@@ -76,12 +76,15 @@ function goToLogin() {
       <!-- Boutons d'action -->
       <div class="action-buttons">
         <div class="btn-wrapper">
-          <button @click="goToLogin" class="btn btn-primary" title="Se connecter">
+          <button @click="goToRegister" class="btn btn-primary" title="Créer un compte">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="23" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <span class="btn-label">Se connecter</span>
+          <span class="btn-label">Créer un compte</span>
         </div>
 
         <div class="btn-wrapper">
