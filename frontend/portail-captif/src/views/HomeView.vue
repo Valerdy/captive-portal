@@ -75,29 +75,35 @@ function goToLogin() {
 
       <!-- Boutons d'action -->
       <div class="action-buttons">
-        <button @click="goToLogin" class="btn btn-primary">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Se connecter
-        </button>
+        <div class="btn-wrapper">
+          <button @click="goToLogin" class="btn btn-primary" title="Se connecter">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <span class="btn-label">Se connecter</span>
+        </div>
 
-        <button @click="openVerifyModal" class="btn btn-secondary">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Vérifier son compte
-        </button>
+        <div class="btn-wrapper">
+          <button @click="openVerifyModal" class="btn btn-secondary" title="Vérifier son compte">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <span class="btn-label">Vérifier compte</span>
+        </div>
 
-        <button @click="goToInternet" class="btn btn-accent">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Aller sur Internet
-        </button>
+        <div class="btn-wrapper">
+          <button @click="goToInternet" class="btn btn-accent" title="Aller sur Internet">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <span class="btn-label">Aller sur Internet</span>
+        </div>
       </div>
 
       <!-- Footer -->
@@ -188,7 +194,7 @@ function goToLogin() {
 }
 
 .home-page {
-  min-height: 100vh;
+  height: 100vh;
   position: relative;
   display: flex;
   align-items: center;
@@ -251,14 +257,14 @@ function goToLogin() {
 
 /* Header Section */
 .header-section {
-  margin-bottom: 4rem;
+  margin-bottom: 2.5rem;
   color: white;
 }
 
 .logo-main {
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 2rem;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 1.5rem;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
   border-radius: 50%;
@@ -282,15 +288,15 @@ function goToLogin() {
 }
 
 .logo-main svg {
-  width: 60px;
-  height: 60px;
+  width: 45px;
+  height: 45px;
   color: white;
 }
 
 .header-section h1 {
-  font-size: 4rem;
+  font-size: 3rem;
   font-weight: 900;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
   letter-spacing: 3px;
   background: linear-gradient(135deg, #fff 0%, #f97316 100%);
@@ -300,15 +306,15 @@ function goToLogin() {
 }
 
 .header-section h2 {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   opacity: 0.95;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .subtitle {
-  font-size: 1.1rem;
+  font-size: 1rem;
   opacity: 0.9;
   font-weight: 300;
 }
@@ -316,74 +322,88 @@ function goToLogin() {
 /* Boutons d'action */
 .action-buttons {
   display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 3rem;
+  margin-bottom: 2rem;
+}
+
+.btn-wrapper {
+  display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 3rem;
+  align-items: center;
+  gap: 1rem;
 }
 
 .btn {
-  padding: 1.5rem 2.5rem;
+  width: 100px;
+  height: 100px;
   border: none;
-  border-radius: 16px;
-  font-size: 1.25rem;
-  font-weight: 700;
+  border-radius: 50%;
   cursor: pointer;
   transition: all 0.4s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border: 3px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn svg {
-  width: 24px;
-  height: 24px;
+  width: 36px;
+  height: 36px;
+}
+
+.btn-label {
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .btn-primary {
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   color: white;
-  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary:hover {
   background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 32px rgba(220, 38, 38, 0.5);
+  transform: translateY(-5px) scale(1.1);
+  box-shadow: 0 12px 32px rgba(220, 38, 38, 0.6);
 }
 
 .btn-secondary {
   background: linear-gradient(135deg, rgba(107, 114, 128, 0.9) 0%, rgba(75, 85, 99, 0.9) 100%);
   color: white;
-  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-secondary:hover {
   background: linear-gradient(135deg, rgba(75, 85, 99, 0.95) 0%, rgba(55, 65, 81, 0.95) 100%);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 32px rgba(107, 114, 128, 0.5);
+  transform: translateY(-5px) scale(1.1);
+  box-shadow: 0 12px 32px rgba(107, 114, 128, 0.6);
 }
 
 .btn-accent {
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   color: white;
-  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-accent:hover {
   background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 32px rgba(249, 115, 22, 0.5);
+  transform: translateY(-5px) scale(1.1);
+  box-shadow: 0 12px 32px rgba(249, 115, 22, 0.6);
 }
 
 /* Footer */
 .footer {
   color: white;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   opacity: 0.8;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  margin-top: 1rem;
 }
 
 /* Modal */
@@ -586,27 +606,46 @@ function goToLogin() {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .header-section {
+    margin-bottom: 2rem;
+  }
+
   .header-section h1 {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
   }
 
   .header-section h2 {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
   }
 
   .logo-main {
-    width: 100px;
-    height: 100px;
+    width: 75px;
+    height: 75px;
+    margin-bottom: 1rem;
   }
 
   .logo-main svg {
-    width: 50px;
-    height: 50px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .action-buttons {
+    gap: 2rem;
+    margin-bottom: 1.5rem;
   }
 
   .btn {
-    padding: 1.25rem 2rem;
-    font-size: 1.1rem;
+    width: 85px;
+    height: 85px;
+  }
+
+  .btn svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  .btn-label {
+    font-size: 0.85rem;
   }
 
   .modal-content {
@@ -614,13 +653,17 @@ function goToLogin() {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .content {
-    padding: 1rem;
+    padding: 1.5rem 1rem;
+  }
+
+  .header-section {
+    margin-bottom: 1.5rem;
   }
 
   .header-section h1 {
-    font-size: 2rem;
+    font-size: 1.85rem;
   }
 
   .header-section h2 {
@@ -628,27 +671,70 @@ function goToLogin() {
   }
 
   .subtitle {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 
   .logo-main {
-    width: 80px;
-    height: 80px;
+    width: 65px;
+    height: 65px;
+    margin-bottom: 0.75rem;
   }
 
   .logo-main svg {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .action-buttons {
+    gap: 1.5rem;
+    margin-bottom: 1rem;
   }
 
   .btn {
-    padding: 1.125rem 1.5rem;
-    font-size: 1rem;
+    width: 75px;
+    height: 75px;
   }
 
   .btn svg {
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
+  }
+
+  .btn-label {
+    font-size: 0.8rem;
+  }
+
+  .footer {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .header-section h1 {
+    font-size: 1.65rem;
+    letter-spacing: 1px;
+  }
+
+  .header-section h2 {
+    font-size: 1rem;
+  }
+
+  .action-buttons {
+    gap: 1rem;
+  }
+
+  .btn {
+    width: 70px;
+    height: 70px;
+  }
+
+  .btn svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .btn-label {
+    font-size: 0.75rem;
   }
 }
 </style>
