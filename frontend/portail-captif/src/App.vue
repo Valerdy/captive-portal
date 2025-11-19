@@ -7,3 +7,8 @@ import ToastNotification from './components/ToastNotification.vue'
   <ToastNotification />
   <RouterView />
 </template>
+
+
+  <RouterView />
+</template>
+
