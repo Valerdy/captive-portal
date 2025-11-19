@@ -211,7 +211,7 @@ function goToLogin() {
   height: 100%;
   background: url('https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2000') center/cover;
   z-index: 0;
-  animation: zoomImage 10s ease-in-out infinite alternate;
+  animation: zoomImage 5s ease-in-out infinite alternate;
 }
 
 .image-background::after {
@@ -352,10 +352,10 @@ function goToLogin() {
   justify-content: center;
   position: relative;
   box-shadow:
-    0 8px 16px rgba(0, 0, 0, 0.4),
-    0 12px 28px rgba(0, 0, 0, 0.3),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.3),
-    inset 0 8px 16px rgba(255, 255, 255, 0.2);
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 6px 14px rgba(0, 0, 0, 0.3),
+    inset 0 -16px 8px rgba(0, 0, 0, 0.3),
+    inset 0 4px 16px rgba(255, 255, 255, 0.2);
 }
 
 .btn::before {
@@ -366,7 +366,7 @@ function goToLogin() {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 50%, transparent 60%, rgba(255, 255, 255, 0.3) 70%, transparent 80%);
+  background: radial-gradient(circle at 1% 1%, transparent 1%, rgba(255, 255, 255, 0.3) 1%, transparent 1%);
   pointer-events: none;
 }
 
@@ -425,8 +425,8 @@ function goToLogin() {
   background: radial-gradient(circle at 30% 30%, #fdba74, #fb923c 50%, #ea580c);
   transform: translateY(-8px) scale(1.08);
   box-shadow:
-    0 15px 35px rgba(249, 115, 22, 0.6),
-    0 20px 45px rgba(249, 115, 22, 0.4),
+    0 5px 10px rgba(249, 115, 22, 0.6),
+    0 20px 20px rgba(249, 115, 22, 0.4),
     inset 0 -10px 20px rgba(0, 0, 0, 0.4),
     inset 0 10px 20px rgba(255, 255, 255, 0.25);
 }
