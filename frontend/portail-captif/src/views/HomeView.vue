@@ -55,15 +55,7 @@ function goToLogin() {
 
 <template>
   <div class="home-page">
-    <!-- Vidéo de fond -->
-    <div class="video-background">
-      <video autoplay muted loop playsinline>
-        <source src="/videos/university-bg.mp4" type="video/mp4">
-      </video>
-      <div class="video-overlay"></div>
-    </div>
-
-    <!-- Image de fond alternative (si pas de vidéo) -->
+    <!-- Image de fond -->
     <div class="image-background"></div>
 
     <div class="content">
@@ -204,32 +196,7 @@ function goToLogin() {
   overflow: hidden;
 }
 
-/* Vidéo de fond */
-.video-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-}
-
-.video-background video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.video-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.85) 0%, rgba(17, 24, 39, 0.9) 50%, rgba(249, 115, 22, 0.85) 100%);
-}
-
-/* Image de fond alternative */
+/* Image de fond */
 .image-background {
   position: absolute;
   top: 0;
