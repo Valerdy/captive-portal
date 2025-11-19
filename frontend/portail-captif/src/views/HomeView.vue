@@ -346,7 +346,7 @@ function goToRegister() {
 .btn {
   width: 100px;
   height: 100px;
-  border: none;
+  border: 3px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.4s ease;
@@ -355,22 +355,23 @@ function goToRegister() {
   justify-content: center;
   position: relative;
   box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.4),
-    0 6px 14px rgba(0, 0, 0, 0.3),
-    inset 0 -16px 8px rgba(0, 0, 0, 0.3),
-    inset 0 4px 16px rgba(255, 255, 255, 0.2);
+    0 0 8px rgba(255, 255, 255, 0.2),
+    0 0 15px rgba(255, 255, 255, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .btn::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
   border-radius: 50%;
-  background: radial-gradient(circle at 1% 1%, transparent 1%, rgba(255, 255, 255, 0.3) 1%, transparent 1%);
+  background: transparent;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
 .btn svg {
@@ -392,46 +393,52 @@ function goToRegister() {
 .btn-primary {
   background: radial-gradient(circle at 30% 30%, #ef4444, #dc2626 50%, #991b1b);
   color: white;
+  border-color: rgba(220, 38, 38, 0.5);
 }
 
 .btn-primary:hover {
   background: radial-gradient(circle at 30% 30%, #f87171, #ef4444 50%, #b91c1c);
-  transform: translateY(-8px) scale(1.08);
+  transform: translateY(-6px) scale(1.05);
+  border-color: rgba(239, 68, 68, 0.8);
   box-shadow:
-    0 15px 35px rgba(220, 38, 38, 0.6),
-    0 20px 45px rgba(220, 38, 38, 0.4),
-    inset 0 -10px 20px rgba(0, 0, 0, 0.4),
-    inset 0 10px 20px rgba(255, 255, 255, 0.25);
+    0 0 15px rgba(220, 38, 38, 0.6),
+    0 0 30px rgba(220, 38, 38, 0.4),
+    0 0 45px rgba(220, 38, 38, 0.2),
+    0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .btn-secondary {
   background: radial-gradient(circle at 30% 30%, #9ca3af, #6b7280 50%, #374151);
   color: white;
+  border-color: rgba(107, 114, 128, 0.5);
 }
 
 .btn-secondary:hover {
   background: radial-gradient(circle at 30% 30%, #d1d5db, #9ca3af 50%, #4b5563);
-  transform: translateY(-8px) scale(1.08);
+  transform: translateY(-6px) scale(1.05);
+  border-color: rgba(156, 163, 175, 0.8);
   box-shadow:
-    0 15px 35px rgba(107, 114, 128, 0.6),
-    0 20px 45px rgba(107, 114, 128, 0.4),
-    inset 0 -10px 20px rgba(0, 0, 0, 0.4),
-    inset 0 10px 20px rgba(255, 255, 255, 0.25);
+    0 0 15px rgba(107, 114, 128, 0.6),
+    0 0 30px rgba(107, 114, 128, 0.4),
+    0 0 45px rgba(107, 114, 128, 0.2),
+    0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .btn-accent {
   background: radial-gradient(circle at 30% 30%, #fb923c, #f97316 50%, #c2410c);
   color: white;
+  border-color: rgba(249, 115, 22, 0.5);
 }
 
 .btn-accent:hover {
   background: radial-gradient(circle at 30% 30%, #fdba74, #fb923c 50%, #ea580c);
-  transform: translateY(-8px) scale(1.08);
+  transform: translateY(-6px) scale(1.05);
+  border-color: rgba(251, 146, 60, 0.8);
   box-shadow:
-    0 5px 10px rgba(249, 115, 22, 0.6),
-    0 20px 20px rgba(249, 115, 22, 0.4),
-    inset 0 -10px 20px rgba(0, 0, 0, 0.4),
-    inset 0 10px 20px rgba(255, 255, 255, 0.25);
+    0 0 15px rgba(249, 115, 22, 0.6),
+    0 0 30px rgba(249, 115, 22, 0.4),
+    0 0 45px rgba(249, 115, 22, 0.2),
+    0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Footer */
@@ -639,6 +646,27 @@ function goToRegister() {
 
 .btn-full {
   width: 100%;
+  border-radius: 16px;
+  height: auto;
+  padding: 1.125rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: 2px solid rgba(220, 38, 38, 0.5);
+}
+
+.btn-full:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 12px rgba(220, 38, 38, 0.5),
+    0 0 25px rgba(220, 38, 38, 0.3),
+    0 0 35px rgba(220, 38, 38, 0.15),
+    0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.btn-full:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  border-color: rgba(220, 38, 38, 0.3);
 }
 
 /* Responsive */
