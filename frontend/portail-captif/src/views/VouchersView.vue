@@ -116,35 +116,59 @@ function formatDuration(seconds: number): string {
 </template>
 
 <style scoped>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .voucher-container {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem;
+  background: linear-gradient(135deg, #c31432 0%, #e85d04 50%, #ff6b35 100%);
+  padding: 1rem;
 }
 
 .voucher-card {
   background: white;
   padding: 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 500px;
+  max-width: 540px;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 h1 {
-  color: #667eea;
-  font-size: 1.8rem;
+  color: #c31432;
+  font-size: 2rem;
   margin-bottom: 0.5rem;
   text-align: center;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
 }
 
 .subtitle {
   text-align: center;
   color: #666;
   margin-bottom: 2rem;
+  font-size: 1rem;
 }
 
 .form-group {
@@ -152,24 +176,46 @@ h1 {
 }
 
 label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
-  color: #555;
-  font-weight: 500;
+  color: #333;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+label svg {
+  width: 18px;
+  height: 18px;
+  color: #e85d04;
 }
 
 input {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 1.1rem;
   text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  background: #f8f8f8;
+  text-align: center;
 }
 
 input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #e85d04;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(232, 93, 4, 0.1);
+}
+
+input::placeholder {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: normal;
 }
 
 .button-group {
@@ -181,29 +227,37 @@ input:focus {
 
 .btn-primary,
 .btn-secondary {
-  padding: 0.875rem;
+  padding: 1rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 12px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.3s ease;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #c31432 0%, #e85d04 100%);
   color: white;
+  box-shadow: 0 4px 15px rgba(195, 20, 50, 0.3);
 }
 
 .btn-secondary {
   background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
+  color: #e85d04;
+  border: 2px solid #e85d04;
 }
 
-.btn-primary:hover:not(:disabled),
-.btn-secondary:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(195, 20, 50, 0.4);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #e85d04;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(232, 93, 4, 0.3);
 }
 
 .btn-primary:disabled,
@@ -214,62 +268,133 @@ input:focus {
 }
 
 .error-message {
-  background: #fee;
-  color: #c33;
-  padding: 0.75rem;
-  border-radius: 6px;
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  color: #c53030;
+  padding: 1rem;
+  border-radius: 12px;
   margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
 }
 
 .success-message {
-  background: #e8f5e9;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
   color: #2e7d32;
-  padding: 0.75rem;
-  border-radius: 6px;
+  padding: 1rem;
+  border-radius: 12px;
   margin-bottom: 1rem;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid #81c784;
 }
 
 .validation-result {
   margin: 1.5rem 0;
-  padding: 1.5rem;
-  border-radius: 8px;
+  padding: 1.75rem;
+  border-radius: 16px;
+  border: 2px solid;
 }
 
 .valid {
-  background: #e8f5e9;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-color: #4caf50;
 }
 
 .invalid {
-  background: #ffebee;
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  border-color: #ef5350;
 }
 
 .valid h3 {
   color: #2e7d32;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
 .invalid h3 {
   color: #c62828;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
 .voucher-details p {
-  margin: 0.5rem 0;
+  margin: 0.75rem 0;
   color: #333;
+  font-size: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.voucher-details p:last-child {
+  border-bottom: none;
+}
+
+.voucher-details strong {
+  color: #2e7d32;
+  font-weight: 700;
+  min-width: 150px;
+  display: inline-block;
 }
 
 .footer {
   margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
   text-align: center;
 }
 
 .footer a {
-  color: #667eea;
+  color: #e85d04;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .footer a:hover {
-  text-decoration: underline;
+  color: #c31432;
+  transform: translateX(-4px);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .voucher-container {
+    padding: 0.5rem;
+  }
+
+  .voucher-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .button-group {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .voucher-card {
+    padding: 1.5rem 1rem;
+  }
+
+  input {
+    padding: 0.875rem;
+    font-size: 1rem;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.875rem;
+  }
 }
 </style>
