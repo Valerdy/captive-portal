@@ -209,13 +209,13 @@ onMounted(async () => {
 
 /* Header UCAC-ICAM */
 .dashboard-header {
-  background: linear-gradient(135deg, #c31432 0%, #e85d04 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
   color: white;
   padding: 1.5rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(195, 20, 50, 0.2);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
 }
 
 .header-brand {
@@ -237,7 +237,7 @@ onMounted(async () => {
 .logo-small svg {
   width: 26px;
   height: 26px;
-  color: #c31432;
+  color: #dc2626;
 }
 
 .brand-text h1 {
@@ -330,13 +330,13 @@ onMounted(async () => {
 }
 
 .nav-item:hover {
-  color: #e85d04;
+  color: #f97316;
   background: #fff8f5;
 }
 
 .nav-item.router-link-active {
-  color: #c31432;
-  border-bottom-color: #c31432;
+  color: #dc2626;
+  border-bottom-color: #dc2626;
   background: #fff5f5;
 }
 
@@ -403,7 +403,7 @@ onMounted(async () => {
 }
 
 .stat-icon.data {
-  background: linear-gradient(135deg, #c31432 0%, #e85d04 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
   color: white;
 }
 
@@ -457,7 +457,7 @@ onMounted(async () => {
 .section h3 svg {
   width: 24px;
   height: 24px;
-  color: #e85d04;
+  color: #f97316;
 }
 
 .table-container {

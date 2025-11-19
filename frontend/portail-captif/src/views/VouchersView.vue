@@ -127,7 +127,7 @@ function formatDuration(seconds: number): string {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #c31432 0%, #e85d04 50%, #ff6b35 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 50%, #ff6b35 100%);
   padding: 1rem;
 }
 
@@ -153,7 +153,7 @@ function formatDuration(seconds: number): string {
 }
 
 h1 {
-  color: #c31432;
+  color: #dc2626;
   font-size: 2rem;
   margin-bottom: 0.5rem;
   text-align: center;
@@ -188,7 +188,7 @@ label {
 label svg {
   width: 18px;
   height: 18px;
-  color: #e85d04;
+  color: #f97316;
 }
 
 input {
@@ -207,9 +207,9 @@ input {
 
 input:focus {
   outline: none;
-  border-color: #e85d04;
+  border-color: #f97316;
   background: white;
-  box-shadow: 0 0 0 3px rgba(232, 93, 4, 0.1);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
 }
 
 input::placeholder {
@@ -237,27 +237,27 @@ input::placeholder {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #c31432 0%, #e85d04 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(195, 20, 50, 0.3);
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
 }
 
 .btn-secondary {
   background: white;
-  color: #e85d04;
-  border: 2px solid #e85d04;
+  color: #f97316;
+  border: 2px solid #f97316;
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(195, 20, 50, 0.4);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #e85d04;
+  background: #f97316;
   color: white;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(232, 93, 4, 0.3);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
 }
 
 .btn-primary:disabled,
@@ -349,7 +349,7 @@ input::placeholder {
 }
 
 .footer a {
-  color: #e85d04;
+  color: #f97316;
   text-decoration: none;
   font-weight: 600;
   transition: all 0.3s ease;
@@ -359,7 +359,7 @@ input::placeholder {
 }
 
 .footer a:hover {
-  color: #c31432;
+  color: #dc2626;
   transform: translateX(-4px);
 }
 

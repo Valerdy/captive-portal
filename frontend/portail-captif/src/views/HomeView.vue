@@ -203,9 +203,28 @@ function goToLogin() {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.9) 0%, rgba(17, 24, 39, 0.95) 50%, rgba(249, 115, 22, 0.9) 100%),
-              url('https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2000') center/cover;
+  background: url('https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2000') center/cover;
   z-index: 0;
+  animation: zoomImage 20s ease-in-out infinite alternate;
+}
+
+.image-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+@keyframes zoomImage {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.1);
+  }
 }
 
 /* Contenu principal */
