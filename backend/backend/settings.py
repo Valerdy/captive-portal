@@ -10,10 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from pathlib import Path
-from datetime import timedelta
-import environ
 import os
+from datetime import timedelta
+from pathlib import Path
+
+import environ
 
 # Initialize environment variables
 env = environ.Env(
@@ -96,12 +97,12 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': env('DB_ENGINE', default='django.db.backends.sqlite3'),
-        'NAME': env('DB_NAME', default=str(BASE_DIR / 'db.sqlite3')),
-        'USER': env('DB_USER', default=''),
-        'PASSWORD': env('DB_PASSWORD', default=''),
-        'HOST': env('DB_HOST', default=''),
-        'PORT': env('DB_PORT', default=''),
+        'ENGINE': env('DB_ENGINE', default='django.db.backends.mysql'),
+        'NAME': env('DB_NAME', default='radius'),
+        'USER': env('DB_USER', default='root'),
+        'PASSWORD': env('DB_PASSWORD', default='MotDePasseSecurise123!'),
+        'HOST': env('DB_HOST', default='10.242.52.100'),
+        'PORT': env('DB_PORT', default='3306'),
     }
 }
 
@@ -210,3 +211,4 @@ CAPTIVE_PORTAL_CONFIG = {
 
 # Custom User Model
 AUTH_USER_MODEL = 'core.User'
+

@@ -15,7 +15,7 @@ routeros-api==0.17.0
 
 # Database
 psycopg2-binary==2.9.10  # PostgreSQL adapter
-mysqlclient==2.2.4  # MySQL adapter
+PyMySQL==1.1.0  # MySQL adapter
 
 # Security & Authentication
 python-decouple==3.8
