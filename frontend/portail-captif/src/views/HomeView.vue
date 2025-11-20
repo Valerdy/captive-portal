@@ -225,7 +225,7 @@ function goToAdminLogin() {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=2000') center/cover;
+  background: url('/image-bg.jpg') center/cover;
   z-index: 0;
   animation: zoomImage 5s ease-in-out infinite alternate;
 }
