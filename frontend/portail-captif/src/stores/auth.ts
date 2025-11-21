@@ -14,7 +14,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Getters
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
-  const isAdmin = computed(() => user.value?.is_staff || user.value?.is_superuser || false)
+  const isAdmin = computed(() => {
+    // Use role_name if available, fallback to is_staff/is_superuser
+    if (user.value?.role_name) {
+      return user.value.role_name === 'admin'
+    }
+    return user.value?.is_staff || user.value?.is_superuser || false
+  })
+  const userRole = computed(() => user.value?.role_name || (isAdmin.value ? 'admin' : 'user'))
 
   // Actions
   async function login(credentials: LoginCredentials) {
@@ -208,6 +215,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Getters
     isAuthenticated,
     isAdmin,
+    userRole,
 
     // Actions
     login,

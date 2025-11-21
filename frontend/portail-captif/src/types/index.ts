@@ -13,6 +13,8 @@ export interface User {
   voucher_code: string | null
   is_active: boolean
   is_staff?: boolean
+  is_superuser?: boolean
+  role_name?: string  // 'admin' | 'user'
   date_joined: string
   created_at: string
   updated_at: string

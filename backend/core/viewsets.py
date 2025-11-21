@@ -8,12 +8,13 @@ from .serializers import (
     SessionSerializer, SessionListSerializer, VoucherSerializer,
     VoucherValidationSerializer
 )
+from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdmin, IsAuthenticatedUser
 
 
 class UserViewSet(viewsets.ModelViewSet):
     """ViewSet for User model"""
     queryset = User.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticatedUser]
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -21,9 +22,30 @@ class UserViewSet(viewsets.ModelViewSet):
         return UserSerializer
 
     def get_permissions(self):
+        """
+        Permissions:
+        - create: AllowAny (for registration)
+        - list: Admin only
+        - retrieve/update/destroy: Admin or owner
+        """
         if self.action == 'create':
             return [permissions.AllowAny()]
+        elif self.action == 'list':
+            return [IsAdmin()]
+        elif self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+            return [IsOwnerOrAdmin()]
         return super().get_permissions()
+
+    def get_queryset(self):
+        """Filter users based on role"""
+        user = self.request.user
+        if user.is_authenticated and (user.is_staff or user.is_superuser):
+            # Admins see all users
+            return User.objects.all()
+        elif user.is_authenticated:
+            # Regular users see only themselves
+            return User.objects.filter(id=user.id)
+        return User.objects.none()
 
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -52,14 +74,28 @@ class DeviceViewSet(viewsets.ModelViewSet):
     """ViewSet for Device model"""
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticatedUser]
+
+    def get_permissions(self):
+        """
+        Permissions:
+        - list/retrieve: Owner or admin
+        - create/update/delete: Owner or admin
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsOwnerOrAdmin()]
+        return super().get_permissions()
 
     def get_queryset(self):
-        """Filter devices based on user permissions"""
+        """Filter devices based on user role"""
         user = self.request.user
-        if user.is_staff:
+        if user.is_authenticated and (user.is_staff or user.is_superuser):
+            # Admins see all devices
             return Device.objects.all()
-        return Device.objects.filter(user=user)
+        elif user.is_authenticated:
+            # Regular users see only their devices
+            return Device.objects.filter(user=user)
+        return Device.objects.none()
 
     @action(detail=False, methods=['get'])
     def active(self, request):
@@ -80,19 +116,34 @@ class DeviceViewSet(viewsets.ModelViewSet):
 class SessionViewSet(viewsets.ModelViewSet):
     """ViewSet for Session model"""
     queryset = Session.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticatedUser]
 
     def get_serializer_class(self):
         if self.action == 'list':
             return SessionListSerializer
         return SessionSerializer
 
+    def get_permissions(self):
+        """
+        Permissions:
+        - list/retrieve: Owner or admin
+        - terminate: Owner or admin
+        - statistics: Owner or admin
+        """
+        if self.action in ['terminate', 'statistics']:
+            return [IsAuthenticatedUser()]
+        return super().get_permissions()
+
     def get_queryset(self):
-        """Filter sessions based on user permissions"""
+        """Filter sessions based on user role"""
         user = self.request.user
-        if user.is_staff:
+        if user.is_authenticated and (user.is_staff or user.is_superuser):
+            # Admins see all sessions
             return Session.objects.all()
-        return Session.objects.filter(user=user)
+        elif user.is_authenticated:
+            # Regular users see only their sessions
+            return Session.objects.filter(user=user)
+        return Session.objects.none()
 
     @action(detail=False, methods=['get'])
     def active(self, request):

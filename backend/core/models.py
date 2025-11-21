@@ -4,6 +4,34 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+class Role(models.Model):
+    """User roles for access control"""
+    ROLE_CHOICES = [
+        ('admin', 'Administrator'),
+        ('user', 'User'),
+    ]
+
+    name = models.CharField(max_length=50, unique=True, choices=ROLE_CHOICES, db_index=True)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'roles'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.get_name_display()
+
+
+def get_default_role():
+    """Get or create the default 'user' role"""
+    role, _ = Role.objects.get_or_create(
+        name='user',
+        defaults={'description': 'Standard user with basic access'}
+    )
+    return role.id
+
+
 class User(AbstractUser):
     """Extended User model for captive portal users"""
     phone_number = models.CharField(max_length=20, blank=True, null=True)
@@ -11,6 +39,7 @@ class User(AbstractUser):
     ip_address = models.GenericIPAddressField(blank=True, null=True)
     is_voucher_user = models.BooleanField(default=False)
     voucher_code = models.CharField(max_length=50, blank=True, null=True)
+    role = models.ForeignKey(Role, on_delete=models.PROTECT, related_name='users', default=get_default_role)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -20,6 +49,20 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.email})"
+
+    def get_role_name(self):
+        """Get the role name (synced with is_staff/is_superuser)"""
+        if self.is_staff or self.is_superuser:
+            return 'admin'
+        return 'user'
+
+    def is_admin(self):
+        """Check if user has admin role"""
+        return self.is_staff or self.is_superuser or self.role.name == 'admin'
+
+    def is_regular_user(self):
+        """Check if user has regular user role"""
+        return not self.is_admin()
 
 
 class Device(models.Model):
