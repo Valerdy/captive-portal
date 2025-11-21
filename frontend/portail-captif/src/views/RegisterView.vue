@@ -24,7 +24,11 @@ async function handleRegister() {
   errorMessage.value = ''
 
   try {
-    await authStore.register(formData.value)
+    // Ajouter password2 pour la validation backend
+    await authStore.register({
+      ...formData.value,
+      password2: formData.value.password
+    })
 
     // Notification de succès
     notificationStore.success('Inscription réussie ! Bienvenue.')
