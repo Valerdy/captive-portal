@@ -14,9 +14,10 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'password', 'password2',
             'first_name', 'last_name', 'phone_number', 'mac_address',
             'ip_address', 'is_voucher_user', 'voucher_code',
-            'is_active', 'date_joined', 'created_at', 'updated_at'
+            'is_active', 'is_staff', 'is_superuser',
+            'date_joined', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'is_active']
+        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'is_active', 'is_staff', 'is_superuser']
 
     def validate(self, attrs):
         if attrs.get('password') != attrs.get('password2'):
@@ -36,7 +37,8 @@ class UserListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
             'phone_number', 'mac_address', 'ip_address',
-            'is_voucher_user', 'is_active', 'date_joined'
+            'is_voucher_user', 'is_active', 'is_staff', 'is_superuser',
+            'date_joined'
         ]
         read_only_fields = fields
 
