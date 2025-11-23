@@ -132,3 +132,43 @@ export interface APIError {
   message?: string
   errors?: Record<string, string[]>
 }
+
+export interface BlockedSite {
+  id: number
+  url: string
+  type: 'blacklist' | 'whitelist'
+  reason: string | null
+  is_active: boolean
+  added_by: number | null
+  added_by_username?: string
+  added_date: string
+  updated_at: string
+}
+
+export interface UserQuota {
+  id: number
+  user: number
+  user_username?: string
+  daily_limit: number
+  weekly_limit: number
+  monthly_limit: number
+  daily_limit_gb: number
+  weekly_limit_gb: number
+  monthly_limit_gb: number
+  used_today: number
+  used_week: number
+  used_month: number
+  used_today_gb: number
+  used_week_gb: number
+  used_month_gb: number
+  daily_usage_percent: number
+  weekly_usage_percent: number
+  monthly_usage_percent: number
+  last_daily_reset: string
+  last_weekly_reset: string
+  last_monthly_reset: string
+  is_active: boolean
+  is_exceeded: boolean
+  created_at: string
+  updated_at: string
+}

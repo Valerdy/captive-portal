@@ -186,3 +186,136 @@ class Voucher(models.Model):
             self.valid_from <= now <= self.valid_until and
             self.used_count < self.max_devices
         )
+
+
+class BlockedSite(models.Model):
+    """Blocked/Whitelisted sites management"""
+    TYPE_CHOICES = [
+        ('blacklist', 'Blacklist'),
+        ('whitelist', 'Whitelist'),
+    ]
+
+    url = models.CharField(max_length=255, unique=True, db_index=True, help_text='Domain or URL to block/allow')
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='blacklist')
+    reason = models.CharField(max_length=255, blank=True, null=True, help_text='Reason for blocking/allowing')
+    is_active = models.BooleanField(default=True)
+
+    # Metadata
+    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='blocked_sites')
+    added_date = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'blocked_sites'
+        ordering = ['-added_date']
+        indexes = [
+            models.Index(fields=['type', 'is_active']),
+        ]
+
+    def __str__(self):
+        return f"{self.url} ({self.type})"
+
+
+class UserQuota(models.Model):
+    """User bandwidth quota management"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='quota')
+
+    # Quota limits (in bytes)
+    daily_limit = models.BigIntegerField(default=5368709120, help_text='Daily limit in bytes (default 5GB)')
+    weekly_limit = models.BigIntegerField(default=32212254720, help_text='Weekly limit in bytes (default 30GB)')
+    monthly_limit = models.BigIntegerField(default=128849018880, help_text='Monthly limit in bytes (default 120GB)')
+
+    # Current usage (in bytes)
+    used_today = models.BigIntegerField(default=0)
+    used_week = models.BigIntegerField(default=0)
+    used_month = models.BigIntegerField(default=0)
+
+    # Reset timestamps
+    last_daily_reset = models.DateTimeField(default=timezone.now)
+    last_weekly_reset = models.DateTimeField(default=timezone.now)
+    last_monthly_reset = models.DateTimeField(default=timezone.now)
+
+    # Status
+    is_active = models.BooleanField(default=True)
+    is_exceeded = models.BooleanField(default=False, help_text='True if any quota is exceeded')
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'user_quotas'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Quota for {self.user.username}"
+
+    def reset_daily(self):
+        """Reset daily usage counter"""
+        self.used_today = 0
+        self.last_daily_reset = timezone.now()
+        self.check_exceeded()
+        self.save()
+
+    def reset_weekly(self):
+        """Reset weekly usage counter"""
+        self.used_week = 0
+        self.last_weekly_reset = timezone.now()
+        self.check_exceeded()
+        self.save()
+
+    def reset_monthly(self):
+        """Reset monthly usage counter"""
+        self.used_month = 0
+        self.last_monthly_reset = timezone.now()
+        self.check_exceeded()
+        self.save()
+
+    def reset_all(self):
+        """Reset all usage counters"""
+        self.used_today = 0
+        self.used_week = 0
+        self.used_month = 0
+        self.last_daily_reset = timezone.now()
+        self.last_weekly_reset = timezone.now()
+        self.last_monthly_reset = timezone.now()
+        self.is_exceeded = False
+        self.save()
+
+    def check_exceeded(self):
+        """Check if any quota limit is exceeded"""
+        self.is_exceeded = (
+            self.used_today >= self.daily_limit or
+            self.used_week >= self.weekly_limit or
+            self.used_month >= self.monthly_limit
+        )
+        return self.is_exceeded
+
+    def add_usage(self, bytes_used):
+        """Add bandwidth usage to all counters"""
+        self.used_today += bytes_used
+        self.used_week += bytes_used
+        self.used_month += bytes_used
+        self.check_exceeded()
+        self.save()
+
+    @property
+    def daily_usage_percent(self):
+        """Calculate daily usage percentage"""
+        if self.daily_limit == 0:
+            return 0
+        return min(100, (self.used_today / self.daily_limit) * 100)
+
+    @property
+    def weekly_usage_percent(self):
+        """Calculate weekly usage percentage"""
+        if self.weekly_limit == 0:
+            return 0
+        return min(100, (self.used_week / self.weekly_limit) * 100)
+
+    @property
+    def monthly_usage_percent(self):
+        """Calculate monthly usage percentage"""
+        if self.monthly_limit == 0:
+            return 0
+        return min(100, (self.used_month / self.monthly_limit) * 100)
