@@ -1,25 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useSiteStore } from '@/stores/site'
 import { useNotificationStore } from '@/stores/notification'
+import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import DataTable from '@/components/DataTable.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const siteStore = useSiteStore()
 const notificationStore = useNotificationStore()
 
-const blockedSites = ref([
-  { id: 1, url: 'facebook.com', type: 'blacklist', reason: 'Réseaux sociaux', added_date: '2024-01-15T10:00:00Z', is_active: true },
-  { id: 2, url: 'youtube.com', type: 'blacklist', reason: 'Streaming vidéo', added_date: '2024-01-20T14:30:00Z', is_active: true },
-  { id: 3, url: 'netflix.com', type: 'blacklist', reason: 'Streaming vidéo', added_date: '2024-02-01T09:15:00Z', is_active: true },
-  { id: 4, url: 'ucac-icam.com', type: 'whitelist', reason: 'Site officiel', added_date: '2024-01-01T08:00:00Z', is_active: true }
-])
+const blockedSites = computed(() => siteStore.sites)
+const isLoading = computed(() => siteStore.isLoading)
 
 const showAddModal = ref(false)
 const newSite = ref({
   url: '',
-  type: 'blacklist',
+  type: 'blacklist' as 'blacklist' | 'whitelist',
   reason: ''
 })
 
@@ -32,9 +31,17 @@ const columns = [
   { key: 'actions', label: 'Actions', sortable: false }
 ]
 
-onMounted(() => {
+onMounted(async () => {
   if (!authStore.isAdmin) {
+    notificationStore.error('Accès refusé')
     router.push('/')
+    return
+  }
+
+  try {
+    await siteStore.fetchSites()
+  } catch (error) {
+    notificationStore.error('Erreur lors du chargement des sites')
   }
 })
 
@@ -58,19 +65,17 @@ async function handleAddSite() {
   }
 
   try {
-    blockedSites.value.push({
-      id: blockedSites.value.length + 1,
+    await siteStore.createSite({
       url: newSite.value.url,
       type: newSite.value.type,
-      reason: newSite.value.reason,
-      added_date: new Date().toISOString(),
+      reason: newSite.value.reason || null,
       is_active: true
     })
 
     notificationStore.success('Site ajouté avec succès')
     closeAddModal()
   } catch (error) {
-    notificationStore.error('Erreur lors de l\'ajout')
+    notificationStore.error(siteStore.error || 'Erreur lors de l\'ajout')
   }
 }
 
@@ -78,13 +83,12 @@ async function handleToggleStatus(siteId: number, currentStatus: boolean) {
   const action = currentStatus ? 'désactiver' : 'activer'
   if (confirm(`Voulez-vous vraiment ${action} ce site ?`)) {
     try {
-      const site = blockedSites.value.find(s => s.id === siteId)
-      if (site) {
-        site.is_active = !currentStatus
-      }
+      await siteStore.updateSite(siteId, {
+        is_active: !currentStatus
+      })
       notificationStore.success(`Site ${currentStatus ? 'désactivé' : 'activé'} avec succès`)
     } catch (error) {
-      notificationStore.error('Erreur lors de la modification')
+      notificationStore.error(siteStore.error || 'Erreur lors de la modification')
     }
   }
 }
@@ -92,10 +96,10 @@ async function handleToggleStatus(siteId: number, currentStatus: boolean) {
 async function handleDelete(siteId: number) {
   if (confirm('Voulez-vous vraiment supprimer ce site ?')) {
     try {
-      blockedSites.value = blockedSites.value.filter(s => s.id !== siteId)
+      await siteStore.deleteSite(siteId)
       notificationStore.success('Site supprimé avec succès')
     } catch (error) {
-      notificationStore.error('Erreur lors de la suppression')
+      notificationStore.error(siteStore.error || 'Erreur lors de la suppression')
     }
   }
 }
@@ -132,10 +136,13 @@ function goBack() {
     </header>
 
     <main class="page-content">
-      <div class="content-card">
+      <LoadingSpinner v-if="isLoading" />
+
+      <div v-else class="content-card">
         <DataTable
           :columns="columns"
           :data="blockedSites"
+          :loading="isLoading"
           export-filename="sites-bloques-ucac-icam"
         >
           <template #cell-type="{ value }">
