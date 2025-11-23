@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, Device, Session, Voucher, Role
+from .models import User, Device, Session, Voucher, Role, BlockedSite, UserQuota
 
 
 class RoleSerializer(serializers.ModelSerializer):
@@ -167,3 +167,79 @@ class VoucherValidationSerializer(serializers.Serializer):
             return value
         except Voucher.DoesNotExist:
             raise serializers.ValidationError("Invalid voucher code.")
+
+
+class BlockedSiteSerializer(serializers.ModelSerializer):
+    """Serializer for BlockedSite model"""
+    added_by_username = serializers.CharField(source='added_by.username', read_only=True)
+
+    class Meta:
+        model = BlockedSite
+        fields = [
+            'id', 'url', 'type', 'reason', 'is_active',
+            'added_by', 'added_by_username', 'added_date', 'updated_at'
+        ]
+        read_only_fields = ['id', 'added_by', 'added_by_username', 'added_date', 'updated_at']
+
+    def create(self, validated_data):
+        # Add the current user as the creator
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['added_by'] = request.user
+        return super().create(validated_data)
+
+
+class UserQuotaSerializer(serializers.ModelSerializer):
+    """Serializer for UserQuota model"""
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    daily_usage_percent = serializers.FloatField(read_only=True)
+    weekly_usage_percent = serializers.FloatField(read_only=True)
+    monthly_usage_percent = serializers.FloatField(read_only=True)
+
+    # Convert bytes to GB for easier reading
+    daily_limit_gb = serializers.SerializerMethodField()
+    weekly_limit_gb = serializers.SerializerMethodField()
+    monthly_limit_gb = serializers.SerializerMethodField()
+    used_today_gb = serializers.SerializerMethodField()
+    used_week_gb = serializers.SerializerMethodField()
+    used_month_gb = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserQuota
+        fields = [
+            'id', 'user', 'user_username',
+            'daily_limit', 'weekly_limit', 'monthly_limit',
+            'daily_limit_gb', 'weekly_limit_gb', 'monthly_limit_gb',
+            'used_today', 'used_week', 'used_month',
+            'used_today_gb', 'used_week_gb', 'used_month_gb',
+            'daily_usage_percent', 'weekly_usage_percent', 'monthly_usage_percent',
+            'last_daily_reset', 'last_weekly_reset', 'last_monthly_reset',
+            'is_active', 'is_exceeded',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'user_username', 'used_today', 'used_week', 'used_month',
+            'last_daily_reset', 'last_weekly_reset', 'last_monthly_reset',
+            'is_exceeded', 'created_at', 'updated_at',
+            'daily_usage_percent', 'weekly_usage_percent', 'monthly_usage_percent',
+            'daily_limit_gb', 'weekly_limit_gb', 'monthly_limit_gb',
+            'used_today_gb', 'used_week_gb', 'used_month_gb'
+        ]
+
+    def get_daily_limit_gb(self, obj):
+        return round(obj.daily_limit / (1024 ** 3), 2)
+
+    def get_weekly_limit_gb(self, obj):
+        return round(obj.weekly_limit / (1024 ** 3), 2)
+
+    def get_monthly_limit_gb(self, obj):
+        return round(obj.monthly_limit / (1024 ** 3), 2)
+
+    def get_used_today_gb(self, obj):
+        return round(obj.used_today / (1024 ** 3), 2)
+
+    def get_used_week_gb(self, obj):
+        return round(obj.used_week / (1024 ** 3), 2)
+
+    def get_used_month_gb(self, obj):
+        return round(obj.used_month / (1024 ** 3), 2)

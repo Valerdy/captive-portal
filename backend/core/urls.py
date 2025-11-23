@@ -1,7 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .viewsets import UserViewSet, DeviceViewSet, SessionViewSet, VoucherViewSet
+from .viewsets import (
+    UserViewSet, DeviceViewSet, SessionViewSet, VoucherViewSet,
+    BlockedSiteViewSet, UserQuotaViewSet
+)
 from . import views
 
 router = DefaultRouter()
@@ -9,6 +12,8 @@ router.register(r'users', UserViewSet, basename='user')
 router.register(r'devices', DeviceViewSet, basename='device')
 router.register(r'sessions', SessionViewSet, basename='session')
 router.register(r'vouchers', VoucherViewSet, basename='voucher')
+router.register(r'blocked-sites', BlockedSiteViewSet, basename='blocked-site')
+router.register(r'user-quotas', UserQuotaViewSet, basename='user-quota')
 
 urlpatterns = [
     # Authentication endpoints

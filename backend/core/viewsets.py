@@ -2,11 +2,11 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from .models import User, Device, Session, Voucher
+from .models import User, Device, Session, Voucher, BlockedSite, UserQuota
 from .serializers import (
     UserSerializer, UserListSerializer, DeviceSerializer,
     SessionSerializer, SessionListSerializer, VoucherSerializer,
-    VoucherValidationSerializer
+    VoucherValidationSerializer, BlockedSiteSerializer, UserQuotaSerializer
 )
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdmin, IsAuthenticatedUser
 
@@ -257,3 +257,129 @@ class VoucherViewSet(viewsets.ModelViewSet):
         vouchers = Voucher.objects.filter(status='active')
         serializer = self.get_serializer(vouchers, many=True)
         return Response(serializer.data)
+
+
+class BlockedSiteViewSet(viewsets.ModelViewSet):
+    """ViewSet for BlockedSite model"""
+    queryset = BlockedSite.objects.all()
+    serializer_class = BlockedSiteSerializer
+    permission_classes = [IsAdmin]
+
+    @action(detail=False, methods=['get'])
+    def active(self, request):
+        """Get all active blocked sites"""
+        sites = BlockedSite.objects.filter(is_active=True)
+        serializer = self.get_serializer(sites, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def blacklist(self, request):
+        """Get all blacklisted sites"""
+        sites = BlockedSite.objects.filter(type='blacklist', is_active=True)
+        serializer = self.get_serializer(sites, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def whitelist(self, request):
+        """Get all whitelisted sites"""
+        sites = BlockedSite.objects.filter(type='whitelist', is_active=True)
+        serializer = self.get_serializer(sites, many=True)
+        return Response(serializer.data)
+
+
+class UserQuotaViewSet(viewsets.ModelViewSet):
+    """ViewSet for UserQuota model"""
+    queryset = UserQuota.objects.all()
+    serializer_class = UserQuotaSerializer
+    permission_classes = [IsAdmin]
+
+    @action(detail=True, methods=['post'])
+    def reset_daily(self, request, pk=None):
+        """Reset daily usage for a user quota"""
+        quota = self.get_object()
+        quota.reset_daily()
+        serializer = self.get_serializer(quota)
+        return Response({
+            'status': 'success',
+            'message': 'Daily usage reset successfully',
+            'quota': serializer.data
+        })
+
+    @action(detail=True, methods=['post'])
+    def reset_weekly(self, request, pk=None):
+        """Reset weekly usage for a user quota"""
+        quota = self.get_object()
+        quota.reset_weekly()
+        serializer = self.get_serializer(quota)
+        return Response({
+            'status': 'success',
+            'message': 'Weekly usage reset successfully',
+            'quota': serializer.data
+        })
+
+    @action(detail=True, methods=['post'])
+    def reset_monthly(self, request, pk=None):
+        """Reset monthly usage for a user quota"""
+        quota = self.get_object()
+        quota.reset_monthly()
+        serializer = self.get_serializer(quota)
+        return Response({
+            'status': 'success',
+            'message': 'Monthly usage reset successfully',
+            'quota': serializer.data
+        })
+
+    @action(detail=True, methods=['post'])
+    def reset_all(self, request, pk=None):
+        """Reset all usage counters for a user quota"""
+        quota = self.get_object()
+        quota.reset_all()
+        serializer = self.get_serializer(quota)
+        return Response({
+            'status': 'success',
+            'message': 'All usage counters reset successfully',
+            'quota': serializer.data
+        })
+
+    @action(detail=False, methods=['get'])
+    def exceeded(self, request):
+        """Get all quotas that are exceeded"""
+        quotas = UserQuota.objects.filter(is_exceeded=True)
+        serializer = self.get_serializer(quotas, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def create_for_user(self, request):
+        """Create a quota for a specific user"""
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response(
+                {'error': 'user_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check if quota already exists
+        if hasattr(user, 'quota'):
+            return Response(
+                {'error': 'Quota already exists for this user'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create quota with optional custom limits
+        quota_data = {
+            'user': user,
+            'daily_limit': request.data.get('daily_limit', 5368709120),  # 5GB
+            'weekly_limit': request.data.get('weekly_limit', 32212254720),  # 30GB
+            'monthly_limit': request.data.get('monthly_limit', 128849018880),  # 120GB
+        }
+        quota = UserQuota.objects.create(**quota_data)
+        serializer = self.get_serializer(quota)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
