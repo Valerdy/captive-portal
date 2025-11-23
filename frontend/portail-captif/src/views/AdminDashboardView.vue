@@ -7,6 +7,7 @@ import { useDeviceStore } from '@/stores/device'
 import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import VueApexCharts from 'vue3-apexcharts'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -66,15 +67,49 @@ const stats = computed(() => ({
   totalDevices: deviceStore.devices.length,
   activeDevices: activeDevices.value,
   totalBandwidth: totalBandwidth.value,
-  todayBandwidth: todayBandwidth.value,
-  blockedSites: 0, // Pas de backend pour l'instant
-  alerts: 0 // Pas de backend pour l'instant
+  todayBandwidth: todayBandwidth.value
 }))
 
-// Générer les données de graphique de bande passante (24h)
-const bandwidthData = computed(() => {
+// Graphique de bande passante (24h)
+const bandwidthChartOptions = computed(() => ({
+  chart: {
+    type: 'area',
+    height: 350,
+    toolbar: { show: false },
+    fontFamily: 'Inter, sans-serif'
+  },
+  colors: ['#F97316'],
+  dataLabels: { enabled: false },
+  stroke: { curve: 'smooth', width: 3 },
+  fill: {
+    type: 'gradient',
+    gradient: {
+      shadeIntensity: 1,
+      opacityFrom: 0.7,
+      opacityTo: 0.2,
+      stops: [0, 90, 100]
+    }
+  },
+  xaxis: {
+    categories: Array.from({ length: 7 }, (_, i) => `${i * 4}h`),
+    labels: { style: { colors: '#6B7280', fontSize: '12px' } }
+  },
+  yaxis: {
+    labels: {
+      style: { colors: '#6B7280', fontSize: '12px' },
+      formatter: (val: number) => `${val} MB`
+    }
+  },
+  grid: { borderColor: '#E5E7EB' },
+  tooltip: {
+    theme: 'light',
+    y: { formatter: (val: number) => `${val} MB` }
+  }
+}))
+
+const bandwidthChartSeries = computed(() => {
   const hours = Array.from({ length: 7 }, (_, i) => i * 4)
-  return hours.map(hour => {
+  const data = hours.map(hour => {
     const hourStart = new Date()
     hourStart.setHours(hour, 0, 0, 0)
     const hourEnd = new Date()
@@ -89,30 +124,58 @@ const bandwidthData = computed(() => {
         return sum + (session.bytes_in || 0) + (session.bytes_out || 0)
       }, 0)
 
-    const hourMB = Math.round(hourBytes / (1024 * 1024))
-    return {
-      time: `${hour.toString().padStart(2, '0')}:00`,
-      value: hourMB
-    }
+    return Math.round(hourBytes / (1024 * 1024))
   })
+
+  return [{ name: 'Bande passante', data }]
 })
 
-// Générer les données d'activité utilisateur (7 derniers jours)
-const userActivityData = computed(() => {
-  const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+// Graphique d'activité utilisateur (7 jours)
+const userActivityChartOptions = computed(() => ({
+  chart: {
+    type: 'bar',
+    height: 350,
+    toolbar: { show: false },
+    fontFamily: 'Inter, sans-serif'
+  },
+  colors: ['#DC2626'],
+  plotOptions: {
+    bar: {
+      borderRadius: 8,
+      columnWidth: '60%'
+    }
+  },
+  dataLabels: { enabled: false },
+  xaxis: {
+    categories: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'],
+    labels: { style: { colors: '#6B7280', fontSize: '12px' } }
+  },
+  yaxis: {
+    labels: {
+      style: { colors: '#6B7280', fontSize: '12px' },
+      formatter: (val: number) => `${val}`
+    }
+  },
+  grid: { borderColor: '#E5E7EB' },
+  tooltip: {
+    theme: 'light',
+    y: { formatter: (val: number) => `${val} utilisateurs` }
+  }
+}))
+
+const userActivityChartSeries = computed(() => {
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date()
     date.setDate(date.getDate() - (6 - i))
     return date
   })
 
-  return last7Days.map((date, index) => {
+  const data = last7Days.map((date) => {
     const dayStart = new Date(date)
     dayStart.setHours(0, 0, 0, 0)
     const dayEnd = new Date(date)
     dayEnd.setHours(23, 59, 59, 999)
 
-    // Compter les sessions uniques de ce jour
     const uniqueUsers = new Set(
       sessionStore.sessions
         .filter(session => {
@@ -122,15 +185,57 @@ const userActivityData = computed(() => {
         .map(session => session.user)
     )
 
-    return {
-      day: days[date.getDay()],
-      users: uniqueUsers.size
-    }
+    return uniqueUsers.size
   })
+
+  return [{ name: 'Utilisateurs actifs', data }]
+})
+
+// Graphique de répartition des sessions
+const sessionsPieChartOptions = computed(() => ({
+  chart: {
+    type: 'donut',
+    fontFamily: 'Inter, sans-serif'
+  },
+  colors: ['#10B981', '#F97316', '#DC2626'],
+  labels: ['Actives', 'Expirées', 'Terminées'],
+  legend: {
+    position: 'bottom',
+    fontSize: '14px',
+    fontWeight: 500
+  },
+  plotOptions: {
+    pie: {
+      donut: {
+        size: '70%',
+        labels: {
+          show: true,
+          total: {
+            show: true,
+            label: 'Total',
+            fontSize: '16px',
+            fontWeight: 600,
+            color: '#1F2937'
+          }
+        }
+      }
+    }
+  },
+  dataLabels: { enabled: false },
+  tooltip: {
+    theme: 'light',
+    y: { formatter: (val: number) => `${val} sessions` }
+  }
+}))
+
+const sessionsPieChartSeries = computed(() => {
+  const active = sessionStore.sessions.filter(s => s.status === 'active').length
+  const expired = sessionStore.sessions.filter(s => s.status === 'expired').length
+  const terminated = sessionStore.sessions.filter(s => s.status === 'terminated').length
+  return [active, expired, terminated]
 })
 
 onMounted(async () => {
-  // Vérifier si l'utilisateur est admin
   if (!authStore.user?.is_staff && !authStore.user?.is_superuser) {
     notificationStore.error('Accès refusé')
     router.push('/')
@@ -138,13 +243,11 @@ onMounted(async () => {
   }
 
   try {
-    // Charger toutes les données en parallèle
     await Promise.all([
       userStore.fetchUsers(),
       sessionStore.fetchSessions(),
       deviceStore.fetchDevices()
     ])
-    // Les stats sont automatiquement calculées via computed properties
   } catch (error) {
     notificationStore.error('Erreur lors du chargement des données')
   } finally {
@@ -161,96 +264,82 @@ function handleLogout() {
 function navigateTo(route: string) {
   router.push(route)
 }
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
-}
 </script>
 
 <template>
   <div class="admin-dashboard">
-    <!-- Header avec navigation -->
+    <!-- Header professionnel -->
     <header class="dashboard-header">
       <div class="header-content">
-        <div class="logo-section">
-          <div class="logo-badge">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </div>
-          <div class="logo-text">
-            <h1>Admin Dashboard</h1>
-            <p>UCAC-ICAM Portail Captif</p>
+        <div class="header-left">
+          <div class="logo-section">
+            <div class="logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="logo-text">
+              <h1>UCAC-ICAM</h1>
+              <p>Administration</p>
+            </div>
           </div>
         </div>
 
-        <div class="header-actions">
-          <div class="user-info">
-            <div class="user-avatar">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
-                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-              </svg>
-            </div>
-            <div class="user-details">
-              <span class="user-name">{{ authStore.user?.username || 'Admin' }}</span>
+        <div class="header-right">
+          <div class="user-menu">
+            <div class="user-avatar">{{ authStore.user?.username?.charAt(0).toUpperCase() }}</div>
+            <div class="user-info">
+              <span class="user-name">{{ authStore.user?.username }}</span>
               <span class="user-role">Administrateur</span>
             </div>
           </div>
-          <button @click="handleLogout" class="logout-btn" title="Déconnexion">
+          <button @click="handleLogout" class="logout-btn">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
       </div>
-    </header>
 
-    <!-- Navigation principale -->
-    <nav class="main-nav">
-      <button @click="navigateTo('/admin/dashboard')" class="nav-item active">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-          <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-          <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-          <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        <span>Dashboard</span>
-      </button>
-      <button @click="navigateTo('/admin/users')" class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
-          <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        <span>Utilisateurs</span>
-      </button>
-      <button @click="navigateTo('/admin/monitoring')" class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>Monitoring</span>
-      </button>
-      <button @click="navigateTo('/admin/sites')" class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <span>Sites bloqués</span>
-      </button>
-      <button @click="navigateTo('/admin/quotas')" class="nav-item">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>Quotas</span>
-      </button>
-    </nav>
+      <!-- Navigation -->
+      <nav class="main-nav">
+        <button @click="navigateTo('/admin/dashboard')" class="nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+            <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          Dashboard
+        </button>
+        <button @click="navigateTo('/admin/users')" class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Utilisateurs
+        </button>
+        <button @click="navigateTo('/admin/monitoring')" class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Monitoring
+        </button>
+        <button @click="navigateTo('/admin/sites')" class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Sites bloqués
+        </button>
+        <button @click="navigateTo('/admin/quotas')" class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Quotas
+        </button>
+      </nav>
+    </header>
 
     <!-- Contenu principal -->
     <main class="dashboard-content">
@@ -259,133 +348,115 @@ function formatBytes(bytes: number): string {
       <div v-else class="content-wrapper">
         <!-- Cartes de statistiques -->
         <div class="stats-grid">
-          <!-- Utilisateurs -->
-          <div class="stat-card users">
-            <div class="stat-header">
-              <div class="stat-icon">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
-                  <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
-                </svg>
-              </div>
-              <span class="stat-label">Utilisateurs</span>
+          <div class="stat-card">
+            <div class="stat-icon users">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+              </svg>
             </div>
-            <div class="stat-values">
-              <div class="stat-main">{{ stats.totalUsers }}</div>
-              <div class="stat-sub">{{ stats.activeUsers }} actifs</div>
+            <div class="stat-content">
+              <h3>{{ stats.totalUsers }}</h3>
+              <p>Utilisateurs totaux</p>
+              <span class="stat-badge success">{{ stats.activeUsers }} actifs</span>
             </div>
-            <div class="stat-badge success">+12% ce mois</div>
           </div>
 
-          <!-- Sessions -->
-          <div class="stat-card sessions">
-            <div class="stat-header">
-              <div class="stat-icon">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                  <polyline points="12 6 12 12 16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <span class="stat-label">Sessions</span>
+          <div class="stat-card">
+            <div class="stat-icon sessions">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <polyline points="12 6 12 12 16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
             </div>
-            <div class="stat-values">
-              <div class="stat-main">{{ stats.totalSessions }}</div>
-              <div class="stat-sub">{{ stats.activeSessions }} actives</div>
+            <div class="stat-content">
+              <h3>{{ stats.totalSessions }}</h3>
+              <p>Sessions totales</p>
+              <span class="stat-badge info">{{ stats.activeSessions }} en cours</span>
             </div>
-            <div class="stat-badge info">En temps réel</div>
           </div>
 
-          <!-- Appareils -->
-          <div class="stat-card devices">
-            <div class="stat-header">
-              <div class="stat-icon">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-                  <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <span class="stat-label">Appareils</span>
+          <div class="stat-card">
+            <div class="stat-icon devices">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
             </div>
-            <div class="stat-values">
-              <div class="stat-main">{{ stats.totalDevices }}</div>
-              <div class="stat-sub">{{ stats.activeDevices }} connectés</div>
+            <div class="stat-content">
+              <h3>{{ stats.totalDevices }}</h3>
+              <p>Appareils enregistrés</p>
+              <span class="stat-badge warning">{{ stats.activeDevices }} connectés</span>
             </div>
-            <div class="stat-badge warning">Limite: 500</div>
           </div>
 
-          <!-- Bande passante -->
-          <div class="stat-card bandwidth">
-            <div class="stat-header">
-              <div class="stat-icon">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <polyline points="17 6 23 6 23 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <span class="stat-label">Bande passante</span>
+          <div class="stat-card">
+            <div class="stat-icon bandwidth">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="17 6 23 6 23 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
-            <div class="stat-values">
-              <div class="stat-main">{{ stats.todayBandwidth }} GB</div>
-              <div class="stat-sub">Total: {{ stats.totalBandwidth }} GB</div>
+            <div class="stat-content">
+              <h3>{{ stats.todayBandwidth }} GB</h3>
+              <p>Bande passante (aujourd'hui)</p>
+              <span class="stat-badge danger">Total: {{ stats.totalBandwidth }} GB</span>
             </div>
-            <div class="stat-badge danger">85% utilisé</div>
           </div>
         </div>
 
-        <!-- Graphiques et tableaux -->
-        <div class="charts-grid">
-          <!-- Graphique Bande passante -->
+        <!-- Graphiques -->
+        <div class="charts-section">
           <div class="chart-card">
             <div class="chart-header">
-              <h3>Bande passante (24h)</h3>
-              <button class="chart-action">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="1" fill="currentColor"/>
-                  <circle cx="12" cy="5" r="1" fill="currentColor"/>
-                  <circle cx="12" cy="19" r="1" fill="currentColor"/>
-                </svg>
-              </button>
+              <h2>Bande passante sur 24h</h2>
+              <p class="chart-subtitle">Consommation par période de 4 heures</p>
             </div>
-            <div class="chart-content">
-              <!-- Graphique simplifié en CSS -->
-              <div class="simple-chart">
-                <div v-for="(data, index) in bandwidthData" :key="index" class="chart-bar">
-                  <div class="bar" :style="{ height: (data.value / 450 * 100) + '%' }"></div>
-                  <span class="bar-label">{{ data.time.split(':')[0] }}h</span>
-                </div>
-              </div>
+            <div class="chart-body">
+              <VueApexCharts
+                type="area"
+                height="350"
+                :options="bandwidthChartOptions"
+                :series="bandwidthChartSeries"
+              />
             </div>
           </div>
 
-          <!-- Graphique Activité -->
           <div class="chart-card">
             <div class="chart-header">
-              <h3>Activité utilisateurs (7j)</h3>
-              <button class="chart-action">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="1" fill="currentColor"/>
-                  <circle cx="12" cy="5" r="1" fill="currentColor"/>
-                  <circle cx="12" cy="19" r="1" fill="currentColor"/>
-                </svg>
-              </button>
+              <h2>Activité utilisateurs (7 jours)</h2>
+              <p class="chart-subtitle">Nombre d'utilisateurs actifs par jour</p>
             </div>
-            <div class="chart-content">
-              <div class="simple-chart">
-                <div v-for="(data, index) in userActivityData" :key="index" class="chart-bar">
-                  <div class="bar activity-bar" :style="{ height: (data.users / 210 * 100) + '%' }"></div>
-                  <span class="bar-label">{{ data.day }}</span>
-                </div>
-              </div>
+            <div class="chart-body">
+              <VueApexCharts
+                type="bar"
+                height="350"
+                :options="userActivityChartOptions"
+                :series="userActivityChartSeries"
+              />
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>Répartition des sessions</h2>
+              <p class="chart-subtitle">Distribution par statut</p>
+            </div>
+            <div class="chart-body">
+              <VueApexCharts
+                type="donut"
+                height="350"
+                :options="sessionsPieChartOptions"
+                :series="sessionsPieChartSeries"
+              />
             </div>
           </div>
         </div>
 
         <!-- Actions rapides -->
-        <div class="quick-actions">
-          <h2>Actions rapides</h2>
-          <div class="actions-grid">
-            <button @click="navigateTo('/admin/users')" class="action-card">
+        <div class="quick-actions-section">
+          <h2 class="section-title">Actions rapides</h2>
+          <div class="quick-actions-grid">
+            <button @click="navigateTo('/admin/users')" class="action-btn">
               <div class="action-icon">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
@@ -394,11 +465,11 @@ function formatBytes(bytes: number): string {
                   <line x1="23" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
               </div>
-              <h3>Ajouter utilisateur</h3>
-              <p>Créer un nouveau compte utilisateur</p>
+              <h3>Ajouter un utilisateur</h3>
+              <p>Créer un nouveau compte</p>
             </button>
 
-            <button @click="navigateTo('/admin/sites')" class="action-card">
+            <button @click="navigateTo('/admin/sites')" class="action-btn">
               <div class="action-icon">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
@@ -406,10 +477,10 @@ function formatBytes(bytes: number): string {
                 </svg>
               </div>
               <h3>Bloquer un site</h3>
-              <p>Ajouter à la liste noire</p>
+              <p>Gérer les restrictions</p>
             </button>
 
-            <button @click="navigateTo('/admin/quotas')" class="action-card">
+            <button @click="navigateTo('/admin/quotas')" class="action-btn">
               <div class="action-icon">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
@@ -417,70 +488,19 @@ function formatBytes(bytes: number): string {
                   <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
               </div>
-              <h3>Définir quotas</h3>
-              <p>Configurer les limites</p>
+              <h3>Configurer quotas</h3>
+              <p>Définir les limites</p>
             </button>
 
-            <button @click="navigateTo('/admin/monitoring')" class="action-card">
+            <button @click="navigateTo('/admin/monitoring')" class="action-btn">
               <div class="action-icon">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
-                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
-              <h3>Monitoring</h3>
-              <p>Voir l'activité en temps réel</p>
+              <h3>Monitoring temps réel</h3>
+              <p>Surveiller le système</p>
             </button>
-          </div>
-        </div>
-
-        <!-- Alertes -->
-        <div v-if="stats.alerts > 0" class="alerts-section">
-          <div class="alerts-header">
-            <h2>
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2"/>
-                <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              Alertes système ({{ stats.alerts }})
-            </h2>
-          </div>
-          <div class="alert-item warning">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <div class="alert-content">
-              <h4>Bande passante élevée</h4>
-              <p>85% de la bande passante totale est utilisée</p>
-              <span class="alert-time">Il y a 5 minutes</span>
-            </div>
-          </div>
-          <div class="alert-item danger">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <div class="alert-content">
-              <h4>Tentative d'accès suspect</h4>
-              <p>3 tentatives de connexion échouées depuis 192.168.1.105</p>
-              <span class="alert-time">Il y a 12 minutes</span>
-            </div>
-          </div>
-          <div class="alert-item info">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <line x1="12" y1="16" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <line x1="12" y1="8" x2="12.01" y2="8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <div class="alert-content">
-              <h4>Mise à jour disponible</h4>
-              <p>Une nouvelle version du système est disponible</p>
-              <span class="alert-time">Il y a 1 heure</span>
-            </div>
           </div>
         </div>
       </div>
@@ -489,35 +509,43 @@ function formatBytes(bytes: number): string {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
 }
 
 .admin-dashboard {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  color: white;
+  background: #F9FAFB;
 }
 
 /* Header */
 .dashboard-header {
-  background: rgba(17, 24, 39, 0.8);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1.5rem 2rem;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E5E7EB;
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .header-content {
   max-width: 1600px;
   margin: 0 auto;
+  padding: 1.25rem 2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
 }
 
 .logo-section {
@@ -526,103 +554,92 @@ function formatBytes(bytes: number): string {
   gap: 1rem;
 }
 
-.logo-badge {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
+.logo-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);
+  color: white;
 }
 
-.logo-badge svg {
+.logo-icon svg {
   width: 28px;
   height: 28px;
-  color: white;
-  animation: rotate 8s linear infinite;
-}
-
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 .logo-text h1 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #fff 0%, #f97316 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #1F2937;
+  letter-spacing: -0.02em;
 }
 
 .logo-text p {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+  color: #6B7280;
+  font-weight: 500;
 }
 
-.header-actions {
+.header-right {
   display: flex;
   align-items: center;
   gap: 1.5rem;
 }
 
-.user-info {
+.user-menu {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1.25rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: #F9FAFB;
+  border-radius: 10px;
+  border: 1px solid #E5E7EB;
 }
 
 .user-avatar {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.user-avatar svg {
-  width: 20px;
-  height: 20px;
   color: white;
+  font-weight: 700;
+  font-size: 1rem;
 }
 
-.user-details {
+.user-info {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
 }
 
 .user-name {
+  font-size: 0.875rem;
   font-weight: 600;
-  font-size: 0.95rem;
+  color: #1F2937;
 }
 
 .user-role {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  color: #6B7280;
 }
 
 .logout-btn {
-  width: 45px;
-  height: 45px;
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  background: #FEF2F2;
+  border: 1px solid #FEE2E2;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  color: #dc2626;
+  transition: all 0.2s;
+  color: #DC2626;
 }
 
 .logout-btn svg {
@@ -631,55 +648,56 @@ function formatBytes(bytes: number): string {
 }
 
 .logout-btn:hover {
-  background: rgba(220, 38, 38, 0.2);
-  border-color: rgba(220, 38, 38, 0.5);
+  background: #DC2626;
+  border-color: #DC2626;
+  color: white;
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
 }
 
 /* Navigation */
 .main-nav {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: 0 2rem 1rem;
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   overflow-x: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s;
+  color: #6B7280;
   font-weight: 500;
+  font-size: 0.875rem;
   white-space: nowrap;
 }
 
 .nav-item svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border-color: rgba(249, 115, 22, 0.3);
+  background: #F9FAFB;
+  color: #1F2937;
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
+  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
   color: white;
-  border-color: transparent;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
 }
 
-/* Contenu principal */
+/* Contenu */
 .dashboard-content {
   max-width: 1600px;
   margin: 0 auto;
@@ -692,7 +710,7 @@ function formatBytes(bytes: number): string {
   gap: 2rem;
 }
 
-/* Grille de stats */
+/* Statistiques */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -700,389 +718,213 @@ function formatBytes(bytes: number): string {
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 1.75rem;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: linear-gradient(90deg, #dc2626, #f97316);
-}
-
-.stat-card.users::before {
-  background: linear-gradient(90deg, #10b981, #34d399);
-}
-
-.stat-card.sessions::before {
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-}
-
-.stat-card.devices::before {
-  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  transition: all 0.2s;
 }
 
 .stat-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(249, 115, 22, 0.3);
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.stat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  background: rgba(249, 115, 22, 0.1);
+  width: 56px;
+  height: 56px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .stat-icon svg {
-  width: 24px;
-  height: 24px;
-  color: #f97316;
+  width: 28px;
+  height: 28px;
 }
 
-.stat-card.users .stat-icon {
-  background: rgba(16, 185, 129, 0.1);
+.stat-icon.users {
+  background: #DBEAFE;
+  color: #3B82F6;
 }
 
-.stat-card.users .stat-icon svg {
-  color: #10b981;
+.stat-icon.sessions {
+  background: #FEF3C7;
+  color: #F59E0B;
 }
 
-.stat-card.sessions .stat-icon {
-  background: rgba(59, 130, 246, 0.1);
+.stat-icon.devices {
+  background: #D1FAE5;
+  color: #10B981;
 }
 
-.stat-card.sessions .stat-icon svg {
-  color: #3b82f6;
+.stat-icon.bandwidth {
+  background: #FEE2E2;
+  color: #DC2626;
 }
 
-.stat-card.devices .stat-icon {
-  background: rgba(245, 158, 11, 0.1);
+.stat-content {
+  flex: 1;
 }
 
-.stat-card.devices .stat-icon svg {
-  color: #f59e0b;
-}
-
-.stat-label {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.stat-values {
-  margin-bottom: 1rem;
-}
-
-.stat-main {
-  font-size: 2.5rem;
+.stat-content h3 {
+  font-size: 2rem;
   font-weight: 800;
+  color: #1F2937;
   line-height: 1;
   margin-bottom: 0.5rem;
 }
 
-.stat-sub {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.95rem;
+.stat-content p {
+  font-size: 0.875rem;
+  color: #6B7280;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
 }
 
 .stat-badge {
   display: inline-block;
-  padding: 0.375rem 0.875rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
 .stat-badge.success {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: #D1FAE5;
+  color: #10B981;
 }
 
 .stat-badge.info {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: #DBEAFE;
+  color: #3B82F6;
 }
 
 .stat-badge.warning {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: #FEF3C7;
+  color: #F59E0B;
 }
 
 .stat-badge.danger {
-  background: rgba(220, 38, 38, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(220, 38, 38, 0.3);
+  background: #FEE2E2;
+  color: #DC2626;
 }
 
 /* Graphiques */
-.charts-grid {
+.charts-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
   gap: 1.5rem;
 }
 
 .chart-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 1.75rem;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 1.5rem;
 }
 
 .chart-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #E5E7EB;
 }
 
-.chart-header h3 {
-  font-size: 1.1rem;
+.chart-header h2 {
+  font-size: 1.125rem;
   font-weight: 700;
+  color: #1F2937;
+  margin-bottom: 0.25rem;
 }
 
-.chart-action {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: rgba(255, 255, 255, 0.6);
+.chart-subtitle {
+  font-size: 0.875rem;
+  color: #6B7280;
 }
 
-.chart-action:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-.simple-chart {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.75rem;
-  height: 200px;
-  padding-top: 1rem;
-}
-
-.chart-bar {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  height: 100%;
-}
-
-.bar {
-  width: 100%;
-  background: linear-gradient(to top, #dc2626, #f97316);
-  border-radius: 6px 6px 0 0;
-  transition: all 0.3s ease;
-  min-height: 20px;
-}
-
-.activity-bar {
-  background: linear-gradient(to top, #3b82f6, #60a5fa);
-}
-
-.bar-label {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.chart-bar:hover .bar {
-  opacity: 0.8;
-  transform: scaleY(1.05);
+.chart-body {
+  margin: 0 -0.5rem;
 }
 
 /* Actions rapides */
-.quick-actions h2 {
-  font-size: 1.5rem;
-  font-weight: 800;
+.quick-actions-section {
+  margin-top: 1rem;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1F2937;
   margin-bottom: 1.5rem;
 }
 
-.actions-grid {
+.quick-actions-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
 }
 
-.action-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 2rem;
+.action-btn {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 1.5rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
   text-align: left;
 }
 
-.action-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(249, 115, 22, 0.3);
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+.action-btn:hover {
+  border-color: #F97316;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.1);
+  transform: translateY(-2px);
 }
 
 .action-icon {
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.25rem;
+  color: white;
+  margin-bottom: 1rem;
 }
 
 .action-icon svg {
-  width: 28px;
-  height: 28px;
-  color: white;
-}
-
-.action-card h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.action-card p {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.9rem;
-}
-
-/* Alertes */
-.alerts-section {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 1.75rem;
-}
-
-.alerts-header h2 {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-}
-
-.alerts-header svg {
   width: 24px;
   height: 24px;
-  color: #f59e0b;
 }
 
-.alert-item {
-  display: flex;
-  gap: 1rem;
-  padding: 1.25rem;
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  border-left: 4px solid;
-}
-
-.alert-item:last-child {
-  margin-bottom: 0;
-}
-
-.alert-item svg {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-.alert-item.warning {
-  background: rgba(245, 158, 11, 0.1);
-  border-left-color: #f59e0b;
-  color: #fbbf24;
-}
-
-.alert-item.danger {
-  background: rgba(220, 38, 38, 0.1);
-  border-left-color: #dc2626;
-  color: #f87171;
-}
-
-.alert-item.info {
-  background: rgba(59, 130, 246, 0.1);
-  border-left-color: #3b82f6;
-  color: #60a5fa;
-}
-
-.alert-content h4 {
+.action-btn h3 {
   font-size: 1rem;
   font-weight: 600;
+  color: #1F2937;
   margin-bottom: 0.25rem;
-  color: white;
 }
 
-.alert-content p {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 0.5rem;
-}
-
-.alert-time {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+.action-btn p {
+  font-size: 0.875rem;
+  color: #6B7280;
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
-  .charts-grid {
+  .charts-section {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .dashboard-header {
-    padding: 1rem;
-  }
-
   .header-content {
     flex-direction: column;
     gap: 1rem;
-  }
-
-  .main-nav {
     padding: 1rem;
   }
 
@@ -1094,8 +936,8 @@ function formatBytes(bytes: number): string {
     grid-template-columns: 1fr;
   }
 
-  .user-info span {
-    display: none;
+  .main-nav {
+    padding: 0 1rem 1rem;
   }
 }
 </style>
