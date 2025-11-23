@@ -44,7 +44,7 @@ const router = createRouter({
       path: '/vouchers',
       name: 'vouchers',
       component: () => import('../views/VouchersView.vue'),
-      meta: { requiresAuth: false } // Accessible sans auth pour validation
+      meta: { requiresAuth: true } // Auth requise pour utiliser un voucher
     },
     {
       path: '/profile',

@@ -1,21 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import DataTable from '@/components/DataTable.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const userStore = useUserStore()
 const notificationStore = useNotificationStore()
 
-const isLoading = ref(true)
-const users = ref([
-  { id: 1, username: 'john_doe', email: 'john@ucac-icam.com', is_active: true, is_staff: false, date_joined: '2024-01-15T10:30:00Z', last_login: '2024-03-20T14:25:00Z' },
-  { id: 2, username: 'jane_smith', email: 'jane@ucac-icam.com', is_active: true, is_staff: false, date_joined: '2024-02-01T09:15:00Z', last_login: '2024-03-21T08:45:00Z' },
-  { id: 3, username: 'admin', email: 'admin@ucac-icam.com', is_active: true, is_staff: true, date_joined: '2023-12-01T08:00:00Z', last_login: '2024-03-21T16:10:00Z' }
-])
+const users = computed(() => userStore.users)
+const isLoading = computed(() => userStore.isLoading)
 
 const showAddModal = ref(false)
 const showEditModal = ref(false)
@@ -46,9 +44,11 @@ onMounted(async () => {
     return
   }
 
-  setTimeout(() => {
-    isLoading.value = false
-  }, 500)
+  try {
+    await userStore.fetchUsers()
+  } catch (error) {
+    notificationStore.error('Erreur lors du chargement des utilisateurs')
+  }
 })
 
 function openAddModal() {
@@ -74,21 +74,19 @@ async function handleAddUser() {
   }
 
   try {
-    // Simuler l'ajout
-    users.value.push({
-      id: users.value.length + 1,
+    await userStore.createUser({
       username: newUser.value.username,
       email: newUser.value.email,
-      is_active: true,
-      is_staff: newUser.value.is_staff,
-      date_joined: new Date().toISOString(),
-      last_login: new Date().toISOString()
+      password: newUser.value.password,
+      first_name: newUser.value.first_name,
+      last_name: newUser.value.last_name,
+      is_staff: newUser.value.is_staff
     })
 
     notificationStore.success('Utilisateur ajouté avec succès')
     closeAddModal()
   } catch (error) {
-    notificationStore.error('Erreur lors de l\'ajout')
+    notificationStore.error(userStore.error || 'Erreur lors de l\'ajout')
   }
 }
 
@@ -106,15 +104,16 @@ async function handleUpdateUser() {
   if (!selectedUser.value) return
 
   try {
-    const index = users.value.findIndex(u => u.id === selectedUser.value.id)
-    if (index !== -1) {
-      users.value[index] = { ...selectedUser.value }
-    }
+    await userStore.updateUser(selectedUser.value.id, {
+      username: selectedUser.value.username,
+      email: selectedUser.value.email,
+      is_staff: selectedUser.value.is_staff
+    })
 
     notificationStore.success('Utilisateur modifié avec succès')
     closeEditModal()
   } catch (error) {
-    notificationStore.error('Erreur lors de la modification')
+    notificationStore.error(userStore.error || 'Erreur lors de la modification')
   }
 }
 
@@ -122,13 +121,12 @@ async function handleToggleStatus(userId: number, currentStatus: boolean) {
   const action = currentStatus ? 'désactiver' : 'activer'
   if (confirm(`Voulez-vous vraiment ${action} cet utilisateur ?`)) {
     try {
-      const user = users.value.find(u => u.id === userId)
-      if (user) {
-        user.is_active = !currentStatus
-      }
+      await userStore.updateUser(userId, {
+        is_active: !currentStatus
+      })
       notificationStore.success(`Utilisateur ${currentStatus ? 'désactivé' : 'activé'} avec succès`)
     } catch (error) {
-      notificationStore.error('Erreur lors de la modification')
+      notificationStore.error(userStore.error || 'Erreur lors de la modification')
     }
   }
 }
@@ -136,10 +134,10 @@ async function handleToggleStatus(userId: number, currentStatus: boolean) {
 async function handleDelete(userId: number) {
   if (confirm('Voulez-vous vraiment supprimer cet utilisateur ? Cette action est irréversible.')) {
     try {
-      users.value = users.value.filter(u => u.id !== userId)
+      await userStore.deleteUser(userId)
       notificationStore.success('Utilisateur supprimé avec succès')
     } catch (error) {
-      notificationStore.error('Erreur lors de la suppression')
+      notificationStore.error(userStore.error || 'Erreur lors de la suppression')
     }
   }
 }
