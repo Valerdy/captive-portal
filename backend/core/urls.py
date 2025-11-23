@@ -27,6 +27,9 @@ urlpatterns = [
     path('auth/profile/update/', views.update_profile, name='update_profile'),
     path('auth/password/change/', views.change_password, name='change_password'),
 
+    # Admin monitoring endpoints
+    path('admin/monitoring/metrics/', views.monitoring_metrics, name='monitoring_metrics'),
+
     # Router URLs
     path('', include(router.urls)),
 ]

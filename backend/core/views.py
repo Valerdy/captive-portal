@@ -4,7 +4,18 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from django.utils import timezone
+from datetime import timedelta
 from .serializers import UserSerializer
+from .models import Session, Device, User
+from .permissions import IsAdmin
+
+# Try to import psutil for system metrics
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 
 @api_view(['POST'])
@@ -171,3 +182,67 @@ def change_password(request):
         {'message': 'Password changed successfully'},
         status=status.HTTP_200_OK
     )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdmin])
+def monitoring_metrics(request):
+    """
+    Get real-time monitoring metrics (CPU, RAM, bandwidth, active connections)
+    Admin only
+    """
+    try:
+        # Get system metrics
+        if PSUTIL_AVAILABLE:
+            cpu_usage = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            memory_usage = memory.percent
+        else:
+            # Fallback values if psutil is not installed
+            cpu_usage = 0
+            memory_usage = 0
+
+        # Get active connections
+        active_sessions = Session.objects.filter(status='active').count()
+        active_devices = Device.objects.filter(is_active=True).count()
+
+        # Calculate current bandwidth (last minute)
+        one_minute_ago = timezone.now() - timedelta(minutes=1)
+        recent_sessions = Session.objects.filter(
+            updated_at__gte=one_minute_ago
+        )
+
+        # Total bandwidth in MB/s (approx)
+        total_bytes = sum(
+            (s.bytes_in + s.bytes_out) for s in recent_sessions
+        )
+        bandwidth_mbps = round((total_bytes / (1024 * 1024)) / 60, 2)  # MB/s
+
+        # Get recent activity (last 10 sessions)
+        recent_activity = []
+        latest_sessions = Session.objects.select_related('user').order_by('-updated_at')[:10]
+
+        for session in latest_sessions:
+            recent_activity.append({
+                'time': session.updated_at.strftime('%H:%M:%S'),
+                'user': session.user.username,
+                'action': 'Active' if session.status == 'active' else session.status.capitalize(),
+                'ip': session.ip_address
+            })
+
+        return Response({
+            'cpu_usage': cpu_usage,
+            'memory_usage': memory_usage,
+            'bandwidth': bandwidth_mbps,
+            'active_connections': active_sessions,
+            'active_devices': active_devices,
+            'recent_activity': recent_activity,
+            'psutil_available': PSUTIL_AVAILABLE,
+            'timestamp': timezone.now().isoformat()
+        })
+
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

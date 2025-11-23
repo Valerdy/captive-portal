@@ -2,35 +2,60 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
+import { monitoringService, type MonitoringMetrics, type RecentActivity } from '@/services/monitoring.service'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 
-const activeConnections = ref(45)
-const bandwidth = ref(245)
-const cpuUsage = ref(42)
-const memoryUsage = ref(68)
-
-const realtimeActivity = ref([
-  { time: new Date().toLocaleTimeString(), user: 'john_doe', action: 'Connexion', ip: '192.168.1.105' },
-  { time: new Date(Date.now() - 30000).toLocaleTimeString(), user: 'jane_smith', action: 'Téléchargement', ip: '192.168.1.110' },
-  { time: new Date(Date.now() - 60000).toLocaleTimeString(), user: 'user123', action: 'Navigation', ip: '192.168.1.115' }
-])
+const activeConnections = ref(0)
+const bandwidth = ref(0)
+const cpuUsage = ref(0)
+const memoryUsage = ref(0)
+const activeDevices = ref(0)
+const psutilAvailable = ref(true)
+const realtimeActivity = ref<RecentActivity[]>([])
+const isLoading = ref(false)
+const lastUpdate = ref<string>('')
 
 let updateInterval: any
 
-onMounted(() => {
+async function fetchMetrics() {
+  try {
+    isLoading.value = true
+    const metrics: MonitoringMetrics = await monitoringService.getMetrics()
+
+    activeConnections.value = metrics.active_connections
+    bandwidth.value = metrics.bandwidth
+    cpuUsage.value = Math.round(metrics.cpu_usage)
+    memoryUsage.value = Math.round(metrics.memory_usage)
+    activeDevices.value = metrics.active_devices
+    psutilAvailable.value = metrics.psutil_available
+    realtimeActivity.value = metrics.recent_activity
+    lastUpdate.value = new Date(metrics.timestamp).toLocaleTimeString('fr-FR')
+  } catch (error: any) {
+    console.error('Erreur lors de la récupération des métriques:', error)
+    if (error.response?.status !== 401) {
+      notificationStore.error('Erreur lors de la récupération des métriques')
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(async () => {
   if (!authStore.isAdmin) {
+    notificationStore.error('Accès refusé')
     router.push('/')
     return
   }
 
-  // Simuler des mises à jour en temps réel
-  updateInterval = setInterval(() => {
-    bandwidth.value = Math.floor(Math.random() * 300) + 150
-    cpuUsage.value = Math.floor(Math.random() * 50) + 30
-    memoryUsage.value = Math.floor(Math.random() * 40) + 50
-  }, 3000)
+  // Récupérer les métriques immédiatement
+  await fetchMetrics()
+
+  // Mettre à jour toutes les 3 secondes
+  updateInterval = setInterval(fetchMetrics, 3000)
 })
 
 onUnmounted(() => {
@@ -57,10 +82,19 @@ function goBack() {
       <div class="header-info">
         <h1>Monitoring en temps réel</h1>
         <p>Surveillance de l'activité réseau</p>
+        <span v-if="lastUpdate" class="last-update">Dernière mise à jour: {{ lastUpdate }}</span>
       </div>
     </header>
 
     <main class="page-content">
+      <!-- Warning if psutil not available -->
+      <div v-if="!psutilAvailable" class="warning-banner">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Le module psutil n'est pas installé. Les métriques CPU et mémoire ne sont pas disponibles.</span>
+      </div>
+
       <!-- Métriques en temps réel -->
       <div class="metrics-grid">
         <div class="metric-card">
@@ -193,9 +227,39 @@ function goBack() {
   color: rgba(255, 255, 255, 0.6);
 }
 
+.header-info .last-update {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
 .page-content {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 12px;
+  color: #fb923c;
+}
+
+.warning-banner svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.warning-banner span {
+  font-size: 0.95rem;
 }
 
 .metrics-grid {
