@@ -28,7 +28,7 @@ class UserSerializer(serializers.ModelSerializer):
             'role', 'role_name', 'role_detail',
             'date_joined', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'is_active', 'is_staff', 'is_superuser', 'role', 'role_name', 'role_detail']
+        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role', 'role_name', 'role_detail']
 
     def get_role_name(self, obj):
         """Get the role name (synced with is_staff/is_superuser)"""
@@ -41,8 +41,35 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password2')
-        user = User.objects.create_user(**validated_data)
+        password = validated_data.pop('password')
+        is_staff = validated_data.pop('is_staff', False)
+        is_superuser = validated_data.pop('is_superuser', False)
+
+        user = User.objects.create_user(password=password, **validated_data)
+        user.is_staff = is_staff
+        user.is_superuser = is_superuser
+        user.save()
         return user
+
+    def update(self, instance, validated_data):
+        # Remove password fields if present (password updates should use separate endpoint)
+        validated_data.pop('password', None)
+        validated_data.pop('password2', None)
+
+        # Update is_staff and is_superuser if provided
+        if 'is_staff' in validated_data:
+            instance.is_staff = validated_data.pop('is_staff')
+        if 'is_superuser' in validated_data:
+            instance.is_superuser = validated_data.pop('is_superuser')
+        if 'is_active' in validated_data:
+            instance.is_active = validated_data.pop('is_active')
+
+        # Update other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
 
 class UserListSerializer(serializers.ModelSerializer):
