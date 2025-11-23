@@ -1,36 +1,44 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useQuotaStore } from '@/stores/quota'
 import { useNotificationStore } from '@/stores/notification'
+import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import DataTable from '@/components/DataTable.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const quotaStore = useQuotaStore()
 const notificationStore = useNotificationStore()
 
-const quotas = ref([
-  { id: 1, user: 'john_doe', daily_limit: 5, weekly_limit: 30, monthly_limit: 120, used_today: 3.2, used_week: 18.5, used_month: 75.3, is_active: true },
-  { id: 2, user: 'jane_smith', daily_limit: 10, weekly_limit: 50, monthly_limit: 200, used_today: 7.8, used_week: 42.1, used_month: 168.9, is_active: true },
-  { id: 3, user: 'user123', daily_limit: 3, weekly_limit: 20, monthly_limit: 80, used_today: 2.1, used_week: 12.3, used_month: 45.7, is_active: true }
-])
+const quotas = computed(() => quotaStore.quotas)
+const isLoading = computed(() => quotaStore.isLoading)
 
 const showEditModal = ref(false)
 const selectedQuota = ref<any>(null)
 
 const columns = [
-  { key: 'user', label: 'Utilisateur', sortable: true },
-  { key: 'daily_limit', label: 'Quota jour (GB)', sortable: true },
-  { key: 'used_today', label: 'Utilisé (GB)', sortable: true },
-  { key: 'weekly_limit', label: 'Quota semaine (GB)', sortable: true },
-  { key: 'monthly_limit', label: 'Quota mois (GB)', sortable: true },
+  { key: 'user_username', label: 'Utilisateur', sortable: true },
+  { key: 'daily_limit_gb', label: 'Quota jour (GB)', sortable: true },
+  { key: 'used_today_gb', label: 'Utilisé (GB)', sortable: true },
+  { key: 'weekly_limit_gb', label: 'Quota semaine (GB)', sortable: true },
+  { key: 'monthly_limit_gb', label: 'Quota mois (GB)', sortable: true },
   { key: 'is_active', label: 'Statut', sortable: true },
   { key: 'actions', label: 'Actions', sortable: false }
 ]
 
-onMounted(() => {
+onMounted(async () => {
   if (!authStore.isAdmin) {
+    notificationStore.error('Accès refusé')
     router.push('/')
+    return
+  }
+
+  try {
+    await quotaStore.fetchQuotas()
+  } catch (error) {
+    notificationStore.error('Erreur lors du chargement des quotas')
   }
 })
 
@@ -48,15 +56,22 @@ async function handleUpdateQuota() {
   if (!selectedQuota.value) return
 
   try {
-    const index = quotas.value.findIndex(q => q.id === selectedQuota.value.id)
-    if (index !== -1) {
-      quotas.value[index] = { ...selectedQuota.value }
-    }
+    // Convertir les limites GB en bytes pour le backend
+    const dailyLimitBytes = Math.round(selectedQuota.value.daily_limit_gb * 1024 * 1024 * 1024)
+    const weeklyLimitBytes = Math.round(selectedQuota.value.weekly_limit_gb * 1024 * 1024 * 1024)
+    const monthlyLimitBytes = Math.round(selectedQuota.value.monthly_limit_gb * 1024 * 1024 * 1024)
+
+    await quotaStore.updateQuota(selectedQuota.value.id, {
+      daily_limit: dailyLimitBytes,
+      weekly_limit: weeklyLimitBytes,
+      monthly_limit: monthlyLimitBytes,
+      is_active: selectedQuota.value.is_active
+    })
 
     notificationStore.success('Quota modifié avec succès')
     closeEditModal()
   } catch (error) {
-    notificationStore.error('Erreur lors de la modification')
+    notificationStore.error(quotaStore.error || 'Erreur lors de la modification')
   }
 }
 
@@ -64,29 +79,23 @@ async function handleToggleStatus(quotaId: number, currentStatus: boolean) {
   const action = currentStatus ? 'désactiver' : 'activer'
   if (confirm(`Voulez-vous vraiment ${action} ce quota ?`)) {
     try {
-      const quota = quotas.value.find(q => q.id === quotaId)
-      if (quota) {
-        quota.is_active = !currentStatus
-      }
+      await quotaStore.updateQuota(quotaId, {
+        is_active: !currentStatus
+      })
       notificationStore.success(`Quota ${currentStatus ? 'désactivé' : 'activé'} avec succès`)
     } catch (error) {
-      notificationStore.error('Erreur lors de la modification')
+      notificationStore.error(quotaStore.error || 'Erreur lors de la modification')
     }
   }
 }
 
 async function handleReset(quotaId: number) {
-  if (confirm('Voulez-vous vraiment réinitialiser les compteurs de ce quota ?')) {
+  if (confirm('Voulez-vous vraiment réinitialiser tous les compteurs de ce quota ?')) {
     try {
-      const quota = quotas.value.find(q => q.id === quotaId)
-      if (quota) {
-        quota.used_today = 0
-        quota.used_week = 0
-        quota.used_month = 0
-      }
+      await quotaStore.resetAll(quotaId)
       notificationStore.success('Compteurs réinitialisés avec succès')
     } catch (error) {
-      notificationStore.error('Erreur lors de la réinitialisation')
+      notificationStore.error(quotaStore.error || 'Erreur lors de la réinitialisation')
     }
   }
 }
@@ -113,17 +122,20 @@ function goBack() {
     </header>
 
     <main class="page-content">
-      <div class="content-card">
+      <LoadingSpinner v-if="isLoading" />
+
+      <div v-else class="content-card">
         <DataTable
           :columns="columns"
           :data="quotas"
+          :loading="isLoading"
           export-filename="quotas-ucac-icam"
         >
-          <template #cell-used_today="{ value, row }">
+          <template #cell-used_today_gb="{ value, row }">
             <div class="usage-cell">
               <span>{{ value.toFixed(1) }} GB</span>
               <div class="progress-mini">
-                <div class="progress-fill" :style="{ width: (value / row.daily_limit * 100) + '%' }"></div>
+                <div class="progress-fill" :style="{ width: row.daily_usage_percent + '%' }"></div>
               </div>
             </div>
           </template>
@@ -174,22 +186,22 @@ function goBack() {
           </button>
 
           <h2>Modifier les quotas</h2>
-          <p class="modal-subtitle">Utilisateur: <strong>{{ selectedQuota.user }}</strong></p>
+          <p class="modal-subtitle">Utilisateur: <strong>{{ selectedQuota.user_username }}</strong></p>
 
           <form @submit.prevent="handleUpdateQuota" class="form">
             <div class="form-group">
               <label>Quota journalier (GB)</label>
-              <input v-model.number="selectedQuota.daily_limit" type="number" step="0.1" min="0" required />
+              <input v-model.number="selectedQuota.daily_limit_gb" type="number" step="0.1" min="0" required />
             </div>
 
             <div class="form-group">
               <label>Quota hebdomadaire (GB)</label>
-              <input v-model.number="selectedQuota.weekly_limit" type="number" step="0.1" min="0" required />
+              <input v-model.number="selectedQuota.weekly_limit_gb" type="number" step="0.1" min="0" required />
             </div>
 
             <div class="form-group">
               <label>Quota mensuel (GB)</label>
-              <input v-model.number="selectedQuota.monthly_limit" type="number" step="0.1" min="0" required />
+              <input v-model.number="selectedQuota.monthly_limit_gb" type="number" step="0.1" min="0" required />
             </div>
 
             <div class="info-box">
