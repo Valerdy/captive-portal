@@ -78,6 +78,7 @@ async function handleAddUser() {
       username: newUser.value.username,
       email: newUser.value.email,
       password: newUser.value.password,
+      password2: newUser.value.password,
       first_name: newUser.value.first_name,
       last_name: newUser.value.last_name,
       is_staff: newUser.value.is_staff
