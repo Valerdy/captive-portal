@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSessionStore } from '@/stores/session'
 import { useDeviceStore } from '@/stores/device'
+import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
@@ -11,23 +12,12 @@ const router = useRouter()
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
 const deviceStore = useDeviceStore()
+const userStore = useUserStore()
 const notificationStore = useNotificationStore()
 
 const isLoading = ref(true)
-const stats = ref({
-  totalUsers: 0,
-  activeUsers: 0,
-  totalSessions: 0,
-  activeSessions: 0,
-  totalDevices: 0,
-  activeDevices: 0,
-  totalBandwidth: 0,
-  todayBandwidth: 0,
-  blockedSites: 0,
-  alerts: 0
-})
 
-// Calculer les statistiques
+// Calculer les statistiques en temps réel
 const activeSessions = computed(() =>
   sessionStore.sessions.filter(s => s.status === 'active').length
 )
@@ -36,26 +26,108 @@ const activeDevices = computed(() =>
   deviceStore.devices.filter(d => d.is_active).length
 )
 
-// Données pour les graphiques (simulées pour l'instant)
-const bandwidthData = ref([
-  { time: '00:00', value: 120 },
-  { time: '04:00', value: 80 },
-  { time: '08:00', value: 250 },
-  { time: '12:00', value: 420 },
-  { time: '16:00', value: 380 },
-  { time: '20:00', value: 290 },
-  { time: '23:59', value: 150 }
-])
+const activeUsers = computed(() =>
+  userStore.users.filter(u => u.is_active).length
+)
 
-const userActivityData = ref([
-  { day: 'Lun', users: 145 },
-  { day: 'Mar', users: 168 },
-  { day: 'Mer', users: 192 },
-  { day: 'Jeu', users: 178 },
-  { day: 'Ven', users: 205 },
-  { day: 'Sam', users: 98 },
-  { day: 'Dim', users: 87 }
-])
+// Calculer la bande passante totale à partir des sessions (en GB)
+const totalBandwidth = computed(() => {
+  const totalBytes = sessionStore.sessions.reduce((sum, session) => {
+    const sessionBytes = (session.bytes_in || 0) + (session.bytes_out || 0)
+    return sum + sessionBytes
+  }, 0)
+  return Math.round(totalBytes / (1024 * 1024 * 1024)) // Convertir en GB
+})
+
+// Calculer la bande passante d'aujourd'hui
+const todayBandwidth = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const todayBytes = sessionStore.sessions
+    .filter(session => {
+      const sessionDate = new Date(session.start_time)
+      return sessionDate >= today
+    })
+    .reduce((sum, session) => {
+      const sessionBytes = (session.bytes_in || 0) + (session.bytes_out || 0)
+      return sum + sessionBytes
+    }, 0)
+
+  return Math.round(todayBytes / (1024 * 1024 * 1024)) // Convertir en GB
+})
+
+// Stats calculées
+const stats = computed(() => ({
+  totalUsers: userStore.users.length,
+  activeUsers: activeUsers.value,
+  totalSessions: sessionStore.sessions.length,
+  activeSessions: activeSessions.value,
+  totalDevices: deviceStore.devices.length,
+  activeDevices: activeDevices.value,
+  totalBandwidth: totalBandwidth.value,
+  todayBandwidth: todayBandwidth.value,
+  blockedSites: 0, // Pas de backend pour l'instant
+  alerts: 0 // Pas de backend pour l'instant
+}))
+
+// Générer les données de graphique de bande passante (24h)
+const bandwidthData = computed(() => {
+  const hours = Array.from({ length: 7 }, (_, i) => i * 4)
+  return hours.map(hour => {
+    const hourStart = new Date()
+    hourStart.setHours(hour, 0, 0, 0)
+    const hourEnd = new Date()
+    hourEnd.setHours(hour + 4, 0, 0, 0)
+
+    const hourBytes = sessionStore.sessions
+      .filter(session => {
+        const sessionDate = new Date(session.start_time)
+        return sessionDate >= hourStart && sessionDate < hourEnd
+      })
+      .reduce((sum, session) => {
+        return sum + (session.bytes_in || 0) + (session.bytes_out || 0)
+      }, 0)
+
+    const hourMB = Math.round(hourBytes / (1024 * 1024))
+    return {
+      time: `${hour.toString().padStart(2, '0')}:00`,
+      value: hourMB
+    }
+  })
+})
+
+// Générer les données d'activité utilisateur (7 derniers jours)
+const userActivityData = computed(() => {
+  const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date()
+    date.setDate(date.getDate() - (6 - i))
+    return date
+  })
+
+  return last7Days.map((date, index) => {
+    const dayStart = new Date(date)
+    dayStart.setHours(0, 0, 0, 0)
+    const dayEnd = new Date(date)
+    dayEnd.setHours(23, 59, 59, 999)
+
+    // Compter les sessions uniques de ce jour
+    const uniqueUsers = new Set(
+      sessionStore.sessions
+        .filter(session => {
+          const sessionDate = new Date(session.start_time)
+          return sessionDate >= dayStart && sessionDate <= dayEnd
+        })
+        .map(session => session.user)
+    )
+
+    return {
+      day: days[date.getDay()],
+      users: uniqueUsers.size
+    }
+  })
+})
 
 onMounted(async () => {
   // Vérifier si l'utilisateur est admin
@@ -66,24 +138,13 @@ onMounted(async () => {
   }
 
   try {
+    // Charger toutes les données en parallèle
     await Promise.all([
+      userStore.fetchUsers(),
       sessionStore.fetchSessions(),
       deviceStore.fetchDevices()
     ])
-
-    // Mettre à jour les stats
-    stats.value = {
-      totalUsers: 247,
-      activeUsers: 89,
-      totalSessions: sessionStore.sessions.length,
-      activeSessions: activeSessions.value,
-      totalDevices: deviceStore.devices.length,
-      activeDevices: activeDevices.value,
-      totalBandwidth: 15847, // GB
-      todayBandwidth: 1256, // GB
-      blockedSites: 23,
-      alerts: 3
-    }
+    // Les stats sont automatiquement calculées via computed properties
   } catch (error) {
     notificationStore.error('Erreur lors du chargement des données')
   } finally {
