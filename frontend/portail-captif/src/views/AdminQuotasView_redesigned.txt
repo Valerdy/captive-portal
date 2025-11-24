@@ -1,0 +1,16 @@
+REDESIGN KEY POINTS:
+- Same header/nav as other pages
+- Stats cards: total, normal, exceeded, active  
+- Table with visual progress bars for quotas (daily/weekly/monthly)
+- Color-coded progress (green <75%, orange 75-90%, red >90%)
+- Modal for editing with GB input
+- Reset buttons (daily/weekly/monthly/all)
+- Same professional styling
+
+MONITORING KEY POINTS:
+- Same header/nav
+- Stats cards for metrics
+- ApexCharts for real-time graphs
+- Recent activity table
+- Auto-refresh every 3 seconds
+- Same professional styling
