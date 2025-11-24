@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useQuotaStore } from '@/stores/quota'
 import { useNotificationStore } from '@/stores/notification'
+import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import DataTable from '@/components/DataTable.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -15,30 +17,22 @@ const isLoading = computed(() => quotaStore.isLoading)
 
 const showEditModal = ref(false)
 const selectedQuota = ref<any>(null)
-const searchQuery = ref('')
 
-// Statistiques
-const stats = computed(() => ({
-  total: quotas.value.length,
-  active: quotas.value.filter(q => q.is_active).length,
-  warning: quotas.value.filter(q => q.daily_usage_percent >= 75 && q.daily_usage_percent < 90).length,
-  exceeded: quotas.value.filter(q => q.daily_usage_percent >= 90).length
-}))
-
-// Filtrage
-const filteredQuotas = computed(() => {
-  if (!searchQuery.value) return quotas.value
-  const query = searchQuery.value.toLowerCase()
-  return quotas.value.filter((q: any) =>
-    q.user_username?.toLowerCase().includes(query)
-  )
-})
+const columns = [
+  { key: 'user_username', label: 'Utilisateur', sortable: true },
+  { key: 'daily_limit_gb', label: 'Quota jour (GB)', sortable: true },
+  { key: 'used_today_gb', label: 'Utilisé (GB)', sortable: true },
+  { key: 'weekly_limit_gb', label: 'Quota semaine (GB)', sortable: true },
+  { key: 'monthly_limit_gb', label: 'Quota mois (GB)', sortable: true },
+  { key: 'is_active', label: 'Statut', sortable: true },
+  { key: 'actions', label: 'Actions', sortable: false }
+]
 
 // Fonction pour obtenir la couleur de la barre de progression
 function getProgressColor(percent: number) {
-  if (percent >= 90) return '#DC2626' // Rouge
-  if (percent >= 75) return '#F97316' // Orange
-  return '#10B981' // Vert
+  if (percent >= 90) return 'linear-gradient(90deg, #DC2626, #EF4444)' // Rouge
+  if (percent >= 75) return 'linear-gradient(90deg, #F97316, #FB923C)' // Orange
+  return 'linear-gradient(90deg, #10B981, #34D399)' // Vert
 }
 
 onMounted(async () => {
@@ -120,252 +114,80 @@ function goBack() {
 
 <template>
   <div class="admin-quotas">
-    <!-- Header professionnel -->
-    <header class="dashboard-header">
-      <div class="header-container">
-        <div class="logo-section">
-          <div class="logo-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="logo-text">
-            <div class="logo-title">UCAC-ICAM</div>
-            <div class="logo-subtitle">Portail Captif</div>
-          </div>
-        </div>
+    <header class="page-header">
+      <button @click="goBack" class="back-btn">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M5 12l7 7m-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Retour
+      </button>
 
-        <nav class="nav-menu">
-          <router-link to="/admin/dashboard" class="nav-link">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-              <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-              <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-              <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            Dashboard
-          </router-link>
-          <router-link to="/admin/users" class="nav-link">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
-              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            Utilisateurs
-          </router-link>
-          <router-link to="/admin/sites" class="nav-link">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            Sites
-          </router-link>
-          <router-link to="/admin/quotas" class="nav-link active">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            Quotas
-          </router-link>
-          <router-link to="/admin/monitoring" class="nav-link">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Monitoring
-          </router-link>
-        </nav>
-
-        <button @click="authStore.logout" class="btn-logout">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Déconnexion
-        </button>
+      <div class="header-info">
+        <h1>Gestion des quotas</h1>
+        <p>Configuration des limites de bande passante par utilisateur</p>
       </div>
     </header>
 
-    <!-- Page principale -->
-    <main class="page-main">
-      <div class="page-title-section">
-        <button @click="goBack" class="back-btn">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 12H5M5 12l7 7m-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div>
-          <h1>Gestion des quotas</h1>
-          <p class="page-subtitle">Configuration des limites de bande passante par utilisateur</p>
-        </div>
-      </div>
+    <main class="page-content">
+      <LoadingSpinner v-if="isLoading" />
 
-      <!-- Statistiques -->
-      <div class="stats-row">
-        <div class="stat-box">
-          <div class="stat-icon" style="background: #DBEAFE; color: #3B82F6;">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
-              <line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="2"/>
-              <line x1="9" y1="9" x2="9" y2="22" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ stats.total }}</div>
-            <div class="stat-label">Total quotas</div>
-          </div>
-        </div>
-
-        <div class="stat-box success">
-          <div class="stat-icon" style="background: #D1FAE5; color: #10B981;">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ stats.active }}</div>
-            <div class="stat-label">Actifs</div>
-          </div>
-        </div>
-
-        <div class="stat-box warning">
-          <div class="stat-icon" style="background: #FED7AA; color: #F97316;">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ stats.warning }}</div>
-            <div class="stat-label">Attention (>75%)</div>
-          </div>
-        </div>
-
-        <div class="stat-box danger">
-          <div class="stat-icon" style="background: #FEE2E2; color: #DC2626;">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ stats.exceeded }}</div>
-            <div class="stat-label">Dépassés (>90%)</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recherche -->
-      <div class="filters-section">
-        <div class="search-box">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-            <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Rechercher un utilisateur..."
-          />
-        </div>
-      </div>
-
-      <!-- Table des quotas -->
-      <div class="content-card">
-        <div v-if="isLoading" class="loading">
-          <div class="spinner"></div>
-          <p>Chargement des quotas...</p>
-        </div>
-
-        <div v-else-if="filteredQuotas.length === 0" class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-            <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <p>Aucun quota trouvé</p>
-        </div>
-
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>Utilisateur</th>
-              <th>Quota jour</th>
-              <th>Utilisé aujourd'hui</th>
-              <th>Quota semaine</th>
-              <th>Quota mois</th>
-              <th>Statut</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="quota in filteredQuotas" :key="quota.id">
-              <td>
-                <div class="user-cell">
-                  <div class="user-avatar-sm">
-                    {{ quota.user_username.charAt(0).toUpperCase() }}
-                  </div>
-                  <span class="user-name-text">{{ quota.user_username }}</span>
-                </div>
-              </td>
-              <td><strong>{{ quota.daily_limit_gb?.toFixed(1) }} GB</strong></td>
-              <td>
-                <div class="usage-cell">
-                  <div class="usage-text">
-                    <span class="usage-value">{{ quota.used_today_gb?.toFixed(2) }} GB</span>
-                    <span class="usage-percent">{{ quota.daily_usage_percent?.toFixed(0) }}%</span>
-                  </div>
-                  <div class="progress-bar-container">
-                    <div
-                      class="progress-bar-fill"
-                      :style="{
-                        width: Math.min(quota.daily_usage_percent, 100) + '%',
-                        background: getProgressColor(quota.daily_usage_percent)
-                      }"
-                    ></div>
-                  </div>
-                </div>
-              </td>
-              <td>{{ quota.weekly_limit_gb?.toFixed(1) }} GB</td>
-              <td>{{ quota.monthly_limit_gb?.toFixed(1) }} GB</td>
-              <td>
-                <span v-if="quota.is_active" class="badge badge-success">Actif</span>
-                <span v-else class="badge badge-inactive">Inactif</span>
-              </td>
-              <td>
-                <div class="action-buttons">
-                  <button @click="handleEdit(quota)" class="action-btn edit" title="Modifier">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <button @click="handleReset(quota.id)" class="action-btn reset" title="Réinitialiser">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <polyline points="23 4 23 10 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <button @click="handleToggleStatus(quota.id, quota.is_active)" class="action-btn toggle" :title="quota.is_active ? 'Désactiver' : 'Activer'">
-                    <svg v-if="quota.is_active" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                      <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-else class="content-card">
+        <DataTable
+          :columns="columns"
+          :data="quotas"
+          :loading="isLoading"
+          export-filename="quotas-ucac-icam"
+        >
+          <template #cell-used_today_gb="{ value, row }">
+            <div class="usage-cell">
+              <div class="usage-text">
+                <span class="usage-value">{{ value?.toFixed(2) }} GB</span>
+                <span class="usage-percent">{{ row.daily_usage_percent?.toFixed(0) }}%</span>
+              </div>
+              <div class="progress-bar-container">
+                <div
+                  class="progress-bar-fill"
+                  :style="{
+                    width: Math.min(row.daily_usage_percent, 100) + '%',
+                    background: getProgressColor(row.daily_usage_percent)
+                  }"
+                ></div>
+              </div>
+            </div>
+          </template>
+          <template #cell-is_active="{ value }">
+            <span :class="['status-badge', value ? 'active' : 'inactive']">
+              {{ value ? 'Actif' : 'Inactif' }}
+            </span>
+          </template>
+          <template #cell-actions="{ row }">
+            <div class="action-buttons">
+              <button @click="handleEdit(row)" class="action-btn edit" title="Modifier">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button @click="handleReset(row.id)" class="action-btn reset" title="Réinitialiser">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <polyline points="23 4 23 10 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button @click="handleToggleStatus(row.id, row.is_active)" class="action-btn toggle" :title="row.is_active ? 'Désactiver' : 'Activer'">
+                <svg v-if="row.is_active" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </template>
+        </DataTable>
       </div>
     </main>
 
@@ -443,159 +265,32 @@ function goBack() {
 .admin-quotas {
   min-height: 100vh;
   background: #F9FAFB;
-}
-
-/* Header professionnel */
-.dashboard-header {
-  background: #FFFFFF;
-  border-bottom: 1px solid #E5E7EB;
-  padding: 1rem 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-}
-
-.logo-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.logo-icon {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
-}
-
-.logo-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-.logo-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.logo-title {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #111827;
-  letter-spacing: -0.5px;
-}
-
-.logo-subtitle {
-  font-size: 0.75rem;
-  color: #6B7280;
-  font-weight: 500;
-}
-
-.nav-menu {
-  display: flex;
-  gap: 0.5rem;
-  flex: 1;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #6B7280;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.nav-link svg {
-  width: 18px;
-  height: 18px;
-}
-
-.nav-link:hover {
-  background: #F3F4F6;
-  color: #111827;
-}
-
-.nav-link.active {
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
-}
-
-.btn-logout {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background: #FEE2E2;
-  color: #DC2626;
-  border: 1px solid #FECACA;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-logout:hover {
-  background: #FEF2F2;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
-}
-
-.btn-logout svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* Page principale */
-.page-main {
-  max-width: 1400px;
-  margin: 0 auto;
   padding: 2rem;
 }
 
-.page-title-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
+.page-header {
+  max-width: 1400px;
+  margin: 0 auto 2rem;
 }
 
 .back-btn {
-  width: 40px;
-  height: 40px;
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
-  border-radius: 10px;
-  display: flex;
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   color: #6B7280;
+  margin-bottom: 1.5rem;
 }
 
 .back-btn:hover {
   background: #F3F4F6;
   color: #111827;
-  transform: translateX(-2px);
+  transform: translateX(-4px);
 }
 
 .back-btn svg {
@@ -603,188 +298,28 @@ function goBack() {
   height: 20px;
 }
 
-.page-title-section h1 {
+.header-info h1 {
   font-size: 2rem;
   font-weight: 800;
+  margin-bottom: 0.5rem;
   color: #111827;
-  margin: 0;
 }
 
-.page-subtitle {
+.header-info p {
   color: #6B7280;
-  font-size: 0.95rem;
-  margin: 0.25rem 0 0 0;
 }
 
-/* Statistiques */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+.page-content {
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-.stat-box {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-left: 4px solid #3B82F6;
-  border-radius: 12px;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.2s ease;
-}
-
-.stat-box:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transform: translateY(-2px);
-}
-
-.stat-box.success {
-  border-left-color: #10B981;
-}
-
-.stat-box.warning {
-  border-left-color: #F97316;
-}
-
-.stat-box.danger {
-  border-left-color: #DC2626;
-}
-
-.stat-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #111827;
-  line-height: 1;
-  margin-bottom: 0.25rem;
-}
-
-.stat-label {
-  color: #6B7280;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-/* Recherche */
-.filters-section {
-  margin-bottom: 1.5rem;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  padding: 0.875rem 1.25rem;
-  max-width: 400px;
-}
-
-.search-box svg {
-  width: 20px;
-  height: 20px;
-  color: #9CA3AF;
-}
-
-.search-box input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 0.95rem;
-  color: #111827;
-  background: transparent;
-}
-
-.search-box input::placeholder {
-  color: #9CA3AF;
-}
-
-/* Table */
 .content-card {
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  padding: 1.5rem;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table thead tr {
-  border-bottom: 2px solid #E5E7EB;
-}
-
-.data-table th {
-  text-align: left;
-  padding: 1rem;
-  font-weight: 700;
-  color: #6B7280;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.data-table tbody tr {
-  border-bottom: 1px solid #F3F4F6;
-  transition: all 0.2s ease;
-}
-
-.data-table tbody tr:hover {
-  background: #F9FAFB;
-}
-
-.data-table td {
-  padding: 1rem;
-  color: #374151;
-  font-size: 0.95rem;
-}
-
-.user-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.user-avatar-sm {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.user-name-text {
-  font-weight: 600;
-  color: #111827;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .usage-cell {
@@ -804,6 +339,7 @@ function goBack() {
 .usage-value {
   font-weight: 600;
   color: #111827;
+  font-size: 0.95rem;
 }
 
 .usage-percent {
@@ -826,24 +362,24 @@ function goBack() {
   transition: all 0.5s ease;
 }
 
-.badge {
+.status-badge {
   display: inline-block;
   padding: 0.375rem 0.875rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
 }
 
-.badge-success {
+.status-badge.active {
   background: #D1FAE5;
   color: #059669;
   border: 1px solid #A7F3D0;
 }
 
-.badge-inactive {
-  background: #F3F4F6;
-  color: #6B7280;
-  border: 1px solid #E5E7EB;
+.status-badge.inactive {
+  background: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
 }
 
 .action-buttons {
@@ -859,13 +395,13 @@ function goBack() {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   border: 1px solid transparent;
 }
 
 .action-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 .action-btn.edit {
@@ -901,37 +437,6 @@ function goBack() {
   transform: translateY(-1px);
 }
 
-/* Loading & Empty State */
-.loading, .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  color: #9CA3AF;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #E5E7EB;
-  border-top-color: #F97316;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.empty-state svg {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 1rem;
-  color: #D1D5DB;
-}
-
-/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1128,31 +633,8 @@ function goBack() {
 }
 
 @media (max-width: 768px) {
-  .header-container {
-    flex-wrap: wrap;
-  }
-
-  .nav-menu {
-    order: 3;
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .page-main {
+  .admin-quotas {
     padding: 1rem;
-  }
-
-  .stats-row {
-    grid-template-columns: 1fr;
-  }
-
-  .data-table {
-    font-size: 0.85rem;
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 0.75rem 0.5rem;
   }
 }
 </style>
