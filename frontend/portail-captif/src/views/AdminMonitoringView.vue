@@ -245,92 +245,26 @@ function goBack() {
 
 <template>
   <div class="admin-monitoring">
-    <!-- Header professionnel -->
-    <header class="dashboard-header">
-      <div class="header-container">
-        <div class="logo-section">
-          <div class="logo-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="logo-text">
-            <div class="logo-title">UCAC-ICAM</div>
-            <div class="logo-subtitle">Portail Captif</div>
-          </div>
-        </div>
+    <header class="page-header">
+      <button @click="goBack" class="back-btn">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M5 12l7 7m-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Retour
+      </button>
 
-        <nav class="nav-menu">
-          <router-link to="/admin/dashboard" class="nav-link">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-              <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-              <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-              <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            Dashboard
-          </router-link>
-          <router-link to="/admin/users" class="nav-link">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
-              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            Utilisateurs
-          </router-link>
-          <router-link to="/admin/sites" class="nav-link">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            Sites
-          </router-link>
-          <router-link to="/admin/quotas" class="nav-link">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            Quotas
-          </router-link>
-          <router-link to="/admin/monitoring" class="nav-link active">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Monitoring
-          </router-link>
-        </nav>
-
-        <button @click="authStore.logout" class="btn-logout">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Déconnexion
-        </button>
+      <div class="header-info">
+        <h1>Monitoring en temps réel</h1>
+        <p>Surveillance de l'activité réseau</p>
+        <span v-if="lastUpdate" class="last-update">
+          <span class="update-dot"></span>
+          Dernière mise à jour: {{ lastUpdate }}
+        </span>
       </div>
     </header>
 
-    <!-- Page principale -->
-    <main class="page-main">
-      <div class="page-title-section">
-        <button @click="goBack" class="back-btn">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 12H5M5 12l7 7m-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div>
-          <h1>Monitoring en temps réel</h1>
-          <p class="page-subtitle">Surveillance de l'activité réseau</p>
-          <span v-if="lastUpdate" class="last-update">
-            <span class="update-dot"></span>
-            Dernière mise à jour: {{ lastUpdate }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Warning si psutil non disponible -->
+    <main class="page-content">
+      <!-- Warning if psutil not available -->
       <div v-if="!psutilAvailable" class="warning-banner">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -338,129 +272,112 @@ function goBack() {
         <span>Le module psutil n'est pas installé. Les métriques CPU et mémoire ne sont pas disponibles. Exécutez: <code>pip install psutil</code></span>
       </div>
 
-      <!-- Statistiques -->
-      <div class="stats-row">
-        <div class="stat-box">
-          <div class="stat-icon" style="background: #D1FAE5; color: #10B981;">
+      <!-- Métriques en temps réel -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon pulse">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
               <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ activeConnections }}</div>
-            <div class="stat-label">Connexions actives</div>
+          <div class="metric-info">
+            <h3>{{ activeConnections }}</h3>
+            <p>Connexions actives</p>
           </div>
         </div>
 
-        <div class="stat-box">
-          <div class="stat-icon" style="background: #FED7AA; color: #F97316;">
+        <div class="metric-card">
+          <div class="metric-icon bandwidth">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <polyline points="17 6 23 6 23 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ bandwidth.toFixed(2) }}</div>
-            <div class="stat-label">MB/s · Bande passante</div>
+          <div class="metric-info">
+            <h3>{{ bandwidth.toFixed(2) }} MB/s</h3>
+            <p>Bande passante</p>
           </div>
         </div>
 
-        <div class="stat-box">
-          <div class="stat-icon" style="background: #DBEAFE; color: #3B82F6;">
+        <div class="metric-card">
+          <div class="metric-icon cpu">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
               <rect x="9" y="9" width="6" height="6" stroke="currentColor" stroke-width="2"/>
             </svg>
           </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ cpuUsage }}%</div>
-            <div class="stat-label">CPU utilisé</div>
+          <div class="metric-info">
+            <h3>{{ cpuUsage }}%</h3>
+            <p>CPU</p>
+          </div>
+          <div class="progress-bar">
+            <div class="progress" :style="{ width: cpuUsage + '%' }"></div>
           </div>
         </div>
 
-        <div class="stat-box">
-          <div class="stat-icon" style="background: #E9D5FF; color: #A855F7;">
+        <div class="metric-card">
+          <div class="metric-icon memory">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ memoryUsage }}%</div>
-            <div class="stat-label">Mémoire utilisée</div>
+          <div class="metric-info">
+            <h3>{{ memoryUsage }}%</h3>
+            <p>Mémoire</p>
+          </div>
+          <div class="progress-bar">
+            <div class="progress memory-progress" :style="{ width: memoryUsage + '%' }"></div>
           </div>
         </div>
       </div>
 
       <!-- Graphiques -->
-      <div class="charts-grid">
-        <!-- Graphique CPU/Mémoire -->
+      <div class="charts-section">
         <div class="chart-card">
           <div class="chart-header">
-            <div class="chart-title">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
-                <rect x="9" y="9" width="6" height="6" stroke="currentColor" stroke-width="2"/>
-              </svg>
-              <h3>Ressources système</h3>
-            </div>
-            <span class="live-badge">
+            <h3>Ressources système (CPU / Mémoire)</h3>
+            <span class="live-indicator">
               <span class="pulse-dot"></span>
               En direct
             </span>
           </div>
-          <div class="chart-content">
-            <VueApexCharts
-              type="area"
-              height="300"
-              :options="systemChartOptions"
-              :series="systemChartSeries"
-            />
-          </div>
+          <VueApexCharts
+            type="area"
+            height="300"
+            :options="systemChartOptions"
+            :series="systemChartSeries"
+          />
         </div>
 
-        <!-- Graphique Bande passante -->
         <div class="chart-card">
           <div class="chart-header">
-            <div class="chart-title">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <polyline points="17 6 23 6 23 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <h3>Bande passante réseau</h3>
-            </div>
-            <span class="live-badge">
+            <h3>Bande passante réseau</h3>
+            <span class="live-indicator">
               <span class="pulse-dot"></span>
               En direct
             </span>
           </div>
-          <div class="chart-content">
-            <VueApexCharts
-              type="area"
-              height="300"
-              :options="bandwidthChartOptions"
-              :series="bandwidthChartSeries"
-            />
-          </div>
+          <VueApexCharts
+            type="area"
+            height="300"
+            :options="bandwidthChartOptions"
+            :series="bandwidthChartSeries"
+          />
         </div>
       </div>
 
-      <!-- Activité récente -->
+      <!-- Activité en temps réel -->
       <div class="activity-card">
         <div class="activity-header">
-          <div class="activity-title">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <h3>Activité récente</h3>
-          </div>
-          <span class="live-badge">
+          <h2>Activité récente</h2>
+          <span class="live-indicator">
             <span class="pulse-dot"></span>
-            {{ realtimeActivity.length }} événements
+            En direct
           </span>
         </div>
 
-        <div v-if="realtimeActivity.length === 0" class="empty-activity">
+        <div v-if="realtimeActivity.length === 0" class="no-activity">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
             <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -469,38 +386,15 @@ function goBack() {
           <p>Aucune activité récente</p>
         </div>
 
-        <div v-else class="activity-table">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Heure</th>
-                <th>Utilisateur</th>
-                <th>Action</th>
-                <th>Adresse IP</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(activity, index) in realtimeActivity" :key="index">
-                <td>
-                  <span class="activity-time">{{ activity.time }}</span>
-                </td>
-                <td>
-                  <div class="user-cell">
-                    <div class="user-avatar-tiny">
-                      {{ activity.user.charAt(0).toUpperCase() }}
-                    </div>
-                    <span class="user-name">{{ activity.user }}</span>
-                  </div>
-                </td>
-                <td>
-                  <span class="activity-action">{{ activity.action }}</span>
-                </td>
-                <td>
-                  <span class="activity-ip">{{ activity.ip }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-else class="activity-list">
+          <div v-for="(activity, index) in realtimeActivity" :key="index" class="activity-item">
+            <div class="activity-time">{{ activity.time }}</div>
+            <div class="activity-content">
+              <span class="activity-user">{{ activity.user }}</span>
+              <span class="activity-action">{{ activity.action }}</span>
+              <span class="activity-ip">{{ activity.ip }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -517,160 +411,32 @@ function goBack() {
 .admin-monitoring {
   min-height: 100vh;
   background: #F9FAFB;
-}
-
-/* Header professionnel */
-.dashboard-header {
-  background: #FFFFFF;
-  border-bottom: 1px solid #E5E7EB;
-  padding: 1rem 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-}
-
-.logo-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.logo-icon {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
-}
-
-.logo-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-.logo-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.logo-title {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #111827;
-  letter-spacing: -0.5px;
-}
-
-.logo-subtitle {
-  font-size: 0.75rem;
-  color: #6B7280;
-  font-weight: 500;
-}
-
-.nav-menu {
-  display: flex;
-  gap: 0.5rem;
-  flex: 1;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #6B7280;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.nav-link svg {
-  width: 18px;
-  height: 18px;
-}
-
-.nav-link:hover {
-  background: #F3F4F6;
-  color: #111827;
-}
-
-.nav-link.active {
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
-}
-
-.btn-logout {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background: #FEE2E2;
-  color: #DC2626;
-  border: 1px solid #FECACA;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-logout:hover {
-  background: #FEF2F2;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
-}
-
-.btn-logout svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* Page principale */
-.page-main {
-  max-width: 1400px;
-  margin: 0 auto;
   padding: 2rem;
 }
 
-.page-title-section {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 2rem;
+.page-header {
+  max-width: 1400px;
+  margin: 0 auto 2rem;
 }
 
 .back-btn {
-  width: 40px;
-  height: 40px;
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
-  border-radius: 10px;
-  display: flex;
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   color: #6B7280;
-  flex-shrink: 0;
+  margin-bottom: 1.5rem;
 }
 
 .back-btn:hover {
   background: #F3F4F6;
   color: #111827;
-  transform: translateX(-2px);
+  transform: translateX(-4px);
 }
 
 .back-btn svg {
@@ -678,17 +444,16 @@ function goBack() {
   height: 20px;
 }
 
-.page-title-section h1 {
+.header-info h1 {
   font-size: 2rem;
   font-weight: 800;
+  margin-bottom: 0.5rem;
   color: #111827;
-  margin: 0;
 }
 
-.page-subtitle {
+.header-info p {
   color: #6B7280;
-  font-size: 0.95rem;
-  margin: 0.25rem 0 0.5rem 0;
+  margin-bottom: 0.5rem;
 }
 
 .last-update {
@@ -717,7 +482,11 @@ function goBack() {
   50% { opacity: 0.5; transform: scale(0.9); }
 }
 
-/* Warning banner */
+.page-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .warning-banner {
   display: flex;
   align-items: center;
@@ -746,65 +515,100 @@ function goBack() {
   font-size: 0.9rem;
 }
 
-/* Statistiques */
-.stats-row {
+.metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
-.stat-box {
+.metric-card {
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.2s ease;
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
 }
 
-.stat-box:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transform: translateY(-2px);
-}
-
-.stat-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+.metric-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  margin-bottom: 1rem;
 }
 
-.stat-icon svg {
-  width: 28px;
-  height: 28px;
+.metric-icon svg {
+  width: 30px;
+  height: 30px;
 }
 
-.stat-content {
-  flex: 1;
+.metric-icon.pulse {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  animation: pulse 2s ease-in-out infinite;
 }
 
-.stat-value {
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.6);
+  }
+}
+
+.metric-icon.bandwidth {
+  background: rgba(249, 115, 22, 0.1);
+  color: #f97316;
+}
+
+.metric-icon.cpu {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.metric-icon.memory {
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+}
+
+.metric-info h3 {
   font-size: 2rem;
   font-weight: 800;
-  color: #111827;
-  line-height: 1;
   margin-bottom: 0.25rem;
+  color: #111827;
 }
 
-.stat-label {
+.metric-info p {
   color: #6B7280;
   font-size: 0.9rem;
-  font-weight: 500;
 }
 
-/* Graphiques */
-.charts-grid {
+.progress-bar {
+  margin-top: 1rem;
+  height: 6px;
+  background: #E5E7EB;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  transition: width 0.5s ease;
+  border-radius: 3px;
+}
+
+.memory-progress {
+  background: linear-gradient(90deg, #a855f7, #c084fc);
+}
+
+.charts-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
   gap: 1.5rem;
@@ -814,8 +618,9 @@ function goBack() {
 .chart-card {
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .chart-header {
@@ -825,26 +630,14 @@ function goBack() {
   margin-bottom: 1.5rem;
 }
 
-.chart-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.chart-title svg {
-  width: 24px;
-  height: 24px;
-  color: #6B7280;
-}
-
-.chart-title h3 {
+.chart-header h3 {
   font-size: 1.125rem;
   font-weight: 700;
   color: #111827;
   margin: 0;
 }
 
-.live-badge {
+.live-indicator {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -865,16 +658,12 @@ function goBack() {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
-.chart-content {
-  position: relative;
-}
-
-/* Activité récente */
 .activity-card {
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .activity-header {
@@ -884,26 +673,13 @@ function goBack() {
   margin-bottom: 1.5rem;
 }
 
-.activity-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.activity-title svg {
-  width: 24px;
-  height: 24px;
-  color: #6B7280;
-}
-
-.activity-title h3 {
-  font-size: 1.125rem;
-  font-weight: 700;
+.activity-header h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
   color: #111827;
-  margin: 0;
 }
 
-.empty-activity {
+.no-activity {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -912,126 +688,95 @@ function goBack() {
   color: #9CA3AF;
 }
 
-.empty-activity svg {
+.no-activity svg {
   width: 64px;
   height: 64px;
   margin-bottom: 1rem;
   color: #D1D5DB;
 }
 
-.activity-table {
-  overflow-x: auto;
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table thead tr {
-  border-bottom: 2px solid #E5E7EB;
-}
-
-.data-table th {
-  text-align: left;
-  padding: 1rem;
-  font-weight: 700;
-  color: #6B7280;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.data-table tbody tr {
-  border-bottom: 1px solid #F3F4F6;
-  transition: all 0.2s ease;
-}
-
-.data-table tbody tr:hover {
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem;
   background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  transition: all 0.3s ease;
 }
 
-.data-table td {
-  padding: 1rem;
-  color: #374151;
-  font-size: 0.95rem;
+.activity-item:hover {
+  background: #F3F4F6;
+  border-color: #F97316;
 }
 
 .activity-time {
-  color: #6B7280;
-  font-size: 0.9rem;
-  font-family: 'Courier New', monospace;
-}
-
-.user-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.user-avatar-tiny {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
   font-size: 0.85rem;
+  color: #6B7280;
+  min-width: 100px;
+  font-family: monospace;
 }
 
-.user-name {
+.activity-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.activity-user {
   font-weight: 600;
-  color: #111827;
+  color: #3B82F6;
 }
 
 .activity-action {
-  color: #374151;
+  color: #111827;
 }
 
 .activity-ip {
+  margin-left: auto;
   padding: 0.375rem 0.875rem;
   background: #FED7AA;
   border: 1px solid #FDBA74;
-  border-radius: 6px;
+  border-radius: 8px;
   color: #C2410C;
   font-size: 0.85rem;
-  font-family: 'Courier New', monospace;
+  font-family: monospace;
   font-weight: 600;
 }
 
 @media (max-width: 768px) {
-  .header-container {
-    flex-wrap: wrap;
-  }
-
-  .nav-menu {
-    order: 3;
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .page-main {
+  .admin-monitoring {
     padding: 1rem;
   }
 
-  .stats-row {
+  .metrics-grid {
     grid-template-columns: 1fr;
   }
 
-  .charts-grid {
+  .charts-section {
     grid-template-columns: 1fr;
   }
 
-  .data-table {
-    font-size: 0.85rem;
+  .activity-item {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .data-table th,
-  .data-table td {
-    padding: 0.75rem 0.5rem;
+  .activity-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .activity-ip {
+    margin-left: 0;
   }
 }
 </style>
