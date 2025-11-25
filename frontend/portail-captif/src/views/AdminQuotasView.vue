@@ -18,6 +18,7 @@ const isLoading = computed(() => quotaStore.isLoading)
 
 const showEditModal = ref(false)
 const selectedQuota = ref<any>(null)
+const isProcessing = ref(false)
 
 const columns = [
   { key: 'user_username', label: 'Utilisateur', sortable: true },
@@ -84,27 +85,41 @@ async function handleUpdateQuota() {
 }
 
 async function handleToggleStatus(quotaId: number, currentStatus: boolean) {
+  if (isProcessing.value) return
+
   const action = currentStatus ? 'désactiver' : 'activer'
-  if (confirm(`Voulez-vous vraiment ${action} ce quota ?`)) {
-    try {
-      await quotaStore.updateQuota(quotaId, {
-        is_active: !currentStatus
-      })
-      notificationStore.success(`Quota ${currentStatus ? 'désactivé' : 'activé'} avec succès`)
-    } catch (error) {
-      notificationStore.error(quotaStore.error || 'Erreur lors de la modification')
-    }
+  if (!confirm(`Voulez-vous vraiment ${action} ce quota ?`)) {
+    return
+  }
+
+  isProcessing.value = true
+  try {
+    await quotaStore.updateQuota(quotaId, {
+      is_active: !currentStatus
+    })
+    notificationStore.success(`Quota ${currentStatus ? 'désactivé' : 'activé'} avec succès`)
+  } catch (error) {
+    notificationStore.error(quotaStore.error || 'Erreur lors de la modification')
+  } finally {
+    isProcessing.value = false
   }
 }
 
 async function handleReset(quotaId: number) {
-  if (confirm('Voulez-vous vraiment réinitialiser tous les compteurs de ce quota ?')) {
-    try {
-      await quotaStore.resetAll(quotaId)
-      notificationStore.success('Compteurs réinitialisés avec succès')
-    } catch (error) {
-      notificationStore.error(quotaStore.error || 'Erreur lors de la réinitialisation')
-    }
+  if (isProcessing.value) return
+
+  if (!confirm('Voulez-vous vraiment réinitialiser tous les compteurs de ce quota ?')) {
+    return
+  }
+
+  isProcessing.value = true
+  try {
+    await quotaStore.resetAll(quotaId)
+    notificationStore.success('Compteurs réinitialisés avec succès')
+  } catch (error) {
+    notificationStore.error(quotaStore.error || 'Erreur lors de la réinitialisation')
+  } finally {
+    isProcessing.value = false
   }
 }
 </script>
