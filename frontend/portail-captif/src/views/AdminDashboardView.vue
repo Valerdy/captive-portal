@@ -237,7 +237,7 @@ const sessionsPieChartSeries = computed(() => {
 })
 
 onMounted(async () => {
-  if (!authStore.user?.is_staff && !authStore.user?.is_superuser) {
+  if (!authStore.isAdmin) {
     notificationStore.error('Accès refusé')
     router.push('/')
     return
@@ -257,10 +257,6 @@ onMounted(async () => {
     isLoading.value = false
   }
 })
-
-function navigateTo(route: string) {
-  router.push(route)
-}
 </script>
 
 <template>
