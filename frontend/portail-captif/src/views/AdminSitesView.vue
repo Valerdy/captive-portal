@@ -18,6 +18,7 @@ const showAddModal = ref(false)
 const searchQuery = ref('')
 const filterType = ref('all')
 const filterStatus = ref('all')
+const isDeleting = ref(false)
 
 const newSite = ref({
   url: '',
@@ -116,15 +117,23 @@ async function handleToggleActive(site: any) {
 }
 
 async function handleDelete(site: any) {
+  // Protection contre les double-clics
+  if (isDeleting.value) {
+    return
+  }
+
   if (!confirm(`Voulez-vous vraiment supprimer ${site.url} ?`)) {
     return
   }
 
+  isDeleting.value = true
   try {
     await siteStore.deleteSite(site.id)
     notificationStore.success('Site supprimé avec succès')
   } catch (error) {
     notificationStore.error('Erreur lors de la suppression')
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -932,7 +941,7 @@ function navigateTo(route: string) {
 .modal-content {
   background: white;
   border-radius: 16px;
-  max-width: 500px;
+  max-width: 600px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;

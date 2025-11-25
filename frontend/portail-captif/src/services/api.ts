@@ -40,23 +40,38 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refresh_token')
-        if (refreshToken) {
-          // Tentative de refresh du token
-          const response = await axios.post(`${API_BASE_URL}/api/core/auth/token/refresh/`, {
-            refresh: refreshToken
-          })
-
-          const { access } = response.data
-          localStorage.setItem('access_token', access)
-
-          // Retry la requête originale avec le nouveau token
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${access}`
-          }
-          return api(originalRequest)
+        if (!refreshToken) {
+          throw new Error('Pas de refresh token disponible')
         }
+
+        // Tentative de refresh du token
+        const response = await axios.post(`${API_BASE_URL}/api/core/auth/token/refresh/`, {
+          refresh: refreshToken
+        })
+
+        // Validation stricte de la réponse
+        if (!response.data || !response.data.access) {
+          throw new Error('Réponse de refresh token invalide')
+        }
+
+        const { access } = response.data
+
+        // Validation du token reçu
+        if (typeof access !== 'string' || access.trim().length === 0) {
+          throw new Error('Token access invalide reçu du serveur')
+        }
+
+        // Sauvegarde du nouveau token
+        localStorage.setItem('access_token', access)
+
+        // Retry la requête originale avec le nouveau token
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${access}`
+        }
+        return api(originalRequest)
       } catch (refreshError) {
-        // Si le refresh échoue, déconnecter l'utilisateur
+        // Si le refresh échoue pour quelque raison que ce soit, déconnecter l'utilisateur
+        console.error('Échec du refresh token:', refreshError)
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         localStorage.removeItem('user')
