@@ -171,7 +171,6 @@ async function handleReset(quotaId: number) {
           </template>
         </DataTable>
       </div>
-    </main>
 
     <!-- Modal Édition -->
     <Teleport to="body">
