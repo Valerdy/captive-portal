@@ -375,7 +375,6 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-    </main>
   </AdminLayout>
 </template>
 
