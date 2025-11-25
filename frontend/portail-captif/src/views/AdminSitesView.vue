@@ -279,7 +279,6 @@ async function handleDelete(site: any) {
           <p>Aucun site ne correspond à vos critères de recherche</p>
         </div>
       </div>
-    </main>
 
     <!-- Modal Ajout -->
     <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
