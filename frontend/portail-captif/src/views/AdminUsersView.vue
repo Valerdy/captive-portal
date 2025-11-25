@@ -369,7 +369,6 @@ async function handleDelete(user: any) {
           <p>Aucun utilisateur ne correspond à vos critères de recherche</p>
         </div>
       </div>
-    </main>
 
     <!-- Modal Ajout -->
     <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
