@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useNotificationStore } from '@/stores/notification'
 import ErrorAlert from '@/components/ErrorAlert.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -28,7 +28,7 @@ async function handleLogin() {
 
     // Redirection vers le dashboard ou l'URL d'origine
     const redirect = router.currentRoute.value.query.redirect as string
-    router.push(redirect || '/dashboard')
+    router.push(redirect || '/devices')
   } catch (error) {
     errorMessage.value = authStore.error || 'Erreur de connexion'
     notificationStore.error(errorMessage.value)
