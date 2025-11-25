@@ -248,8 +248,10 @@ onMounted(async () => {
       sessionStore.fetchSessions(),
       deviceStore.fetchDevices()
     ])
-  } catch (error) {
-    notificationStore.error('Erreur lors du chargement des données')
+  } catch (error: any) {
+    const message = error?.message || 'Erreur inconnue'
+    notificationStore.error(`Erreur lors du chargement des données du dashboard: ${message}`)
+    console.error('Erreur chargement dashboard:', error)
   } finally {
     isLoading.value = false
   }

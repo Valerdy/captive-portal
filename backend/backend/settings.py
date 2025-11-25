@@ -31,10 +31,14 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-!uwv@971di86)lw6c!=85n+uclltw$g2*y0_17$%y#1ln0@mzc')
+DEBUG = env.bool('DEBUG', default=False)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG', default=True)
+if DEBUG:
+    # Clé de développement uniquement - NE JAMAIS utiliser en production
+    SECRET_KEY = env('SECRET_KEY', default='dev-only-insecure-key-change-in-production')
+else:
+    # En production, la SECRET_KEY est OBLIGATOIRE via variable d'environnement
+    SECRET_KEY = env('SECRET_KEY')  # Pas de défaut - échouera si non définie
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
@@ -100,8 +104,10 @@ DATABASES = {
         'ENGINE': env('DB_ENGINE', default='django.db.backends.mysql'),
         'NAME': env('DB_NAME', default='radius'),
         'USER': env('DB_USER', default='root'),
-        'PASSWORD': env('DB_PASSWORD', default='MotDePasseSecurise123!'),
-        'HOST': env('DB_HOST', default='10.242.52.100'),
+        # IMPORTANT: DB_PASSWORD doit TOUJOURS être défini via variable d'environnement
+        # Pas de valeur par défaut pour des raisons de sécurité
+        'PASSWORD': env('DB_PASSWORD'),  # Obligatoire - pas de défaut
+        'HOST': env('DB_HOST', default='localhost'),
         'PORT': env('DB_PORT', default='3306'),
     }
 }

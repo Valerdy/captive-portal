@@ -20,6 +20,7 @@ const selectedUser = ref<any>(null)
 const searchQuery = ref('')
 const filterRole = ref('all')
 const filterStatus = ref('all')
+const isDeleting = ref(false)
 
 const newUser = ref({
   username: '',
@@ -83,8 +84,10 @@ onMounted(async () => {
 
   try {
     await userStore.fetchUsers()
-  } catch (error) {
-    notificationStore.error('Erreur lors du chargement des utilisateurs')
+  } catch (error: any) {
+    const message = error?.message || 'Erreur inconnue'
+    notificationStore.error(`Erreur lors du chargement des utilisateurs: ${message}`)
+    console.error('Erreur chargement utilisateurs:', error)
   }
 })
 
@@ -104,9 +107,33 @@ function closeAddModal() {
   showAddModal.value = false
 }
 
+// Fonction de validation d'email
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+// Fonction de validation de mot de passe
+function isValidPassword(password: string): boolean {
+  return password.length >= 8
+}
+
 async function handleAddUser() {
+  // Validation des champs obligatoires
   if (!newUser.value.username || !newUser.value.email || !newUser.value.password) {
     notificationStore.warning('Veuillez remplir tous les champs requis')
+    return
+  }
+
+  // Validation du format email
+  if (!isValidEmail(newUser.value.email)) {
+    notificationStore.warning('Format d\'email invalide')
+    return
+  }
+
+  // Validation de la force du mot de passe
+  if (!isValidPassword(newUser.value.password)) {
+    notificationStore.warning('Le mot de passe doit contenir au moins 8 caractères')
     return
   }
 
@@ -170,15 +197,23 @@ async function handleToggleActive(user: any) {
 }
 
 async function handleDelete(user: any) {
+  // Protection contre les double-clics
+  if (isDeleting.value) {
+    return
+  }
+
   if (!confirm(`Voulez-vous vraiment supprimer l'utilisateur ${user.username} ?`)) {
     return
   }
 
+  isDeleting.value = true
   try {
     await userStore.deleteUser(user.id)
     notificationStore.success('Utilisateur supprimé avec succès')
   } catch (error) {
     notificationStore.error('Erreur lors de la suppression')
+  } finally {
+    isDeleting.value = false
   }
 }
 
