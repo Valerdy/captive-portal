@@ -165,3 +165,135 @@ class RadiusClient(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.ip_address})"
+
+
+# ============================================================================
+# FreeRADIUS Tables - Standard Schema for User Authentication
+# ============================================================================
+
+class RadCheck(models.Model):
+    """
+    FreeRADIUS radcheck table - User authentication credentials
+    Stores username and password for RADIUS authentication
+    """
+    username = models.CharField(max_length=64, db_index=True)
+    attribute = models.CharField(max_length=64, default='Cleartext-Password')
+    op = models.CharField(max_length=2, default=':=')
+    value = models.CharField(max_length=253)
+
+    class Meta:
+        db_table = 'radcheck'
+        ordering = ['username']
+        indexes = [
+            models.Index(fields=['username', 'attribute']),
+        ]
+
+    def __str__(self):
+        return f"{self.username} - {self.attribute}"
+
+
+class RadReply(models.Model):
+    """
+    FreeRADIUS radreply table - User-specific reply attributes
+    Contains attributes returned to NAS for specific users (e.g., Session-Timeout, bandwidth limits)
+    """
+    username = models.CharField(max_length=64, db_index=True)
+    attribute = models.CharField(max_length=64)
+    op = models.CharField(max_length=2, default='=')
+    value = models.CharField(max_length=253)
+
+    class Meta:
+        db_table = 'radreply'
+        ordering = ['username']
+        indexes = [
+            models.Index(fields=['username', 'attribute']),
+        ]
+
+    def __str__(self):
+        return f"{self.username} - {self.attribute}: {self.value}"
+
+
+class RadGroupCheck(models.Model):
+    """
+    FreeRADIUS radgroupcheck table - Group-level authentication checks
+    Defines authentication parameters for user groups
+    """
+    groupname = models.CharField(max_length=64, db_index=True)
+    attribute = models.CharField(max_length=64)
+    op = models.CharField(max_length=2, default=':=')
+    value = models.CharField(max_length=253)
+
+    class Meta:
+        db_table = 'radgroupcheck'
+        ordering = ['groupname']
+        indexes = [
+            models.Index(fields=['groupname', 'attribute']),
+        ]
+
+    def __str__(self):
+        return f"{self.groupname} - {self.attribute}"
+
+
+class RadGroupReply(models.Model):
+    """
+    FreeRADIUS radgroupreply table - Group-level reply attributes
+    Contains attributes returned to NAS for group members
+    """
+    groupname = models.CharField(max_length=64, db_index=True)
+    attribute = models.CharField(max_length=64)
+    op = models.CharField(max_length=2, default='=')
+    value = models.CharField(max_length=253)
+    priority = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'radgroupreply'
+        ordering = ['groupname', 'priority']
+        indexes = [
+            models.Index(fields=['groupname', 'attribute']),
+        ]
+
+    def __str__(self):
+        return f"{self.groupname} - {self.attribute}: {self.value}"
+
+
+class RadUserGroup(models.Model):
+    """
+    FreeRADIUS radusergroup table - User to group mapping
+    Associates users with groups for applying group-level policies
+    """
+    username = models.CharField(max_length=64, db_index=True)
+    groupname = models.CharField(max_length=64, db_index=True)
+    priority = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'radusergroup'
+        ordering = ['username', 'priority']
+        unique_together = ('username', 'groupname')
+        indexes = [
+            models.Index(fields=['username', 'priority']),
+            models.Index(fields=['groupname']),
+        ]
+
+    def __str__(self):
+        return f"{self.username} -> {self.groupname}"
+
+
+class RadPostAuth(models.Model):
+    """
+    FreeRADIUS radpostauth table - Post-authentication logging
+    Logs all authentication attempts (success and failure)
+    """
+    username = models.CharField(max_length=64, db_index=True)
+    pass_field = models.CharField('pass', max_length=64, db_column='pass')
+    reply = models.CharField(max_length=32)
+    authdate = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'radpostauth'
+        ordering = ['-authdate']
+        indexes = [
+            models.Index(fields=['username', '-authdate']),
+        ]
+
+    def __str__(self):
+        return f"{self.username} - {self.reply} at {self.authdate}"
