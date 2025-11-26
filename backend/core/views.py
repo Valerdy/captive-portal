@@ -5,10 +5,14 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
+from django.db import transaction
 from datetime import timedelta
 from .serializers import UserSerializer
 from .models import Session, Device, User
 from .permissions import IsAdmin
+
+# Import FreeRADIUS models for user creation
+from radius.models import RadCheck, RadReply, RadUserGroup
 
 # Try to import psutil for system metrics
 try:
@@ -23,22 +27,77 @@ except ImportError:
 def register(request):
     """
     User registration endpoint
+    Creates user in both Django and FreeRADIUS for Mikrotik captive portal access
     """
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
-        user = serializer.save()
+        # Get the plain password before it's hashed
+        plain_password = request.data.get('password')
 
-        # Generate tokens for the new user
-        refresh = RefreshToken.for_user(user)
+        # Use transaction to ensure both Django and RADIUS user are created together
+        try:
+            with transaction.atomic():
+                # Create Django user (password will be hashed)
+                user = serializer.save()
 
-        return Response({
-            'user': UserSerializer(user).data,
-            'tokens': {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            },
-            'message': 'User registered successfully'
-        }, status=status.HTTP_201_CREATED)
+                # Create FreeRADIUS user with plain password for captive portal authentication
+                # This allows the user to login to Mikrotik captive portal
+
+                # 1. Create authentication entry in radcheck
+                RadCheck.objects.create(
+                    username=user.username,
+                    attribute='Cleartext-Password',
+                    op=':=',
+                    value=plain_password
+                )
+
+                # 2. Set session timeout based on role (user = 1h, admin = 24h)
+                session_timeout = 86400 if user.role == 'admin' else 3600
+                RadReply.objects.create(
+                    username=user.username,
+                    attribute='Session-Timeout',
+                    op='=',
+                    value=str(session_timeout)
+                )
+
+                # 3. Add default bandwidth limit (10Mbps up/down) - optional
+                RadReply.objects.create(
+                    username=user.username,
+                    attribute='Mikrotik-Rate-Limit',
+                    op='=',
+                    value='10M/10M'
+                )
+
+                # 4. Assign to user group
+                RadUserGroup.objects.create(
+                    username=user.username,
+                    groupname=user.role,
+                    priority=0
+                )
+
+                # Generate tokens for the new user
+                refresh = RefreshToken.for_user(user)
+
+                return Response({
+                    'user': UserSerializer(user).data,
+                    'tokens': {
+                        'refresh': str(refresh),
+                        'access': str(refresh.access_token),
+                    },
+                    'message': 'User registered successfully. You can now login to the Mikrotik captive portal.',
+                    'radius_info': {
+                        'username': user.username,
+                        'session_timeout': f'{session_timeout//3600}h',
+                        'bandwidth_limit': '10M/10M',
+                        'can_access_captive_portal': True
+                    }
+                }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({
+                'error': 'Failed to create user',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
