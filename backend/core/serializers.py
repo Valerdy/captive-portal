@@ -1,14 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, Device, Session, Voucher, Role, BlockedSite, UserQuota
-
-
-class RoleSerializer(serializers.ModelSerializer):
-    """Serializer for Role model"""
-    class Meta:
-        model = Role
-        fields = ['id', 'name', 'description']
-        read_only_fields = ['id']
+from .models import User, Device, Session, Voucher, BlockedSite, UserQuota
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -16,7 +8,6 @@ class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
     role_name = serializers.SerializerMethodField()
-    role_detail = RoleSerializer(source='role', read_only=True)
 
     class Meta:
         model = User
@@ -25,10 +16,10 @@ class UserSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'phone_number', 'mac_address',
             'ip_address', 'is_voucher_user', 'voucher_code',
             'is_active', 'is_staff', 'is_superuser',
-            'role', 'role_name', 'role_detail',
+            'role', 'role_name',
             'date_joined', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role', 'role_name', 'role_detail']
+        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role_name']
 
     def get_role_name(self, obj):
         """Get the role name (synced with is_staff/is_superuser)"""
