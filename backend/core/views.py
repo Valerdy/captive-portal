@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
-from .serializers import UserSerializer
+from .serializers import UserSerializer, AdminUserCreationSerializer
 from .models import Session, Device, User
 from .permissions import IsAdmin
 
@@ -26,80 +26,190 @@ except ImportError:
 @permission_classes([AllowAny])
 def register(request):
     """
-    User registration endpoint
-    Creates user in both Django and FreeRADIUS for Mikrotik captive portal access
+    User registration endpoint with pre-registration validation.
+    Only allows registration if user was pre-registered by an administrator.
+
+    Required fields: first_name, last_name, promotion, matricule, password, password2
     """
-    serializer = UserSerializer(data=request.data)
-    if serializer.is_valid():
-        # Get the plain password before it's hashed
-        plain_password = request.data.get('password')
+    # Extraire les données requises
+    first_name = request.data.get('first_name', '').strip()
+    last_name = request.data.get('last_name', '').strip()
+    promotion = request.data.get('promotion', '').strip()
+    matricule = request.data.get('matricule', '').strip()
+    password = request.data.get('password')
+    password2 = request.data.get('password2')
 
-        # Use transaction to ensure both Django and RADIUS user are created together
+    # Validation des champs requis
+    if not all([first_name, last_name, promotion, matricule, password, password2]):
+        return Response({
+            'error': 'Tous les champs sont requis',
+            'detail': 'Veuillez remplir tous les champs: Nom, Prénom, Promotion, Matricule, Mot de passe'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # Vérifier que les mots de passe correspondent
+    if password != password2:
+        return Response({
+            'error': 'Les mots de passe ne correspondent pas',
+            'detail': 'Le mot de passe et la confirmation doivent être identiques'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Rechercher un utilisateur pré-enregistré correspondant
+        pre_registered_user = User.objects.filter(
+            first_name__iexact=first_name,
+            last_name__iexact=last_name,
+            promotion__iexact=promotion,
+            matricule__iexact=matricule,
+            is_pre_registered=True
+        ).first()
+
+        # Si aucun utilisateur pré-enregistré trouvé
+        if not pre_registered_user:
+            return Response({
+                'error': 'Inscription non autorisée',
+                'detail': 'Aucun compte pré-enregistré ne correspond à vos informations. Veuillez contacter l\'administrateur.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Vérifier si l'utilisateur a déjà complété son inscription
+        if pre_registered_user.registration_completed:
+            return Response({
+                'error': 'Inscription déjà complétée',
+                'detail': 'Ce compte a déjà été activé. Utilisez la page de connexion pour vous connecter.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Valider le mot de passe avec les validateurs Django
         try:
-            with transaction.atomic():
-                # Create Django user (password will be hashed)
-                user = serializer.save()
+            validate_password(password, user=pre_registered_user)
+        except Exception as e:
+            return Response({
+                'error': 'Mot de passe invalide',
+                'detail': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-                # Create FreeRADIUS user with plain password for captive portal authentication
-                # This allows the user to login to Mikrotik captive portal
+        # Utiliser une transaction pour garantir la cohérence
+        with transaction.atomic():
+            # Mettre à jour le mot de passe et marquer l'inscription comme complétée
+            pre_registered_user.set_password(password)
+            pre_registered_user.registration_completed = True
+            pre_registered_user.is_active = True
+            pre_registered_user.save()
 
-                # 1. Create authentication entry in radcheck
-                RadCheck.objects.create(
-                    username=user.username,
-                    attribute='Cleartext-Password',
-                    op=':=',
-                    value=plain_password
-                )
+            # Créer les entrées FreeRADIUS pour l'accès au portail captif
 
-                # 2. Set session timeout based on role (user = 1h, admin = 24h)
-                session_timeout = 86400 if user.role == 'admin' else 3600
-                RadReply.objects.update_or_create(
-                    username=user.username,
-                    attribute='Session-Timeout',
-                    defaults={
-                        'op': '=',
-                        'value': str(session_timeout)
-                    }
-                )
+            # 1. Créer/Mettre à jour l'authentification dans radcheck
+            RadCheck.objects.update_or_create(
+                username=pre_registered_user.username,
+                attribute='Cleartext-Password',
+                defaults={
+                    'op': ':=',
+                    'value': password
+                }
+            )
 
-                # 3. Add default bandwidth limit (10Mbps up/down) - optional
-                RadReply.objects.update_or_create(
-                    username=user.username,
-                    attribute='Mikrotik-Rate-Limit',
-                    defaults={
-                        'op': '=',
-                        'value': '10M/10M'
-                    }
-                )
+            # 2. Définir le timeout de session basé sur le rôle
+            session_timeout = 86400 if pre_registered_user.role == 'admin' else 3600
+            RadReply.objects.update_or_create(
+                username=pre_registered_user.username,
+                attribute='Session-Timeout',
+                defaults={
+                    'op': '=',
+                    'value': str(session_timeout)
+                }
+            )
 
-                # 4. Assign to user group
-                RadUserGroup.objects.update_or_create(
-                    username=user.username,
-                    groupname=user.role,
-                    defaults={'priority': 0}
-                )
+            # 3. Ajouter la limite de bande passante par défaut (10Mbps)
+            RadReply.objects.update_or_create(
+                username=pre_registered_user.username,
+                attribute='Mikrotik-Rate-Limit',
+                defaults={
+                    'op': '=',
+                    'value': '10M/10M'
+                }
+            )
 
-                # Generate tokens for the new user
-                refresh = RefreshToken.for_user(user)
+            # 4. Assigner au groupe utilisateur
+            RadUserGroup.objects.update_or_create(
+                username=pre_registered_user.username,
+                groupname=pre_registered_user.role,
+                defaults={'priority': 0}
+            )
 
-                return Response({
-                    'user': UserSerializer(user).data,
-                    'tokens': {
-                        'refresh': str(refresh),
-                        'access': str(refresh.access_token),
-                    },
-                    'message': 'User registered successfully. You can now login to the Mikrotik captive portal.',
-                    'radius_info': {
-                        'username': user.username,
-                        'session_timeout': f'{session_timeout//3600}h',
-                        'bandwidth_limit': '10M/10M',
-                        'can_access_captive_portal': True
-                    }
-                }, status=status.HTTP_201_CREATED)
+            # Générer les tokens JWT
+            refresh = RefreshToken.for_user(pre_registered_user)
+
+            return Response({
+                'user': {
+                    'id': pre_registered_user.id,
+                    'username': pre_registered_user.username,
+                    'email': pre_registered_user.email,
+                    'first_name': pre_registered_user.first_name,
+                    'last_name': pre_registered_user.last_name,
+                    'promotion': pre_registered_user.promotion,
+                    'matricule': pre_registered_user.matricule,
+                    'role': pre_registered_user.role
+                },
+                'tokens': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                },
+                'message': 'Inscription réussie ! Vous pouvez maintenant vous connecter au portail captif.',
+                'radius_info': {
+                    'username': pre_registered_user.username,
+                    'session_timeout': f'{session_timeout//3600}h',
+                    'bandwidth_limit': '10M/10M',
+                    'can_access_captive_portal': True
+                }
+            }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({
+            'error': 'Erreur lors de l\'inscription',
+            'detail': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdmin])
+def admin_preregister_user(request):
+    """
+    Admin endpoint to pre-register users.
+    Creates user accounts with default password that users must complete later.
+
+    Required fields: first_name, last_name, promotion, matricule
+    Optional fields: username, email
+    """
+    serializer = AdminUserCreationSerializer(data=request.data)
+
+    if serializer.is_valid():
+        try:
+            # Créer l'utilisateur pré-enregistré
+            user = serializer.save()
+
+            return Response({
+                'success': True,
+                'message': 'Utilisateur pré-enregistré avec succès',
+                'user': {
+                    'id': user.id,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'promotion': user.promotion,
+                    'matricule': user.matricule,
+                    'username': user.username,
+                    'email': user.email,
+                    'is_pre_registered': user.is_pre_registered,
+                    'registration_completed': user.registration_completed,
+                    'created_at': user.created_at
+                },
+                'credentials': {
+                    'username': user.username,
+                    'default_password': 'password123',
+                    'note': 'L\'utilisateur devra changer ce mot de passe lors de sa première connexion'
+                }
+            }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             return Response({
-                'error': 'Failed to create user',
+                'error': 'Erreur lors de la pré-inscription',
                 'detail': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

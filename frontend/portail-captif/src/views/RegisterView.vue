@@ -11,24 +11,37 @@ const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 
 const formData = ref({
-  username: '',
-  email: '',
-  password: '',
   first_name: '',
   last_name: '',
-  phone_number: ''
+  promotion: '',
+  matricule: '',
+  password: '',
+  password2: ''
 })
 const errorMessage = ref('')
+const showPassword = ref(false)
+const showPassword2 = ref(false)
 
 async function handleRegister() {
   errorMessage.value = ''
 
+  // Validation côté client
+  if (!formData.value.first_name || !formData.value.last_name ||
+      !formData.value.promotion || !formData.value.matricule ||
+      !formData.value.password || !formData.value.password2) {
+    errorMessage.value = 'Tous les champs sont requis'
+    notificationStore.error(errorMessage.value)
+    return
+  }
+
+  if (formData.value.password !== formData.value.password2) {
+    errorMessage.value = 'Les mots de passe ne correspondent pas'
+    notificationStore.error(errorMessage.value)
+    return
+  }
+
   try {
-    // Ajouter password2 pour la validation backend
-    await authStore.register({
-      ...formData.value,
-      password2: formData.value.password
-    })
+    await authStore.register(formData.value)
 
     // Notification de succès
     notificationStore.success('Inscription réussie ! Bienvenue.')
@@ -55,12 +68,13 @@ async function handleRegister() {
         </div>
         <h1>UCAC-ICAM</h1>
         <h2>Portail Captif</h2>
-        <p class="subtitle">Créez votre compte d'accès</p>
+        <p class="subtitle">Complétez votre inscription</p>
       </div>
 
       <!-- Carte d'inscription -->
       <div class="register-card">
         <h3>Inscription</h3>
+        <p class="info-text">Utilisez les informations fournies par l'administration</p>
 
         <form @submit.prevent="handleRegister">
           <div class="form-row">
@@ -70,12 +84,13 @@ async function handleRegister() {
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                Prénom
+                Prénom *
               </label>
               <input
                 id="first_name"
                 v-model="formData.first_name"
                 type="text"
+                required
                 placeholder="Votre prénom"
                 autocomplete="given-name"
               />
@@ -86,68 +101,56 @@ async function handleRegister() {
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                Nom
+                Nom *
               </label>
               <input
                 id="last_name"
                 v-model="formData.last_name"
                 type="text"
+                required
                 placeholder="Votre nom"
                 autocomplete="family-name"
               />
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="username">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              Nom d'utilisateur *
-            </label>
-            <input
-              id="username"
-              v-model="formData.username"
-              type="text"
-              required
-              placeholder="Choisissez un nom d'utilisateur"
-              autocomplete="username"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="email">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M22 6l-10 7L2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Email *
-            </label>
-            <input
-              id="email"
-              v-model="formData.email"
-              type="email"
-              required
-              placeholder="votre.email@exemple.com"
-              autocomplete="email"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="phone_number">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Téléphone
-            </label>
-            <input
-              id="phone_number"
-              v-model="formData.phone_number"
-              type="tel"
-              placeholder="+237 6XX XX XX XX"
-              autocomplete="tel"
-            />
+          <div class="form-row">
+            <div class="form-group">
+              <label for="promotion">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M6 12v5c3 3 9 3 12 0v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Promotion *
+              </label>
+              <input
+                id="promotion"
+                v-model="formData.promotion"
+                type="text"
+                required
+                placeholder="Ex: ING3, L1, M2..."
+                autocomplete="off"
+              />
+            </div>
+            <div class="form-group">
+              <label for="matricule">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Matricule *
+              </label>
+              <input
+                id="matricule"
+                v-model="formData.matricule"
+                type="text"
+                required
+                placeholder="Votre matricule"
+                autocomplete="off"
+              />
+            </div>
           </div>
 
           <div class="form-group">
@@ -158,14 +161,66 @@ async function handleRegister() {
               </svg>
               Mot de passe *
             </label>
-            <input
-              id="password"
-              v-model="formData.password"
-              type="password"
-              required
-              placeholder="Choisissez un mot de passe"
-              autocomplete="new-password"
-            />
+            <div class="password-input-wrapper">
+              <input
+                id="password"
+                v-model="formData.password"
+                :type="showPassword ? 'text' : 'password'"
+                required
+                placeholder="Choisissez un mot de passe fort"
+                autocomplete="new-password"
+              />
+              <button
+                type="button"
+                class="toggle-password"
+                @click="showPassword = !showPassword"
+                aria-label="Afficher/Masquer le mot de passe"
+              >
+                <svg v-if="!showPassword" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password2">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Confirmation du mot de passe *
+            </label>
+            <div class="password-input-wrapper">
+              <input
+                id="password2"
+                v-model="formData.password2"
+                :type="showPassword2 ? 'text' : 'password'"
+                required
+                placeholder="Confirmez votre mot de passe"
+                autocomplete="new-password"
+              />
+              <button
+                type="button"
+                class="toggle-password"
+                @click="showPassword2 = !showPassword2"
+                aria-label="Afficher/Masquer le mot de passe"
+              >
+                <svg v-if="!showPassword2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
           <ErrorAlert
@@ -190,7 +245,7 @@ async function handleRegister() {
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Déjà un compte ? Se connecter
+            Déjà inscrit ? Se connecter
           </router-link>
         </div>
       </div>
@@ -221,7 +276,7 @@ async function handleRegister() {
 
 .register-container {
   width: 100%;
-  max-width: 540px;
+  max-width: 600px;
   animation: fadeInUp 0.6s ease-out;
 }
 
@@ -304,9 +359,16 @@ async function handleRegister() {
 .register-card h3 {
   color: #dc2626;
   font-size: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
   text-align: center;
   font-weight: 700;
+}
+
+.info-text {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
 }
 
 /* Formulaire */
@@ -358,24 +420,38 @@ input::placeholder {
   color: #999;
 }
 
-/* Message d'erreur */
-.error-message {
-  background: #fff5f5;
-  border: 1px solid #feb2b2;
-  color: #c53030;
-  padding: 1rem;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.9rem;
+/* Password input with toggle */
+.password-input-wrapper {
+  position: relative;
 }
 
-.error-message svg {
+.password-input-wrapper input {
+  padding-right: 3rem;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  transition: color 0.3s ease;
+}
+
+.toggle-password:hover {
+  color: #f97316;
+}
+
+.toggle-password svg {
   width: 20px;
   height: 20px;
-  flex-shrink: 0;
 }
 
 /* Bouton principal */
@@ -391,6 +467,10 @@ input::placeholder {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .btn-primary:hover:not(:disabled) {
