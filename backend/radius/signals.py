@@ -54,13 +54,10 @@ def sync_user_to_radius(sender, instance, created, **kwargs):
     )
 
     # Update group membership in radusergroup
-    # First remove old groups
-    RadUserGroup.objects.filter(username=instance.username).delete()
-    # Then add new group
-    RadUserGroup.objects.create(
+    RadUserGroup.objects.update_or_create(
         username=instance.username,
         groupname=groupname,
-        priority=0
+        defaults={'priority': 0}
     )
 
     print(f"🔄 User '{instance.username}' settings updated in RADIUS (group: '{groupname}')")

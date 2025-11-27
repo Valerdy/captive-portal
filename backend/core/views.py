@@ -53,26 +53,30 @@ def register(request):
 
                 # 2. Set session timeout based on role (user = 1h, admin = 24h)
                 session_timeout = 86400 if user.role == 'admin' else 3600
-                RadReply.objects.create(
+                RadReply.objects.update_or_create(
                     username=user.username,
                     attribute='Session-Timeout',
-                    op='=',
-                    value=str(session_timeout)
+                    defaults={
+                        'op': '=',
+                        'value': str(session_timeout)
+                    }
                 )
 
                 # 3. Add default bandwidth limit (10Mbps up/down) - optional
-                RadReply.objects.create(
+                RadReply.objects.update_or_create(
                     username=user.username,
                     attribute='Mikrotik-Rate-Limit',
-                    op='=',
-                    value='10M/10M'
+                    defaults={
+                        'op': '=',
+                        'value': '10M/10M'
+                    }
                 )
 
                 # 4. Assign to user group
-                RadUserGroup.objects.create(
+                RadUserGroup.objects.update_or_create(
                     username=user.username,
                     groupname=user.role,
-                    priority=0
+                    defaults={'priority': 0}
                 )
 
                 # Generate tokens for the new user
