@@ -8,34 +8,9 @@ Ce système sépare l'**inscription utilisateur Django** de l'**activation RADIU
 
 ## 🔄 Workflow complet
 
-### **Étape 1 : Pré-enregistrement** (Admin)
+### **Étape 1 : Inscription** (Utilisateur)
 
-Un administrateur pré-enregistre un étudiant via l'interface admin.
-
-**Endpoint**: `POST /api/core/admin/users/preregister/`
-
-```json
-{
-  "first_name": "Jean",
-  "last_name": "Dupont",
-  "promotion": "ING3",
-  "matricule": "2024001",
-  "username": "jdupont",  // Optionnel
-  "email": "jdupont@student.example.com"  // Optionnel
-}
-```
-
-**Résultat**:
-- ✅ Utilisateur créé dans Django (`users` table)
-- ✅ `is_pre_registered = True`
-- ✅ `registration_completed = False`
-- ❌ **PAS** dans `radcheck` (RADIUS)
-
----
-
-### **Étape 2 : Inscription** (Utilisateur)
-
-L'étudiant complète son inscription en fournissant ses informations et son mot de passe.
+L'étudiant s'inscrit directement en fournissant ses informations et son mot de passe.
 
 **Endpoint**: `POST /api/core/auth/register/`
 
@@ -45,16 +20,19 @@ L'étudiant complète son inscription en fournissant ses informations et son mot
   "last_name": "Dupont",
   "promotion": "ING3",
   "matricule": "2024001",
+  "username": "jdupont",  // Optionnel (par défaut: matricule)
+  "email": "jdupont@student.example.com",  // Optionnel (par défaut: matricule@student.ucac-icam.com)
   "password": "MonMotDePasse123!",
   "password2": "MonMotDePasse123!"
 }
 ```
 
 **Résultat**:
-- ✅ Utilisateur actif dans Django (`is_active = True`)
-- ✅ `registration_completed = True`
+- ✅ Utilisateur créé et actif dans Django (`is_active = True`)
 - ✅ Mot de passe Django hashé
 - ✅ Tokens JWT générés (cookies HttpOnly)
+- ✅ Username généré automatiquement depuis matricule si non fourni
+- ✅ Email généré automatiquement si non fourni
 - ❌ **PAS encore dans `radcheck`** (RADIUS)
 - ⚠️ `is_radius_activated = False`
 
@@ -63,7 +41,7 @@ L'étudiant complète son inscription en fournissant ses informations et son mot
 
 ---
 
-### **Étape 3 : Activation RADIUS** (Admin)
+### **Étape 2 : Activation RADIUS** (Admin)
 
 Un administrateur active manuellement un ou plusieurs utilisateurs dans RADIUS.
 
@@ -151,18 +129,18 @@ Un administrateur active manuellement un ou plusieurs utilisateurs dans RADIUS.
 
 | Champ | Valeur | Signification |
 |-------|--------|---------------|
-| `is_pre_registered` | `True` | Pré-enregistré par un admin |
-| `registration_completed` | `False` | N'a pas encore complété son inscription |
+| `is_active` | `True` | Utilisateur inscrit et actif dans Django |
 | `is_radius_activated` | `False` | Pas encore activé dans RADIUS |
 
 ➡️ **Après inscription**:
-- `registration_completed = True`
 - `is_active = True`
 - `is_radius_activated = False` ⚠️
+- Accès à l'interface web uniquement
 
 ➡️ **Après activation par admin**:
 - `is_radius_activated = True` ✅
 - Présence dans `radcheck`, `radreply`, `radusergroup`
+- Accès WiFi autorisé
 
 ---
 
@@ -173,7 +151,6 @@ Un administrateur active manuellement un ou plusieurs utilisateurs dans RADIUS.
 ```typescript
 // Filtrer les utilisateurs en attente d'activation
 const pendingActivation = users.value.filter(user =>
-  user.registration_completed &&
   !user.is_radius_activated &&
   user.is_active
 )
@@ -268,8 +245,7 @@ Alternative : Utiliser `Crypt-Password` ou `NT-Password` pour des protocoles plu
 ```sql
 SELECT id, username, email, first_name, last_name, promotion, matricule
 FROM users
-WHERE registration_completed = TRUE
-  AND is_radius_activated = FALSE
+WHERE is_radius_activated = FALSE
   AND is_active = TRUE;
 ```
 
@@ -286,9 +262,9 @@ WHERE u.id = 1;
 
 ```sql
 SELECT
-  COUNT(*) FILTER (WHERE is_pre_registered = TRUE AND registration_completed = FALSE) AS pre_registered,
-  COUNT(*) FILTER (WHERE registration_completed = TRUE AND is_radius_activated = FALSE) AS pending_activation,
-  COUNT(*) FILTER (WHERE is_radius_activated = TRUE) AS radius_active
+  COUNT(*) FILTER (WHERE is_active = TRUE AND is_radius_activated = FALSE) AS pending_activation,
+  COUNT(*) FILTER (WHERE is_radius_activated = TRUE) AS radius_active,
+  COUNT(*) FILTER (WHERE is_active = FALSE) AS inactive
 FROM users;
 ```
 
@@ -296,21 +272,7 @@ FROM users;
 
 ## 🧪 Tests
 
-### **1. Tester le pré-enregistrement**
-
-```bash
-curl -X POST http://localhost:8000/api/core/admin/users/preregister/ \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "first_name": "Test",
-    "last_name": "User",
-    "promotion": "ING3",
-    "matricule": "TEST001"
-  }'
-```
-
-### **2. Tester l'inscription**
+### **1. Tester l'inscription**
 
 ```bash
 curl -X POST http://localhost:8000/api/core/auth/register/ \
@@ -325,7 +287,7 @@ curl -X POST http://localhost:8000/api/core/auth/register/ \
   }'
 ```
 
-### **3. Tester l'activation RADIUS**
+### **2. Tester l'activation RADIUS**
 
 ```bash
 curl -X POST http://localhost:8000/api/core/admin/users/activate/ \
@@ -345,38 +307,29 @@ curl -X POST http://localhost:8000/api/core/admin/users/activate/ \
 │                     SYSTÈME D'ACTIVATION RADIUS                 │
 └─────────────────────────────────────────────────────────────────┘
 
-┌──────────────┐
-│    ADMIN     │
-└───────┬──────┘
-        │
-        │ 1. Pré-enregistre
-        ▼
+┌──────────────────┐
+│   UTILISATEUR    │
+└────────┬─────────┘
+         │
+         │ 1. S'inscrit directement
+         ▼
 ┌───────────────────┐
 │  Table: users     │
-│  ✅ is_pre_registered = TRUE
-│  ❌ registration_completed = FALSE
-│  ❌ is_radius_activated = FALSE
-└───────────────────┘
-        │
-        │ 2. Utilisateur s'inscrit
-        ▼
-┌───────────────────┐
-│  Table: users     │
-│  ✅ is_pre_registered = TRUE
-│  ✅ registration_completed = TRUE
+│  ✅ is_active = TRUE
 │  ❌ is_radius_activated = FALSE
 │  ✅ Mot de passe Django (hashé)
+│  ✅ Username & Email auto-générés
 └───────────────────┘
-        │
-        │ 3. Admin active dans RADIUS
-        ▼
+         │
+         │ 2. Admin active dans RADIUS
+         ▼
 ┌───────────────────────────────────────────────┐
 │  Table: users                                 │
 │  ✅ is_radius_activated = TRUE                │
 └───────────────────────────────────────────────┘
-        │
-        ├─────────────────────┬──────────────────┬──────────────────┐
-        ▼                     ▼                  ▼                  ▼
+         │
+         ├─────────────────────┬──────────────────┬──────────────────┐
+         ▼                     ▼                  ▼                  ▼
 ┌───────────────┐   ┌───────────────┐   ┌──────────────┐   ┌──────────────┐
 │ Table:        │   │ Table:        │   │ Table:       │   │ Mot de passe │
 │ radcheck      │   │ radreply      │   │ radusergroup │   │ RADIUS       │
@@ -396,26 +349,6 @@ curl -X POST http://localhost:8000/api/core/admin/users/activate/ \
 4. ✅ **Sécurité renforcée** : Mots de passe différents pour chaque service
 5. ✅ **Flexibilité** : Possibilité de désactiver l'accès WiFi sans bloquer l'accès web
 6. ✅ **Conformité** : Respect des règles d'accès réseau de l'établissement
-
----
-
-## 📝 Notes de migration
-
-Si vous migrez depuis l'ancien système (activation automatique lors de l'inscription) :
-
-1. Les utilisateurs existants peuvent avoir `is_radius_activated = NULL`
-2. Exécuter une migration de données :
-   ```sql
-   UPDATE users
-   SET is_radius_activated = TRUE
-   WHERE username IN (SELECT DISTINCT username FROM radcheck);
-   ```
-
-3. Nettoyer les entrées `radcheck` orphelines :
-   ```sql
-   DELETE FROM radcheck
-   WHERE username NOT IN (SELECT username FROM users);
-   ```
 
 ---
 

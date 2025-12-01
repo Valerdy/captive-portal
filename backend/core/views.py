@@ -8,7 +8,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
-from .serializers import UserSerializer, AdminUserCreationSerializer
+from .serializers import UserSerializer
 from .models import Session, Device, User
 from .permissions import IsAdmin
 from .decorators import rate_limit
@@ -30,10 +30,11 @@ except ImportError:
 @rate_limit(key_prefix='register', rate='3/h', method='POST', block_duration=300)
 def register(request):
     """
-    User registration endpoint with pre-registration validation.
-    Only allows registration if user was pre-registered by an administrator.
+    User registration endpoint - allows direct registration.
+    Users can register freely but must be activated by admin for RADIUS access.
 
     Required fields: first_name, last_name, promotion, matricule, password, password2
+    Optional fields: username, email
     """
     # Extraire les données requises
     first_name = request.data.get('first_name', '').strip()
@@ -42,6 +43,8 @@ def register(request):
     matricule = request.data.get('matricule', '').strip()
     password = request.data.get('password')
     password2 = request.data.get('password2')
+    username = request.data.get('username', '').strip()
+    email = request.data.get('email', '').strip()
 
     # Validation des champs requis
     if not all([first_name, last_name, promotion, matricule, password, password2]):
@@ -58,32 +61,31 @@ def register(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Rechercher un utilisateur pré-enregistré correspondant
-        pre_registered_user = User.objects.filter(
-            first_name__iexact=first_name,
-            last_name__iexact=last_name,
-            promotion__iexact=promotion,
-            matricule__iexact=matricule,
-            is_pre_registered=True
-        ).first()
+        # Générer username si non fourni (basé sur le matricule)
+        if not username:
+            username = matricule
 
-        # Si aucun utilisateur pré-enregistré trouvé
-        if not pre_registered_user:
-            return Response({
-                'error': 'Inscription non autorisée',
-                'detail': 'Aucun compte pré-enregistré ne correspond à vos informations. Veuillez contacter l\'administrateur.'
-            }, status=status.HTTP_403_FORBIDDEN)
+        # Générer email si non fourni
+        if not email:
+            email = f"{matricule}@student.ucac-icam.com"
 
-        # Vérifier si l'utilisateur a déjà complété son inscription
-        if pre_registered_user.registration_completed:
+        # Vérifier si le username existe déjà
+        if User.objects.filter(username=username).exists():
             return Response({
-                'error': 'Inscription déjà complétée',
-                'detail': 'Ce compte a déjà été activé. Utilisez la page de connexion pour vous connecter.'
+                'error': 'Nom d\'utilisateur déjà utilisé',
+                'detail': f'Le nom d\'utilisateur "{username}" est déjà pris. Veuillez en choisir un autre.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Vérifier si l'email existe déjà
+        if User.objects.filter(email=email).exists():
+            return Response({
+                'error': 'Email déjà utilisé',
+                'detail': f'L\'email "{email}" est déjà associé à un compte.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # Valider le mot de passe avec les validateurs Django
         try:
-            validate_password(password, user=pre_registered_user)
+            validate_password(password)
         except Exception as e:
             return Response({
                 'error': 'Mot de passe invalide',
@@ -92,35 +94,41 @@ def register(request):
 
         # Utiliser une transaction pour garantir la cohérence
         with transaction.atomic():
-            # Mettre à jour le mot de passe et marquer l'inscription comme complétée
-            pre_registered_user.set_password(password)
-            pre_registered_user.registration_completed = True
-            pre_registered_user.is_active = True
-            # NE PAS activer dans RADIUS - l'admin doit le faire manuellement
-            pre_registered_user.is_radius_activated = False
-            pre_registered_user.save()
+            # Créer l'utilisateur directement
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                promotion=promotion,
+                matricule=matricule,
+                is_active=True,
+                # NE PAS activer dans RADIUS - l'admin doit le faire manuellement
+                is_radius_activated=False
+            )
 
             # NOTE: Les entrées FreeRADIUS (radcheck, radreply, radusergroup)
             # seront créées UNIQUEMENT lors de l'activation par l'administrateur
             # via l'endpoint /api/core/admin/users/activate/
 
             # Générer les tokens JWT
-            refresh = RefreshToken.for_user(pre_registered_user)
+            refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
 
             # Create response
             response = Response({
                 'user': {
-                    'id': pre_registered_user.id,
-                    'username': pre_registered_user.username,
-                    'email': pre_registered_user.email,
-                    'first_name': pre_registered_user.first_name,
-                    'last_name': pre_registered_user.last_name,
-                    'promotion': pre_registered_user.promotion,
-                    'matricule': pre_registered_user.matricule,
-                    'role': pre_registered_user.role,
-                    'is_radius_activated': pre_registered_user.is_radius_activated
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'promotion': user.promotion,
+                    'matricule': user.matricule,
+                    'role': user.role,
+                    'is_radius_activated': user.is_radius_activated
                 },
                 'tokens': {
                     'refresh': refresh_token,
@@ -142,59 +150,6 @@ def register(request):
             'error': 'Erreur lors de l\'inscription',
             'detail': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdmin])
-def admin_preregister_user(request):
-    """
-    Admin endpoint to pre-register users.
-    Creates user accounts with default password that users must complete later.
-
-    Required fields: first_name, last_name, promotion, matricule
-    Optional fields: username, email
-    """
-    serializer = AdminUserCreationSerializer(data=request.data)
-
-    if serializer.is_valid():
-        try:
-            # Créer l'utilisateur pré-enregistré
-            user = serializer.save()
-
-            # Récupérer le mot de passe temporaire généré
-            temporary_password = getattr(user, '_temporary_password', None)
-
-            return Response({
-                'success': True,
-                'message': 'Utilisateur pré-enregistré avec succès',
-                'user': {
-                    'id': user.id,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'promotion': user.promotion,
-                    'matricule': user.matricule,
-                    'username': user.username,
-                    'email': user.email,
-                    'is_pre_registered': user.is_pre_registered,
-                    'registration_completed': user.registration_completed,
-                    'created_at': user.created_at
-                },
-                'credentials': {
-                    'username': user.username,
-                    'temporary_password': temporary_password,
-                    'note': 'IMPORTANT: Ce mot de passe ne sera affiché qu\'une seule fois. '
-                           'Communiquez-le à l\'utilisateur de manière sécurisée (email, SMS, etc.). '
-                           'L\'utilisateur devra le changer lors de sa première connexion.'
-                }
-            }, status=status.HTTP_201_CREATED)
-
-        except Exception as e:
-            return Response({
-                'error': 'Erreur lors de la pré-inscription',
-                'detail': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
