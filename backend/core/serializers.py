@@ -18,11 +18,11 @@ class UserSerializer(serializers.ModelSerializer):
             'phone_number', 'mac_address',
             'ip_address', 'is_voucher_user', 'voucher_code',
             'is_active', 'is_staff', 'is_superuser',
-            'is_pre_registered', 'registration_completed',
+            'is_pre_registered', 'registration_completed', 'is_radius_activated',
             'role', 'role_name',
             'date_joined', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role_name', 'is_pre_registered']
+        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role_name', 'is_pre_registered', 'is_radius_activated']
 
     def get_role_name(self, obj):
         """Get the role name (synced with is_staff/is_superuser)"""
@@ -129,7 +129,7 @@ class UserListSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'promotion', 'matricule', 'phone_number', 'mac_address', 'ip_address',
             'is_voucher_user', 'is_active', 'is_staff', 'is_superuser',
-            'is_pre_registered', 'registration_completed',
+            'is_pre_registered', 'registration_completed', 'is_radius_activated',
             'role_name', 'date_joined'
         ]
         read_only_fields = fields
