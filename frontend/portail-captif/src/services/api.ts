@@ -11,16 +11,16 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json'
   },
-  timeout: 10000 // 10 secondes
+  timeout: 10000, // 10 secondes
+  withCredentials: true // Important: Permet l'envoi des cookies HttpOnly
 })
 
-// Intercepteur de requête pour ajouter le token JWT
+// Intercepteur de requête - Plus besoin de gérer manuellement les tokens
+// Les cookies HttpOnly sont automatiquement inclus dans les requêtes
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('access_token')
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+    // Les cookies sont automatiquement envoyés grâce à withCredentials: true
+    // Pas besoin de gérer manuellement les tokens
     return config
   },
   (error) => {
@@ -28,7 +28,7 @@ api.interceptors.request.use(
   }
 )
 
-// Intercepteur de réponse pour gérer les erreurs et le refresh token
+// Intercepteur de réponse pour gérer les erreurs
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<APIError>) => {
@@ -39,42 +39,25 @@ api.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        const refreshToken = localStorage.getItem('refresh_token')
-        if (!refreshToken) {
-          throw new Error('Pas de refresh token disponible')
+        // Tentative de refresh du token via l'endpoint refresh
+        // Les cookies (refresh_token) sont automatiquement envoyés
+        const response = await axios.post(
+          `${API_BASE_URL}/api/core/auth/token/refresh/`,
+          {}, // Body vide car le refresh_token est dans les cookies
+          { withCredentials: true } // Important pour envoyer les cookies
+        )
+
+        // Si le refresh réussit, le serveur a mis à jour les cookies
+        // On peut directement retry la requête originale
+        if (response.status === 200) {
+          return api(originalRequest)
         }
 
-        // Tentative de refresh du token
-        const response = await axios.post(`${API_BASE_URL}/api/core/auth/token/refresh/`, {
-          refresh: refreshToken
-        })
-
-        // Validation stricte de la réponse
-        if (!response.data || !response.data.access) {
-          throw new Error('Réponse de refresh token invalide')
-        }
-
-        const { access } = response.data
-
-        // Validation du token reçu
-        if (typeof access !== 'string' || access.trim().length === 0) {
-          throw new Error('Token access invalide reçu du serveur')
-        }
-
-        // Sauvegarde du nouveau token
-        localStorage.setItem('access_token', access)
-
-        // Retry la requête originale avec le nouveau token
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${access}`
-        }
-        return api(originalRequest)
+        throw new Error('Refresh token failed')
       } catch (refreshError) {
-        // Si le refresh échoue pour quelque raison que ce soit, déconnecter l'utilisateur
+        // Si le refresh échoue, déconnecter l'utilisateur
         console.error('Échec du refresh token:', refreshError)
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user')
+        localStorage.removeItem('user') // On garde seulement les métadonnées utilisateur
         window.location.href = '/login'
         return Promise.reject(refreshError)
       }

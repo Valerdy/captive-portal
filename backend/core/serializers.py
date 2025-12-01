@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import User, Device, Session, Voucher, BlockedSite, UserQuota
+from .utils import generate_secure_password
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -85,7 +86,7 @@ class AdminUserCreationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        """Create a pre-registered user with default password"""
+        """Create a pre-registered user with secure random password"""
         # Générer un username basé sur le matricule
         if not validated_data.get('username'):
             validated_data['username'] = validated_data['matricule']
@@ -94,11 +95,14 @@ class AdminUserCreationSerializer(serializers.ModelSerializer):
         if not validated_data.get('email'):
             validated_data['email'] = f"{validated_data['matricule']}@student.ucac-icam.com"
 
-        # Créer l'utilisateur avec mot de passe par défaut
+        # Générer un mot de passe sécurisé aléatoire
+        temporary_password = generate_secure_password(length=16)
+
+        # Créer l'utilisateur avec le mot de passe sécurisé
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
-            password='password123',  # Mot de passe par défaut
+            password=temporary_password,
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             promotion=validated_data['promotion'],
@@ -106,6 +110,11 @@ class AdminUserCreationSerializer(serializers.ModelSerializer):
             is_pre_registered=True,
             registration_completed=False
         )
+
+        # Stocker le mot de passe temporaire dans un attribut pour la vue
+        # IMPORTANT: Ce mot de passe ne sera visible qu'UNE SEULE FOIS
+        # dans la réponse API de création
+        user._temporary_password = temporary_password
 
         return user
 

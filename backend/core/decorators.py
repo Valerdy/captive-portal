@@ -136,3 +136,120 @@ def owner_or_admin_required(get_object_func):
 
         return wrapper
     return decorator
+
+
+# =============================================================================
+# Rate Limiting Decorators
+# =============================================================================
+
+def get_client_ip(request):
+    """
+    Get the client IP address from the request.
+    Handles proxy headers (X-Forwarded-For).
+    """
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+def rate_limit(key_prefix='rl', rate='5/m', method='ALL', block_duration=60):
+    """
+    Custom rate limiting decorator.
+
+    Args:
+        key_prefix (str): Prefix for cache key
+        rate (str): Rate limit in format 'count/period' where period is:
+                    s=second, m=minute, h=hour, d=day
+                    Examples: '5/m' = 5 per minute, '100/h' = 100 per hour
+        method (str): HTTP method to limit ('GET', 'POST', 'ALL')
+        block_duration (int): Duration in seconds to block after exceeding limit
+
+    Returns:
+        function: Decorated view function
+
+    Example:
+        @rate_limit(key_prefix='login', rate='5/m', method='POST')
+        def login_view(request):
+            ...
+    """
+    from django.core.cache import cache
+    from django.conf import settings
+    import hashlib
+    import time
+
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapped_view(request, *args, **kwargs):
+            # Skip rate limiting in DEBUG mode if configured
+            if getattr(settings, 'DISABLE_RATE_LIMIT_IN_DEBUG', False) and settings.DEBUG:
+                return view_func(request, *args, **kwargs)
+
+            # Check if method matches
+            if method != 'ALL' and request.method != method:
+                return view_func(request, *args, **kwargs)
+
+            # Parse rate
+            try:
+                count, period = rate.split('/')
+                count = int(count)
+                period_map = {
+                    's': 1,
+                    'm': 60,
+                    'h': 3600,
+                    'd': 86400
+                }
+                period_seconds = period_map.get(period, 60)
+            except (ValueError, KeyError):
+                # Default to 5 per minute if parsing fails
+                count = 5
+                period_seconds = 60
+
+            # Get client identifier (IP address)
+            client_ip = get_client_ip(request)
+            client_id = hashlib.md5(client_ip.encode()).hexdigest()
+
+            # Create cache keys
+            cache_key = f'{key_prefix}:{client_id}'
+            block_key = f'{key_prefix}:block:{client_id}'
+
+            # Check if client is blocked
+            if cache.get(block_key):
+                remaining_block_time = cache.ttl(block_key) or block_duration
+                return JsonResponse({
+                    'error': 'Rate limit exceeded',
+                    'detail': f'Too many requests. Please try again in {remaining_block_time} seconds.',
+                    'retry_after': remaining_block_time
+                }, status=429)
+
+            # Get current request count
+            current_count = cache.get(cache_key, 0)
+
+            if current_count >= count:
+                # Block the client
+                cache.set(block_key, True, block_duration)
+                return JsonResponse({
+                    'error': 'Rate limit exceeded',
+                    'detail': f'Too many requests. You have been blocked for {block_duration} seconds.',
+                    'retry_after': block_duration
+                }, status=429)
+
+            # Increment counter
+            if current_count == 0:
+                cache.set(cache_key, 1, period_seconds)
+            else:
+                cache.incr(cache_key)
+
+            # Add rate limit headers to response
+            response = view_func(request, *args, **kwargs)
+            if hasattr(response, '__setitem__'):
+                response['X-RateLimit-Limit'] = str(count)
+                response['X-RateLimit-Remaining'] = str(max(0, count - current_count - 1))
+                response['X-RateLimit-Reset'] = str(int(time.time()) + period_seconds)
+
+            return response
+
+        return wrapped_view
+    return decorator

@@ -4,12 +4,15 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
 from .serializers import UserSerializer, AdminUserCreationSerializer
 from .models import Session, Device, User
 from .permissions import IsAdmin
+from .decorators import rate_limit
+from .utils import set_jwt_cookies, clear_jwt_cookies
 
 # Import FreeRADIUS models for user creation
 from radius.models import RadCheck, RadReply, RadUserGroup
@@ -24,6 +27,7 @@ except ImportError:
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@rate_limit(key_prefix='register', rate='3/h', method='POST', block_duration=300)
 def register(request):
     """
     User registration endpoint with pre-registration validation.
@@ -136,8 +140,11 @@ def register(request):
 
             # Générer les tokens JWT
             refresh = RefreshToken.for_user(pre_registered_user)
+            access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
 
-            return Response({
+            # Create response
+            response = Response({
                 'user': {
                     'id': pre_registered_user.id,
                     'username': pre_registered_user.username,
@@ -149,10 +156,11 @@ def register(request):
                     'role': pre_registered_user.role
                 },
                 'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
+                    'refresh': refresh_token,
+                    'access': access_token,
                 },
                 'message': 'Inscription réussie ! Vous pouvez maintenant vous connecter au portail captif.',
+                'auth_method': 'cookie',  # Indicate that cookies are being used
                 'radius_info': {
                     'username': pre_registered_user.username,
                     'session_timeout': f'{session_timeout//3600}h',
@@ -160,6 +168,11 @@ def register(request):
                     'can_access_captive_portal': True
                 }
             }, status=status.HTTP_201_CREATED)
+
+            # Set tokens in secure HttpOnly cookies
+            set_jwt_cookies(response, access_token, refresh_token)
+
+            return response
 
     except Exception as e:
         return Response({
@@ -185,6 +198,9 @@ def admin_preregister_user(request):
             # Créer l'utilisateur pré-enregistré
             user = serializer.save()
 
+            # Récupérer le mot de passe temporaire généré
+            temporary_password = getattr(user, '_temporary_password', None)
+
             return Response({
                 'success': True,
                 'message': 'Utilisateur pré-enregistré avec succès',
@@ -202,8 +218,10 @@ def admin_preregister_user(request):
                 },
                 'credentials': {
                     'username': user.username,
-                    'default_password': 'password123',
-                    'note': 'L\'utilisateur devra changer ce mot de passe lors de sa première connexion'
+                    'temporary_password': temporary_password,
+                    'note': 'IMPORTANT: Ce mot de passe ne sera affiché qu\'une seule fois. '
+                           'Communiquez-le à l\'utilisateur de manière sécurisée (email, SMS, etc.). '
+                           'L\'utilisateur devra le changer lors de sa première connexion.'
                 }
             }, status=status.HTTP_201_CREATED)
 
@@ -218,6 +236,7 @@ def admin_preregister_user(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@rate_limit(key_prefix='login', rate='5/m', method='POST', block_duration=600)
 def login(request):
     """
     User login endpoint
@@ -247,33 +266,50 @@ def login(request):
 
     # Generate tokens
     refresh = RefreshToken.for_user(user)
+    access_token = str(refresh.access_token)
+    refresh_token = str(refresh)
 
-    return Response({
+    # Create response
+    response = Response({
         'user': UserSerializer(user).data,
         'tokens': {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
+            'refresh': refresh_token,
+            'access': access_token,
         },
-        'message': 'Login successful'
+        'message': 'Login successful',
+        'auth_method': 'cookie'  # Indicate that cookies are being used
     })
+
+    # Set tokens in secure HttpOnly cookies
+    set_jwt_cookies(response, access_token, refresh_token)
+
+    return response
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout(request):
     """
-    User logout endpoint - blacklist the refresh token
+    User logout endpoint - blacklist the refresh token and clear cookies
     """
     try:
-        refresh_token = request.data.get('refresh_token')
+        # Try to get refresh token from request body or cookies
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+
         if refresh_token:
             token = RefreshToken(refresh_token)
             token.blacklist()
 
-        return Response(
+        # Create response
+        response = Response(
             {'message': 'Logout successful'},
             status=status.HTTP_200_OK
         )
+
+        # Clear JWT cookies
+        clear_jwt_cookies(response)
+
+        return response
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -312,6 +348,7 @@ def update_profile(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@rate_limit(key_prefix='change_password', rate='10/h', method='POST', block_duration=300)
 def change_password(request):
     """
     Change user password endpoint

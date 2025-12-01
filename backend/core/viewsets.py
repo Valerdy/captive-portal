@@ -9,6 +9,7 @@ from .serializers import (
     VoucherValidationSerializer, BlockedSiteSerializer, UserQuotaSerializer
 )
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdmin, IsAuthenticatedUser
+from .decorators import rate_limit
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -206,6 +207,7 @@ class VoucherViewSet(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
     @action(detail=False, methods=['post'])
+    @rate_limit(key_prefix='voucher_validate', rate='10/m', method='POST', block_duration=120)
     def validate(self, request):
         """Validate a voucher code"""
         serializer = VoucherValidationSerializer(data=request.data)
@@ -220,6 +222,7 @@ class VoucherViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['post'])
+    @rate_limit(key_prefix='voucher_redeem', rate='5/h', method='POST', block_duration=300)
     def redeem(self, request):
         """Redeem a voucher code"""
         serializer = VoucherValidationSerializer(data=request.data)

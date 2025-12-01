@@ -20,6 +20,7 @@ PyMySQL==1.1.0  # MySQL adapter
 # Security & Authentication
 python-decouple==3.8
 argon2-cffi==23.1.0  # Password hashing
+django-ratelimit==4.1.0  # Rate limiting for API endpoints
 
 # Utilities
 python-dateutil==2.9.0
