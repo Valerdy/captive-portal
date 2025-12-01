@@ -7,13 +7,12 @@ import { getErrorMessage } from '@/services/api'
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref<User | null>(null)
-  const accessToken = ref<string | null>(null)
-  const refreshToken = ref<string | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
   // Getters
-  const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
+  // Les tokens sont dans les cookies HttpOnly, on vérifie juste la présence de l'utilisateur
+  const isAuthenticated = computed(() => !!user.value)
   const isAdmin = computed(() => {
     // Use role_name if available, fallback to is_staff/is_superuser
     if (user.value?.role_name) {
@@ -31,14 +30,9 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authService.login(credentials)
 
-      // Sauvegarder dans le state
+      // Sauvegarder uniquement l'utilisateur dans le state et localStorage
+      // Les tokens sont automatiquement stockés dans les cookies HttpOnly par le backend
       user.value = response.user
-      accessToken.value = response.tokens.access
-      refreshToken.value = response.tokens.refresh
-
-      // Sauvegarder dans localStorage
-      localStorage.setItem('access_token', response.tokens.access)
-      localStorage.setItem('refresh_token', response.tokens.refresh)
       localStorage.setItem('user', JSON.stringify(response.user))
 
       return response
@@ -57,14 +51,9 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authService.register(data)
 
-      // Sauvegarder dans le state
+      // Sauvegarder uniquement l'utilisateur
+      // Les tokens sont automatiquement stockés dans les cookies HttpOnly par le backend
       user.value = response.user
-      accessToken.value = response.tokens.access
-      refreshToken.value = response.tokens.refresh
-
-      // Sauvegarder dans localStorage
-      localStorage.setItem('access_token', response.tokens.access)
-      localStorage.setItem('refresh_token', response.tokens.refresh)
       localStorage.setItem('user', JSON.stringify(response.user))
 
       return response
@@ -81,20 +70,15 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      if (refreshToken.value) {
-        await authService.logout(refreshToken.value)
-      }
+      // Le backend gère le refresh token depuis les cookies
+      await authService.logout()
     } catch (err) {
       console.error('Logout error:', err)
       // On continue même si la requête échoue
     } finally {
       // Nettoyer le state et localStorage
+      // Les cookies sont automatiquement supprimés par le backend
       user.value = null
-      accessToken.value = null
-      refreshToken.value = null
-
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
       localStorage.removeItem('user')
 
       isLoading.value = false
@@ -148,14 +132,9 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('Accès refusé : droits administrateur requis')
       }
 
-      // Sauvegarder dans le state
+      // Sauvegarder uniquement l'utilisateur
+      // Les tokens sont automatiquement stockés dans les cookies HttpOnly par le backend
       user.value = response.user
-      accessToken.value = response.tokens.access
-      refreshToken.value = response.tokens.refresh
-
-      // Sauvegarder dans localStorage
-      localStorage.setItem('access_token', response.tokens.access)
-      localStorage.setItem('refresh_token', response.tokens.refresh)
       localStorage.setItem('user', JSON.stringify(response.user))
 
       return response
@@ -183,19 +162,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function initializeAuth() {
-    // Restaurer depuis localStorage au démarrage
-    const storedToken = localStorage.getItem('access_token')
-    const storedRefreshToken = localStorage.getItem('refresh_token')
+    // Restaurer uniquement les informations utilisateur depuis localStorage
+    // Les tokens sont dans les cookies HttpOnly et gérés automatiquement
     const storedUser = localStorage.getItem('user')
 
-    if (storedToken && storedRefreshToken && storedUser) {
-      accessToken.value = storedToken
-      refreshToken.value = storedRefreshToken
+    if (storedUser) {
       try {
         user.value = JSON.parse(storedUser)
       } catch {
         // Si le parsing échoue, nettoyer
-        localStorage.clear()
+        localStorage.removeItem('user')
       }
     }
   }
@@ -207,8 +183,6 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     // State
     user,
-    accessToken,
-    refreshToken,
     isLoading,
     error,
 

@@ -25,11 +25,10 @@ export const authService = {
 
   /**
    * Déconnexion utilisateur
+   * Le refresh token est automatiquement envoyé via les cookies HttpOnly
    */
-  async logout(refreshToken: string): Promise<void> {
-    await api.post('/api/core/auth/logout/', {
-      refresh_token: refreshToken
-    })
+  async logout(): Promise<void> {
+    await api.post('/api/core/auth/logout/', {})
   },
 
   /**

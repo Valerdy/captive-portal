@@ -4,12 +4,15 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
 from .serializers import UserSerializer, AdminUserCreationSerializer
 from .models import Session, Device, User
 from .permissions import IsAdmin
+from .decorators import rate_limit
+from .utils import set_jwt_cookies, clear_jwt_cookies, generate_secure_password
 
 # Import FreeRADIUS models for user creation
 from radius.models import RadCheck, RadReply, RadUserGroup
@@ -24,6 +27,7 @@ except ImportError:
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@rate_limit(key_prefix='register', rate='3/h', method='POST', block_duration=300)
 def register(request):
     """
     User registration endpoint with pre-registration validation.
@@ -92,52 +96,21 @@ def register(request):
             pre_registered_user.set_password(password)
             pre_registered_user.registration_completed = True
             pre_registered_user.is_active = True
+            # NE PAS activer dans RADIUS - l'admin doit le faire manuellement
+            pre_registered_user.is_radius_activated = False
             pre_registered_user.save()
 
-            # Créer les entrées FreeRADIUS pour l'accès au portail captif
-
-            # 1. Créer/Mettre à jour l'authentification dans radcheck
-            RadCheck.objects.update_or_create(
-                username=pre_registered_user.username,
-                attribute='Cleartext-Password',
-                defaults={
-                    'op': ':=',
-                    'value': password
-                }
-            )
-
-            # 2. Définir le timeout de session basé sur le rôle
-            session_timeout = 86400 if pre_registered_user.role == 'admin' else 3600
-            RadReply.objects.update_or_create(
-                username=pre_registered_user.username,
-                attribute='Session-Timeout',
-                defaults={
-                    'op': '=',
-                    'value': str(session_timeout)
-                }
-            )
-
-            # 3. Ajouter la limite de bande passante par défaut (10Mbps)
-            RadReply.objects.update_or_create(
-                username=pre_registered_user.username,
-                attribute='Mikrotik-Rate-Limit',
-                defaults={
-                    'op': '=',
-                    'value': '10M/10M'
-                }
-            )
-
-            # 4. Assigner au groupe utilisateur
-            RadUserGroup.objects.update_or_create(
-                username=pre_registered_user.username,
-                groupname=pre_registered_user.role,
-                defaults={'priority': 0}
-            )
+            # NOTE: Les entrées FreeRADIUS (radcheck, radreply, radusergroup)
+            # seront créées UNIQUEMENT lors de l'activation par l'administrateur
+            # via l'endpoint /api/core/admin/users/activate/
 
             # Générer les tokens JWT
             refresh = RefreshToken.for_user(pre_registered_user)
+            access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
 
-            return Response({
+            # Create response
+            response = Response({
                 'user': {
                     'id': pre_registered_user.id,
                     'username': pre_registered_user.username,
@@ -146,20 +119,23 @@ def register(request):
                     'last_name': pre_registered_user.last_name,
                     'promotion': pre_registered_user.promotion,
                     'matricule': pre_registered_user.matricule,
-                    'role': pre_registered_user.role
+                    'role': pre_registered_user.role,
+                    'is_radius_activated': pre_registered_user.is_radius_activated
                 },
                 'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
+                    'refresh': refresh_token,
+                    'access': access_token,
                 },
-                'message': 'Inscription réussie ! Vous pouvez maintenant vous connecter au portail captif.',
-                'radius_info': {
-                    'username': pre_registered_user.username,
-                    'session_timeout': f'{session_timeout//3600}h',
-                    'bandwidth_limit': '10M/10M',
-                    'can_access_captive_portal': True
-                }
+                'message': 'Inscription réussie ! Votre compte doit être activé par un administrateur pour accéder au portail captif.',
+                'auth_method': 'cookie',  # Indicate that cookies are being used
+                'activation_pending': True,
+                'warning': 'Votre compte n\'est pas encore activé dans RADIUS. Contactez un administrateur.'
             }, status=status.HTTP_201_CREATED)
+
+            # Set tokens in secure HttpOnly cookies
+            set_jwt_cookies(response, access_token, refresh_token)
+
+            return response
 
     except Exception as e:
         return Response({
@@ -185,6 +161,9 @@ def admin_preregister_user(request):
             # Créer l'utilisateur pré-enregistré
             user = serializer.save()
 
+            # Récupérer le mot de passe temporaire généré
+            temporary_password = getattr(user, '_temporary_password', None)
+
             return Response({
                 'success': True,
                 'message': 'Utilisateur pré-enregistré avec succès',
@@ -202,8 +181,10 @@ def admin_preregister_user(request):
                 },
                 'credentials': {
                     'username': user.username,
-                    'default_password': 'password123',
-                    'note': 'L\'utilisateur devra changer ce mot de passe lors de sa première connexion'
+                    'temporary_password': temporary_password,
+                    'note': 'IMPORTANT: Ce mot de passe ne sera affiché qu\'une seule fois. '
+                           'Communiquez-le à l\'utilisateur de manière sécurisée (email, SMS, etc.). '
+                           'L\'utilisateur devra le changer lors de sa première connexion.'
                 }
             }, status=status.HTTP_201_CREATED)
 
@@ -218,6 +199,7 @@ def admin_preregister_user(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@rate_limit(key_prefix='login', rate='5/m', method='POST', block_duration=600)
 def login(request):
     """
     User login endpoint
@@ -247,33 +229,50 @@ def login(request):
 
     # Generate tokens
     refresh = RefreshToken.for_user(user)
+    access_token = str(refresh.access_token)
+    refresh_token = str(refresh)
 
-    return Response({
+    # Create response
+    response = Response({
         'user': UserSerializer(user).data,
         'tokens': {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
+            'refresh': refresh_token,
+            'access': access_token,
         },
-        'message': 'Login successful'
+        'message': 'Login successful',
+        'auth_method': 'cookie'  # Indicate that cookies are being used
     })
+
+    # Set tokens in secure HttpOnly cookies
+    set_jwt_cookies(response, access_token, refresh_token)
+
+    return response
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout(request):
     """
-    User logout endpoint - blacklist the refresh token
+    User logout endpoint - blacklist the refresh token and clear cookies
     """
     try:
-        refresh_token = request.data.get('refresh_token')
+        # Try to get refresh token from request body or cookies
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+
         if refresh_token:
             token = RefreshToken(refresh_token)
             token.blacklist()
 
-        return Response(
+        # Create response
+        response = Response(
             {'message': 'Logout successful'},
             status=status.HTTP_200_OK
         )
+
+        # Clear JWT cookies
+        clear_jwt_cookies(response)
+
+        return response
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -312,6 +311,7 @@ def update_profile(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@rate_limit(key_prefix='change_password', rate='10/h', method='POST', block_duration=300)
 def change_password(request):
     """
     Change user password endpoint
@@ -419,3 +419,150 @@ def monitoring_metrics(request):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdmin])
+@rate_limit(key_prefix='activate_radius', rate='20/h', method='POST', block_duration=60)
+def activate_users_radius(request):
+    """
+    Admin endpoint to activate users in RADIUS.
+    Creates entries in radcheck, radreply, and radusergroup for selected users.
+
+    Request body:
+        {
+            "user_ids": [1, 2, 3, ...]
+        }
+
+    Response:
+        {
+            "success": true,
+            "activated_users": [
+                {
+                    "id": 1,
+                    "username": "jdupont",
+                    "email": "jdupont@example.com",
+                    "radius_password": "kT@9pL#mXq$1RvZ",
+                    "message": "Utilisateur activé dans RADIUS"
+                },
+                ...
+            ],
+            "failed_users": [
+                {
+                    "id": 4,
+                    "username": "jsmith",
+                    "error": "Utilisateur déjà activé"
+                },
+                ...
+            ]
+        }
+    """
+    user_ids = request.data.get('user_ids', [])
+
+    if not user_ids or not isinstance(user_ids, list):
+        return Response({
+            'error': 'user_ids requis',
+            'detail': 'Veuillez fournir une liste d\'IDs d\'utilisateurs à activer'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    activated_users = []
+    failed_users = []
+
+    for user_id in user_ids:
+        try:
+            with transaction.atomic():
+                # Récupérer l'utilisateur
+                user = User.objects.select_for_update().get(id=user_id)
+
+                # Vérifier si l'utilisateur est déjà activé
+                if user.is_radius_activated:
+                    failed_users.append({
+                        'id': user.id,
+                        'username': user.username,
+                        'error': 'Utilisateur déjà activé dans RADIUS'
+                    })
+                    continue
+
+                # Générer un nouveau mot de passe sécurisé
+                radius_password = generate_secure_password(length=16)
+
+                # 1. Créer l'entrée dans radcheck (mot de passe en clair pour FreeRADIUS)
+                RadCheck.objects.update_or_create(
+                    username=user.username,
+                    attribute='Cleartext-Password',
+                    defaults={
+                        'op': ':=',
+                        'value': radius_password
+                    }
+                )
+
+                # 2. Définir le timeout de session basé sur le rôle
+                session_timeout = 86400 if user.role == 'admin' else 3600
+                RadReply.objects.update_or_create(
+                    username=user.username,
+                    attribute='Session-Timeout',
+                    defaults={
+                        'op': '=',
+                        'value': str(session_timeout)
+                    }
+                )
+
+                # 3. Ajouter la limite de bande passante par défaut (10Mbps)
+                RadReply.objects.update_or_create(
+                    username=user.username,
+                    attribute='Mikrotik-Rate-Limit',
+                    defaults={
+                        'op': '=',
+                        'value': '10M/10M'
+                    }
+                )
+
+                # 4. Assigner au groupe utilisateur
+                RadUserGroup.objects.update_or_create(
+                    username=user.username,
+                    groupname=user.role,
+                    defaults={'priority': 0}
+                )
+
+                # 5. Marquer l'utilisateur comme activé dans RADIUS
+                user.is_radius_activated = True
+                user.save()
+
+                # Ajouter aux utilisateurs activés avec succès
+                activated_users.append({
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'promotion': user.promotion,
+                    'matricule': user.matricule,
+                    'radius_password': radius_password,
+                    'session_timeout': f'{session_timeout//3600}h',
+                    'bandwidth_limit': '10M/10M',
+                    'message': 'Utilisateur activé dans RADIUS avec succès'
+                })
+
+        except User.DoesNotExist:
+            failed_users.append({
+                'id': user_id,
+                'error': 'Utilisateur introuvable'
+            })
+        except Exception as e:
+            failed_users.append({
+                'id': user_id,
+                'error': str(e)
+            })
+
+    return Response({
+        'success': True,
+        'message': f'{len(activated_users)} utilisateur(s) activé(s) dans RADIUS',
+        'activated_users': activated_users,
+        'failed_users': failed_users,
+        'summary': {
+            'total_requested': len(user_ids),
+            'activated': len(activated_users),
+            'failed': len(failed_users)
+        },
+        'important_note': 'IMPORTANT: Communiquez les mots de passe RADIUS aux utilisateurs de manière sécurisée. Ces mots de passe ne seront plus affichés après cette réponse.'
+    }, status=status.HTTP_200_OK)

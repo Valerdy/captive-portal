@@ -16,6 +16,7 @@ class User(AbstractUser):
     matricule = models.CharField(max_length=50, blank=True, null=True, help_text="Matricule de l'étudiant")
     is_pre_registered = models.BooleanField(default=False, help_text="Utilisateur pré-enregistré par un administrateur")
     registration_completed = models.BooleanField(default=False, help_text="L'utilisateur a complété son inscription")
+    is_radius_activated = models.BooleanField(default=False, help_text="Utilisateur activé dans RADIUS par un administrateur")
 
     # Champs existants
     phone_number = models.CharField(max_length=20, blank=True, null=True)

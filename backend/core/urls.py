@@ -29,6 +29,7 @@ urlpatterns = [
 
     # Admin user management endpoints
     path('admin/users/preregister/', views.admin_preregister_user, name='admin_preregister_user'),
+    path('admin/users/activate/', views.activate_users_radius, name='activate_users_radius'),
 
     # Admin monitoring endpoints
     path('admin/monitoring/metrics/', views.monitoring_metrics, name='monitoring_metrics'),
