@@ -28,7 +28,6 @@ urlpatterns = [
     path('auth/password/change/', views.change_password, name='change_password'),
 
     # Admin user management endpoints
-    path('admin/users/preregister/', views.admin_preregister_user, name='admin_preregister_user'),
     path('admin/users/activate/', views.activate_users_radius, name='activate_users_radius'),
 
     # Admin monitoring endpoints

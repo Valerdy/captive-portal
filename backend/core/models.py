@@ -14,8 +14,6 @@ class User(AbstractUser):
     # Nouveaux champs pour le système d'inscription
     promotion = models.CharField(max_length=100, blank=True, null=True, help_text="Promotion de l'étudiant (ex: ING3, L1, etc.)")
     matricule = models.CharField(max_length=50, blank=True, null=True, help_text="Matricule de l'étudiant")
-    is_pre_registered = models.BooleanField(default=False, help_text="Utilisateur pré-enregistré par un administrateur")
-    registration_completed = models.BooleanField(default=False, help_text="L'utilisateur a complété son inscription")
     is_radius_activated = models.BooleanField(default=False, help_text="Utilisateur activé dans RADIUS par un administrateur")
 
     # Champs existants
@@ -31,13 +29,6 @@ class User(AbstractUser):
     class Meta:
         db_table = 'users'
         ordering = ['-created_at']
-        # Contrainte d'unicité sur la combinaison nom, prénom, promotion, matricule
-        constraints = [
-            models.UniqueConstraint(
-                fields=['first_name', 'last_name', 'promotion', 'matricule'],
-                name='unique_student_identity'
-            )
-        ]
 
     def __str__(self):
         return f"{self.username} ({self.email})"

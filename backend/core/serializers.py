@@ -18,11 +18,11 @@ class UserSerializer(serializers.ModelSerializer):
             'phone_number', 'mac_address',
             'ip_address', 'is_voucher_user', 'voucher_code',
             'is_active', 'is_staff', 'is_superuser',
-            'is_pre_registered', 'registration_completed', 'is_radius_activated',
+            'is_radius_activated',
             'role', 'role_name',
             'date_joined', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role_name', 'is_pre_registered', 'is_radius_activated']
+        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role_name', 'is_radius_activated']
 
     def get_role_name(self, obj):
         """Get the role name (synced with is_staff/is_superuser)"""
@@ -66,59 +66,6 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 
-class AdminUserCreationSerializer(serializers.ModelSerializer):
-    """Serializer for admin to pre-register users"""
-
-    class Meta:
-        model = User
-        fields = [
-            'id', 'first_name', 'last_name', 'promotion', 'matricule',
-            'username', 'email', 'is_pre_registered', 'created_at'
-        ]
-        read_only_fields = ['id', 'is_pre_registered', 'created_at']
-
-    def validate(self, attrs):
-        """Validate that all required fields are provided"""
-        required_fields = ['first_name', 'last_name', 'promotion', 'matricule']
-        for field in required_fields:
-            if not attrs.get(field):
-                raise serializers.ValidationError({field: f"Le champ {field} est requis."})
-        return attrs
-
-    def create(self, validated_data):
-        """Create a pre-registered user with secure random password"""
-        # Générer un username basé sur le matricule
-        if not validated_data.get('username'):
-            validated_data['username'] = validated_data['matricule']
-
-        # Générer un email par défaut si non fourni
-        if not validated_data.get('email'):
-            validated_data['email'] = f"{validated_data['matricule']}@student.ucac-icam.com"
-
-        # Générer un mot de passe sécurisé aléatoire
-        temporary_password = generate_secure_password(length=16)
-
-        # Créer l'utilisateur avec le mot de passe sécurisé
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            password=temporary_password,
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            promotion=validated_data['promotion'],
-            matricule=validated_data['matricule'],
-            is_pre_registered=True,
-            registration_completed=False
-        )
-
-        # Stocker le mot de passe temporaire dans un attribut pour la vue
-        # IMPORTANT: Ce mot de passe ne sera visible qu'UNE SEULE FOIS
-        # dans la réponse API de création
-        user._temporary_password = temporary_password
-
-        return user
-
-
 class UserListSerializer(serializers.ModelSerializer):
     """Simplified serializer for listing users"""
     role_name = serializers.SerializerMethodField()
@@ -129,7 +76,7 @@ class UserListSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'promotion', 'matricule', 'phone_number', 'mac_address', 'ip_address',
             'is_voucher_user', 'is_active', 'is_staff', 'is_superuser',
-            'is_pre_registered', 'registration_completed', 'is_radius_activated',
+            'is_radius_activated',
             'role_name', 'date_joined'
         ]
         read_only_fields = fields
