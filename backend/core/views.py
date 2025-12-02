@@ -98,7 +98,7 @@ def register(request):
             user = User.objects.create_user(
                 username=username,
                 email=email,
-                password=password,
+                password=password,  # Stocké hashé par Django
                 first_name=first_name,
                 last_name=last_name,
                 promotion=promotion,
@@ -107,6 +107,11 @@ def register(request):
                 # NE PAS activer dans RADIUS - l'admin doit le faire manuellement
                 is_radius_activated=False
             )
+
+            # STOCKAGE EN CLAIR pour activation RADIUS ultérieure
+            # ATTENTION: Risque de sécurité si la base de données est compromise
+            user.cleartext_password = password
+            user.save()
 
             # NOTE: Les entrées FreeRADIUS (radcheck, radreply, radusergroup)
             # seront créées UNIQUEMENT lors de l'activation par l'administrateur
@@ -438,8 +443,17 @@ def activate_users_radius(request):
                     })
                     continue
 
-                # Générer un nouveau mot de passe sécurisé
-                radius_password = generate_secure_password(length=16)
+                # Vérifier que le mot de passe en clair est disponible
+                if not user.cleartext_password:
+                    failed_users.append({
+                        'id': user.id,
+                        'username': user.username,
+                        'error': 'Mot de passe en clair non disponible (utilisateur créé avant cette fonctionnalité)'
+                    })
+                    continue
+
+                # Utiliser le mot de passe en clair stocké lors de l'inscription
+                radius_password = user.cleartext_password
 
                 # 1. Créer l'entrée dans radcheck (mot de passe en clair pour FreeRADIUS)
                 RadCheck.objects.update_or_create(
@@ -519,5 +533,5 @@ def activate_users_radius(request):
             'activated': len(activated_users),
             'failed': len(failed_users)
         },
-        'important_note': 'IMPORTANT: Communiquez les mots de passe RADIUS aux utilisateurs de manière sécurisée. Ces mots de passe ne seront plus affichés après cette réponse.'
+        'important_note': 'Les utilisateurs peuvent désormais se connecter au WiFi avec le même mot de passe que pour l\'interface web.'
     }, status=status.HTTP_200_OK)

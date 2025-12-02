@@ -16,6 +16,16 @@ class User(AbstractUser):
     matricule = models.CharField(max_length=50, blank=True, null=True, help_text="Matricule de l'étudiant")
     is_radius_activated = models.BooleanField(default=False, help_text="Utilisateur activé dans RADIUS par un administrateur")
 
+    # ATTENTION SÉCURITÉ: Mot de passe en clair pour RADIUS
+    # Ce champ stocke le mot de passe en clair pour pouvoir le copier dans radcheck lors de l'activation
+    # RISQUE: Si la base de données est compromise, les mots de passe sont exposés
+    cleartext_password = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text="Mot de passe en clair (UNIQUEMENT pour activation RADIUS - RISQUE DE SÉCURITÉ)"
+    )
+
     # Champs existants
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     mac_address = models.CharField(max_length=17, blank=True, null=True, db_index=True)

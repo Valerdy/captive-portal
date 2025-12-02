@@ -19,5 +19,13 @@ ALTER TABLE users DROP COLUMN IF EXISTS is_pre_registered;
 -- 3. Remove registration_completed field
 ALTER TABLE users DROP COLUMN IF EXISTS registration_completed;
 
+-- Migration 0008: Add cleartext_password field
+-- Run this after migration 0007
+-- ATTENTION SÉCURITÉ: Ce champ stocke le mot de passe en clair
+
+ALTER TABLE users
+ADD COLUMN cleartext_password VARCHAR(128) NULL
+COMMENT 'Mot de passe en clair (UNIQUEMENT pour activation RADIUS - RISQUE DE SÉCURITÉ)';
+
 -- Verify the changes
 DESCRIBE users;

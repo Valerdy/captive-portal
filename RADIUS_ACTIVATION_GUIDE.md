@@ -67,7 +67,7 @@ Un administrateur active manuellement un ou plusieurs utilisateurs dans RADIUS.
       "last_name": "Dupont",
       "promotion": "ING3",
       "matricule": "2024001",
-      "radius_password": "kT@9pL#mXq$1RvZ",  // ⚠️ Mot de passe RADIUS
+      "radius_password": "MonMotDePasse123!",  // ✅ MÊME mot de passe que Django
       "session_timeout": "1h",
       "bandwidth_limit": "10M/10M",
       "message": "Utilisateur activé dans RADIUS avec succès"
@@ -80,7 +80,7 @@ Un administrateur active manuellement un ou plusieurs utilisateurs dans RADIUS.
     "activated": 5,
     "failed": 0
   },
-  "important_note": "IMPORTANT: Communiquez les mots de passe RADIUS aux utilisateurs de manière sécurisée. Ces mots de passe ne seront plus affichés après cette réponse."
+  "important_note": "Les utilisateurs peuvent désormais se connecter au WiFi avec le même mot de passe que pour l'interface web."
 }
 ```
 
@@ -88,8 +88,9 @@ Un administrateur active manuellement un ou plusieurs utilisateurs dans RADIUS.
 
 1. **`radcheck` table** (FreeRADIUS):
    ```sql
+   -- Le mot de passe est copié depuis users.cleartext_password
    INSERT INTO radcheck (username, attribute, op, value)
-   VALUES ('jdupont', 'Cleartext-Password', ':=', 'kT@9pL#mXq$1RvZ');
+   VALUES ('jdupont', 'Cleartext-Password', ':=', 'MonMotDePasse123!');
    ```
 
 2. **`radreply` table** (FreeRADIUS):
@@ -118,12 +119,22 @@ Un administrateur active manuellement un ou plusieurs utilisateurs dans RADIUS.
 
 ## 🎯 Points clés
 
-### **Deux mots de passe distincts**
+### **⚠️ IMPORTANT : Stockage du mot de passe**
 
-| Type | Stockage | Utilisation | Format |
-|------|----------|-------------|--------|
-| **Mot de passe Django** | Table `users` (hashé Argon2) | Connexion à l'interface web/app | Défini par l'utilisateur lors de l'inscription |
-| **Mot de passe RADIUS** | Table `radcheck` (clair) | Connexion au WiFi (FreeRADIUS) | Généré automatiquement lors de l'activation (16 caractères sécurisés) |
+Le système utilise **UN SEUL mot de passe** pour Django ET RADIUS, mais stocké de **DEUX façons différentes** :
+
+| Stockage | Emplacement | Format | Utilisation |
+|----------|-------------|--------|-------------|
+| **Hash Argon2** | Table `users.password` | `argon2$argon2id$v=19$...` (irréversible) | Authentification Django (interface web) |
+| **Texte clair** | Table `users.cleartext_password` | Mot de passe original | Copié dans `radcheck` lors de l'activation RADIUS |
+| **Texte clair** | Table `radcheck.value` | Mot de passe original | Authentification FreeRADIUS (WiFi) |
+
+### **🚨 RISQUE DE SÉCURITÉ**
+
+- Le mot de passe est stocké **EN CLAIR** dans `users.cleartext_password`
+- Si la base de données est compromise, **TOUS les mots de passe sont exposés**
+- Cette approche viole les bonnes pratiques de sécurité
+- Recommandation : protéger l'accès à la base de données avec des règles strictes
 
 ### **États d'un utilisateur**
 
@@ -303,40 +314,46 @@ curl -X POST http://localhost:8000/api/core/admin/users/activate/ \
 ## 📊 Schéma du workflow
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     SYSTÈME D'ACTIVATION RADIUS                 │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                  SYSTÈME D'ACTIVATION RADIUS                             │
+│                    (Un seul mot de passe)                                │
+└──────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────┐
 │   UTILISATEUR    │
+│ Tape son mot de  │
+│ passe: "Abc123!" │
 └────────┬─────────┘
          │
-         │ 1. S'inscrit directement
+         │ 1. S'inscrit (POST /api/core/auth/register/)
          ▼
-┌───────────────────┐
-│  Table: users     │
-│  ✅ is_active = TRUE
-│  ❌ is_radius_activated = FALSE
-│  ✅ Mot de passe Django (hashé)
-│  ✅ Username & Email auto-générés
-└───────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  Table: users                                                       │
+│  ✅ password = "argon2$argon2id$v=19$..."  (hashé - pour Django)   │
+│  ✅ cleartext_password = "Abc123!"  (EN CLAIR - pour RADIUS)       │
+│  ✅ is_active = TRUE                                                │
+│  ❌ is_radius_activated = FALSE                                     │
+└─────────────────────────────────────────────────────────────────────┘
          │
-         │ 2. Admin active dans RADIUS
+         │ 2. Admin active (POST /api/core/admin/users/activate/)
+         │    → Copie cleartext_password dans radcheck
          ▼
-┌───────────────────────────────────────────────┐
-│  Table: users                                 │
-│  ✅ is_radius_activated = TRUE                │
-└───────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  Table: users                                                       │
+│  ✅ is_radius_activated = TRUE                                      │
+└─────────────────────────────────────────────────────────────────────┘
          │
-         ├─────────────────────┬──────────────────┬──────────────────┐
-         ▼                     ▼                  ▼                  ▼
-┌───────────────┐   ┌───────────────┐   ┌──────────────┐   ┌──────────────┐
-│ Table:        │   │ Table:        │   │ Table:       │   │ Mot de passe │
-│ radcheck      │   │ radreply      │   │ radusergroup │   │ RADIUS       │
-│               │   │               │   │              │   │              │
-│ ✅ Password   │   │ ✅ Timeout    │   │ ✅ Group     │   │ ✅ Généré    │
-│ (clair)       │   │ ✅ Bandwidth  │   │              │   │ ✅ 16 chars  │
-└───────────────┘   └───────────────┘   └──────────────┘   └──────────────┘
+         ├───────────────────┬──────────────────┬──────────────────┐
+         ▼                   ▼                  ▼                  ▼
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│ Table:       │   │ Table:       │   │ Table:       │   │ RÉSULTAT     │
+│ radcheck     │   │ radreply     │   │ radusergroup │   │              │
+│              │   │              │   │              │   │              │
+│ value =      │   │ ✅ Timeout   │   │ ✅ Group     │   │ Utilisateur  │
+│ "Abc123!"    │   │ ✅ Bandwidth │   │              │   │ se connecte  │
+│ ✅ EN CLAIR  │   │              │   │              │   │ avec le MÊME │
+│              │   │              │   │              │   │ mot de passe │
+└──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘
 ```
 
 ---
@@ -344,11 +361,17 @@ curl -X POST http://localhost:8000/api/core/admin/users/activate/ \
 ## 🎓 Avantages de cette approche
 
 1. ✅ **Contrôle administratif total** : L'admin décide qui peut accéder au WiFi
-2. ✅ **Séparation des accès** : Connexion web ≠ connexion WiFi
+2. ✅ **Simplicité pour l'utilisateur** : Un seul mot de passe pour web ET WiFi
 3. ✅ **Traçabilité** : Historique de qui a été activé et quand
-4. ✅ **Sécurité renforcée** : Mots de passe différents pour chaque service
+4. ✅ **Pas de confusion** : L'utilisateur n'a pas à gérer plusieurs mots de passe
 5. ✅ **Flexibilité** : Possibilité de désactiver l'accès WiFi sans bloquer l'accès web
 6. ✅ **Conformité** : Respect des règles d'accès réseau de l'établissement
+
+## ⚠️ Compromis de sécurité
+
+1. ❌ **Stockage en clair** : Le mot de passe est stocké en clair dans `users.cleartext_password`
+2. ❌ **Risque de fuite** : Si la base de données est compromise, tous les mots de passe sont exposés
+3. ❌ **Pas de rotation** : L'utilisateur doit changer son mot de passe dans Django ET RADIUS en même temps
 
 ---
 
