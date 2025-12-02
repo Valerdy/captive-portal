@@ -6,6 +6,8 @@ export interface User {
   email: string
   first_name: string
   last_name: string
+  promotion?: string | null
+  matricule?: string | null
   phone_number: string | null
   mac_address: string | null
   ip_address: string | null
@@ -14,6 +16,7 @@ export interface User {
   is_active: boolean
   is_staff?: boolean
   is_superuser?: boolean
+  is_radius_activated?: boolean
   role_name?: string  // 'admin' | 'user'
   date_joined: string
   created_at: string
@@ -171,4 +174,37 @@ export interface UserQuota {
   is_exceeded: boolean
   created_at: string
   updated_at: string
+}
+
+export interface ActivatedUser {
+  id: number
+  username: string
+  email: string
+  first_name: string
+  last_name: string
+  promotion: string
+  matricule: string
+  radius_password: string
+  session_timeout: string
+  bandwidth_limit: string
+  message: string
+}
+
+export interface FailedUser {
+  id: number
+  username?: string
+  error: string
+}
+
+export interface RadiusActivationResponse {
+  success: boolean
+  message: string
+  activated_users: ActivatedUser[]
+  failed_users: FailedUser[]
+  summary: {
+    total_requested: number
+    activated: number
+    failed: number
+  }
+  important_note: string
 }

@@ -1,5 +1,5 @@
 import api from './api'
-import type { User, PaginatedResponse } from '@/types'
+import type { User, PaginatedResponse, RadiusActivationResponse } from '@/types'
 
 export const userService = {
   /**
@@ -54,6 +54,18 @@ export const userService = {
    */
   async getUserSessions(userId: number): Promise<any[]> {
     const response = await api.get(`/api/core/users/${userId}/sessions/`)
+    return response.data
+  },
+
+  /**
+   * Activer un ou plusieurs utilisateurs dans RADIUS (admin only)
+   * L'utilisateur reste dans la table users (Django) ET est copié dans radcheck (RADIUS)
+   */
+  async activateUsersRadius(userIds: number[]): Promise<RadiusActivationResponse> {
+    const response = await api.post<RadiusActivationResponse>(
+      '/api/core/admin/users/activate/',
+      { user_ids: userIds }
+    )
     return response.data
   }
 }
