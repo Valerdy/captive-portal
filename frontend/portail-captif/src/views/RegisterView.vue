@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
@@ -24,6 +24,9 @@ const showPassword = ref(false)
 const showPassword2 = ref(false)
 const promotions = ref<Promotion[]>([])
 const loadingPromotions = ref(true)
+
+// Computed pour garantir que promotions est toujours un tableau
+const safePromotions = computed(() => promotions.value || [])
 
 onMounted(async () => {
   try {
@@ -146,7 +149,7 @@ async function handleRegister() {
                 :disabled="loadingPromotions"
               >
                 <option value="" disabled>{{ loadingPromotions ? 'Chargement...' : 'Sélectionnez votre promotion' }}</option>
-                <option v-for="promo in (promotions || [])" :key="promo.id" :value="promo.name">
+                <option v-for="promo in safePromotions" :key="promo.id" :value="promo.name">
                   {{ promo.name }}{{ promo.description ? ` - ${promo.description}` : '' }}
                 </option>
               </select>

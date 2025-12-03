@@ -16,6 +16,9 @@ const notificationStore = useNotificationStore()
 const promotions = ref<Promotion[]>([])
 const loadingPromotions = ref(true)
 
+// Computed pour garantir que promotions est toujours un tableau
+const safePromotions = computed(() => promotions.value || [])
+
 const users = computed(() => userStore.users)
 const isLoading = computed(() => userStore.isLoading)
 
@@ -694,7 +697,7 @@ async function handleDelete(user: any) {
               <label>Promotion *</label>
               <select v-model="newUser.promotion" required :disabled="loadingPromotions">
                 <option value="" disabled>{{ loadingPromotions ? 'Chargement...' : 'Sélectionnez une promotion' }}</option>
-                <option v-for="promo in (promotions || [])" :key="promo.id" :value="promo.name">
+                <option v-for="promo in safePromotions" :key="promo.id" :value="promo.name">
                   {{ promo.name }}{{ promo.description ? ` - ${promo.description}` : '' }}
                 </option>
               </select>
