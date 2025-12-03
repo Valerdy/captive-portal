@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, Device, Session, Voucher, BlockedSite, UserQuota
+from .models import User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion
 from .utils import generate_secure_password
 
 
@@ -240,3 +240,11 @@ class UserQuotaSerializer(serializers.ModelSerializer):
 
     def get_used_month_gb(self, obj):
         return round(obj.used_month / (1024 ** 3), 2)
+
+
+class PromotionSerializer(serializers.ModelSerializer):
+    """Serializer for Promotion model"""
+    class Meta:
+        model = Promotion
+        fields = ['id', 'name', 'description', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']

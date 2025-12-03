@@ -2,11 +2,12 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from .models import User, Device, Session, Voucher, BlockedSite, UserQuota
+from .models import User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion
 from .serializers import (
     UserSerializer, UserListSerializer, DeviceSerializer,
     SessionSerializer, SessionListSerializer, VoucherSerializer,
-    VoucherValidationSerializer, BlockedSiteSerializer, UserQuotaSerializer
+    VoucherValidationSerializer, BlockedSiteSerializer, UserQuotaSerializer,
+    PromotionSerializer
 )
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdmin, IsAuthenticatedUser
 from .decorators import rate_limit
@@ -386,3 +387,27 @@ class UserQuotaViewSet(viewsets.ModelViewSet):
         quota = UserQuota.objects.create(**quota_data)
         serializer = self.get_serializer(quota)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class PromotionViewSet(viewsets.ModelViewSet):
+    """ViewSet for Promotion model"""
+    queryset = Promotion.objects.filter(is_active=True)
+    serializer_class = PromotionSerializer
+    permission_classes = [permissions.AllowAny]  # Accessible pour l'inscription publique
+
+    def get_permissions(self):
+        """
+        Permissions:
+        - list, retrieve: AllowAny (pour l'inscription)
+        - create, update, delete: Admin only
+        """
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [IsAdmin()]
+
+    def get_queryset(self):
+        """Return only active promotions for public access"""
+        if self.action in ['list', 'retrieve']:
+            return Promotion.objects.filter(is_active=True)
+        # Admins see all promotions
+        return Promotion.objects.all()

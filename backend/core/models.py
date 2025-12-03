@@ -4,6 +4,35 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+class Promotion(models.Model):
+    """Model for student promotions/classes"""
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text="Nom de la promotion (ex: ING3, L1, M2, etc.)"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Description de la promotion"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Si la promotion est active et peut être sélectionnée"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'promotions'
+        ordering = ['name']
+        verbose_name = 'Promotion'
+        verbose_name_plural = 'Promotions'
+
+    def __str__(self):
+        return self.name
+
+
 class User(AbstractUser):
     """Extended User model for captive portal users"""
     ROLE_CHOICES = [

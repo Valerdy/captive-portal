@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Device, Session, Voucher
+from .models import User, Device, Session, Voucher, Promotion
 
 
 @admin.register(User)
@@ -93,5 +93,25 @@ class VoucherAdmin(admin.ModelAdmin):
         }),
         ('Metadata', {
             'fields': ('created_by', 'created_at', 'notes')
+        }),
+    )
+
+
+@admin.register(Promotion)
+class PromotionAdmin(admin.ModelAdmin):
+    """Admin interface for Promotion model"""
+    list_display = ['name', 'description', 'is_active', 'created_at', 'updated_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'description']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['name']
+
+    fieldsets = (
+        ('Informations', {
+            'fields': ('name', 'description', 'is_active')
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
         }),
     )
