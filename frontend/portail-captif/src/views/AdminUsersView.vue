@@ -37,8 +37,11 @@ const newUser = ref({
   username: '',
   email: '',
   password: '',
+  password2: '',
   first_name: '',
   last_name: '',
+  promotion: '',
+  matricule: '',
   is_staff: false
 })
 
@@ -197,8 +200,11 @@ function openAddModal() {
     username: '',
     email: '',
     password: '',
+    password2: '',
     first_name: '',
     last_name: '',
+    promotion: '',
+    matricule: '',
     is_staff: false
   }
   showAddModal.value = true
@@ -221,7 +227,9 @@ function isValidPassword(password: string): boolean {
 
 async function handleAddUser() {
   // Validation des champs obligatoires
-  if (!newUser.value.username || !newUser.value.email || !newUser.value.password) {
+  if (!newUser.value.username || !newUser.value.email || !newUser.value.password ||
+      !newUser.value.password2 || !newUser.value.first_name || !newUser.value.last_name ||
+      !newUser.value.promotion || !newUser.value.matricule) {
     notificationStore.warning('Veuillez remplir tous les champs requis')
     return
   }
@@ -238,14 +246,22 @@ async function handleAddUser() {
     return
   }
 
+  // Validation de la confirmation du mot de passe
+  if (newUser.value.password !== newUser.value.password2) {
+    notificationStore.warning('Les mots de passe ne correspondent pas')
+    return
+  }
+
   try {
     await userStore.createUser({
       username: newUser.value.username,
       email: newUser.value.email,
       password: newUser.value.password,
-      password2: newUser.value.password,
+      password2: newUser.value.password2,
       first_name: newUser.value.first_name,
       last_name: newUser.value.last_name,
+      promotion: newUser.value.promotion,
+      matricule: newUser.value.matricule,
       is_staff: newUser.value.is_staff
     })
 
@@ -335,7 +351,7 @@ async function handleDelete(user: any) {
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
             </svg>
-            Activer {{ selectedUserIds.length }} utilisateur(s) dans RADIUS
+            Activer dans Radius ({{ selectedUserIds.length }})
           </button>
           <button @click="openAddModal" class="btn-primary">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -659,29 +675,46 @@ async function handleDelete(user: any) {
         <div class="modal-body">
           <div class="form-row">
             <div class="form-group">
-              <label>Nom d'utilisateur *</label>
-              <input v-model="newUser.username" type="text" placeholder="johndoe" />
+              <label>Prénom *</label>
+              <input v-model="newUser.first_name" type="text" placeholder="John" required />
             </div>
             <div class="form-group">
-              <label>Email *</label>
-              <input v-model="newUser.email" type="email" placeholder="john@example.com" />
+              <label>Nom *</label>
+              <input v-model="newUser.last_name" type="text" placeholder="Doe" required />
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Prénom</label>
-              <input v-model="newUser.first_name" type="text" placeholder="John" />
+              <label>Promotion *</label>
+              <input v-model="newUser.promotion" type="text" placeholder="Ex: ING3, L1, M2..." required />
             </div>
             <div class="form-group">
-              <label>Nom</label>
-              <input v-model="newUser.last_name" type="text" placeholder="Doe" />
+              <label>Matricule *</label>
+              <input v-model="newUser.matricule" type="text" placeholder="Matricule étudiant" required />
             </div>
           </div>
 
-          <div class="form-group">
-            <label>Mot de passe *</label>
-            <input v-model="newUser.password" type="password" placeholder="••••••••" />
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nom d'utilisateur *</label>
+              <input v-model="newUser.username" type="text" placeholder="johndoe" required />
+            </div>
+            <div class="form-group">
+              <label>Email *</label>
+              <input v-model="newUser.email" type="email" placeholder="john@example.com" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mot de passe *</label>
+              <input v-model="newUser.password" type="password" placeholder="••••••••" required />
+            </div>
+            <div class="form-group">
+              <label>Confirmation du mot de passe *</label>
+              <input v-model="newUser.password2" type="password" placeholder="••••••••" required />
+            </div>
           </div>
 
           <div class="form-group checkbox-group">
