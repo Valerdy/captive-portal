@@ -42,6 +42,8 @@ class UserSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(password=password, **validated_data)
         user.is_staff = is_staff
         user.is_superuser = is_superuser
+        # Stocker le mot de passe en clair pour l'activation RADIUS
+        user.cleartext_password = password
         user.save()
         return user
 
