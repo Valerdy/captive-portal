@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import ErrorAlert from '@/components/ErrorAlert.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import promotionService, { type Promotion } from '@/services/promotion.service'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -21,6 +22,19 @@ const formData = ref({
 const errorMessage = ref('')
 const showPassword = ref(false)
 const showPassword2 = ref(false)
+const promotions = ref<Promotion[]>([])
+const loadingPromotions = ref(true)
+
+onMounted(async () => {
+  try {
+    promotions.value = await promotionService.getPromotions()
+  } catch (error) {
+    console.error('Erreur lors du chargement des promotions:', error)
+    notificationStore.error('Erreur lors du chargement des promotions')
+  } finally {
+    loadingPromotions.value = false
+  }
+})
 
 async function handleRegister() {
   errorMessage.value = ''
@@ -123,14 +137,17 @@ async function handleRegister() {
                 </svg>
                 Promotion *
               </label>
-              <input
+              <select
                 id="promotion"
                 v-model="formData.promotion"
-                type="text"
                 required
-                placeholder="Ex: ING3, L1, M2..."
-                autocomplete="off"
-              />
+                :disabled="loadingPromotions"
+              >
+                <option value="" disabled>{{ loadingPromotions ? 'Chargement...' : 'Sélectionnez votre promotion' }}</option>
+                <option v-for="promo in promotions" :key="promo.id" :value="promo.name">
+                  {{ promo.name }}{{ promo.description ? ` - ${promo.description}` : '' }}
+                </option>
+              </select>
             </div>
             <div class="form-group">
               <label for="matricule">
@@ -399,7 +416,8 @@ label svg {
   flex-shrink: 0;
 }
 
-input {
+input,
+select {
   width: 100%;
   padding: 1rem;
   border: 2px solid #e0e0e0;
@@ -409,7 +427,8 @@ input {
   background: #f8f8f8;
 }
 
-input:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: #f97316;
   background: white;
@@ -418,6 +437,15 @@ input:focus {
 
 input::placeholder {
   color: #999;
+}
+
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+select option {
+  padding: 0.5rem;
 }
 
 /* Password input with toggle */

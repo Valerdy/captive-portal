@@ -6,11 +6,15 @@ import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import promotionService, { type Promotion } from '@/services/promotion.service'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
+
+const promotions = ref<Promotion[]>([])
+const loadingPromotions = ref(true)
 
 const users = computed(() => userStore.users)
 const isLoading = computed(() => userStore.isLoading)
@@ -113,11 +117,18 @@ onMounted(async () => {
   }
 
   try {
-    await userStore.fetchUsers()
+    // Charger les utilisateurs et les promotions en parallèle
+    await Promise.all([
+      userStore.fetchUsers(),
+      promotionService.getPromotions().then(data => {
+        promotions.value = data
+        loadingPromotions.value = false
+      })
+    ])
   } catch (error: any) {
     const message = error?.message || 'Erreur inconnue'
-    notificationStore.error(`Erreur lors du chargement des utilisateurs: ${message}`)
-    console.error('Erreur chargement utilisateurs:', error)
+    notificationStore.error(`Erreur lors du chargement: ${message}`)
+    console.error('Erreur chargement:', error)
   }
 })
 
@@ -675,7 +686,12 @@ async function handleDelete(user: any) {
           <div class="form-row">
             <div class="form-group">
               <label>Promotion *</label>
-              <input v-model="newUser.promotion" type="text" placeholder="Ex: ING3, L1, M2..." required />
+              <select v-model="newUser.promotion" required :disabled="loadingPromotions">
+                <option value="" disabled>{{ loadingPromotions ? 'Chargement...' : 'Sélectionnez une promotion' }}</option>
+                <option v-for="promo in promotions" :key="promo.id" :value="promo.name">
+                  {{ promo.name }}{{ promo.description ? ` - ${promo.description}` : '' }}
+                </option>
+              </select>
             </div>
             <div class="form-group">
               <label>Matricule *</label>
@@ -1473,19 +1489,32 @@ async function handleDelete(user: any) {
 
 .form-group input[type="text"],
 .form-group input[type="email"],
-.form-group input[type="password"] {
+.form-group input[type="password"],
+.form-group select {
   width: 100%;
   padding: 0.75rem 1rem;
   border: 1px solid #E5E7EB;
   border-radius: 8px;
   font-size: 0.875rem;
   transition: all 0.2s;
+  background: white;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
   outline: none;
   border-color: #F97316;
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.form-group select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #F9FAFB;
+}
+
+.form-group select option {
+  padding: 0.5rem;
 }
 
 .checkbox-group {
