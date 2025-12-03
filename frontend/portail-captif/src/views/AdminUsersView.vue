@@ -34,8 +34,6 @@ const selectAll = ref(false)
 const activationResult = ref<any>(null)
 
 const newUser = ref({
-  username: '',
-  email: '',
   password: '',
   password2: '',
   first_name: '',
@@ -197,8 +195,6 @@ function closeActivationModal() {
 
 function openAddModal() {
   newUser.value = {
-    username: '',
-    email: '',
     password: '',
     password2: '',
     first_name: '',
@@ -214,12 +210,6 @@ function closeAddModal() {
   showAddModal.value = false
 }
 
-// Fonction de validation d'email
-function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
 // Fonction de validation de mot de passe
 function isValidPassword(password: string): boolean {
   return password.length >= 8
@@ -227,16 +217,10 @@ function isValidPassword(password: string): boolean {
 
 async function handleAddUser() {
   // Validation des champs obligatoires
-  if (!newUser.value.username || !newUser.value.email || !newUser.value.password ||
-      !newUser.value.password2 || !newUser.value.first_name || !newUser.value.last_name ||
+  if (!newUser.value.password || !newUser.value.password2 ||
+      !newUser.value.first_name || !newUser.value.last_name ||
       !newUser.value.promotion || !newUser.value.matricule) {
     notificationStore.warning('Veuillez remplir tous les champs requis')
-    return
-  }
-
-  // Validation du format email
-  if (!isValidEmail(newUser.value.email)) {
-    notificationStore.warning('Format d\'email invalide')
     return
   }
 
@@ -253,9 +237,13 @@ async function handleAddUser() {
   }
 
   try {
+    // Générer username et email à partir du matricule (comme lors de l'inscription)
+    const username = newUser.value.matricule
+    const email = `${newUser.value.matricule}@student.ucac-icam.com`
+
     await userStore.createUser({
-      username: newUser.value.username,
-      email: newUser.value.email,
+      username: username,
+      email: email,
       password: newUser.value.password,
       password2: newUser.value.password2,
       first_name: newUser.value.first_name,
@@ -695,15 +683,12 @@ async function handleDelete(user: any) {
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Nom d'utilisateur *</label>
-              <input v-model="newUser.username" type="text" placeholder="johndoe" required />
-            </div>
-            <div class="form-group">
-              <label>Email *</label>
-              <input v-model="newUser.email" type="email" placeholder="john@example.com" required />
-            </div>
+          <div class="info-note">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <p>Le nom d'utilisateur et l'email seront générés automatiquement à partir du matricule</p>
           </div>
 
           <div class="form-row">
@@ -1537,6 +1522,32 @@ async function handleDelete(user: any) {
 .checkbox-text small {
   font-size: 0.75rem;
   color: #6B7280;
+}
+
+.info-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #EFF6FF;
+  border: 1px solid #DBEAFE;
+  border-left: 4px solid #3B82F6;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.info-note svg {
+  width: 20px;
+  height: 20px;
+  color: #3B82F6;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-note p {
+  font-size: 0.875rem;
+  color: #1F2937;
+  margin: 0;
 }
 
 .modal-footer {
