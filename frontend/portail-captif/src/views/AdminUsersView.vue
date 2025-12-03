@@ -121,7 +121,11 @@ onMounted(async () => {
     await Promise.all([
       userStore.fetchUsers(),
       promotionService.getPromotions().then(data => {
-        promotions.value = data
+        promotions.value = data || []
+        loadingPromotions.value = false
+      }).catch(error => {
+        console.error('Erreur lors du chargement des promotions:', error)
+        promotions.value = []
         loadingPromotions.value = false
       })
     ])
@@ -129,6 +133,8 @@ onMounted(async () => {
     const message = error?.message || 'Erreur inconnue'
     notificationStore.error(`Erreur lors du chargement: ${message}`)
     console.error('Erreur chargement:', error)
+    promotions.value = []
+    loadingPromotions.value = false
   }
 })
 
@@ -688,7 +694,7 @@ async function handleDelete(user: any) {
               <label>Promotion *</label>
               <select v-model="newUser.promotion" required :disabled="loadingPromotions">
                 <option value="" disabled>{{ loadingPromotions ? 'Chargement...' : 'Sélectionnez une promotion' }}</option>
-                <option v-for="promo in promotions" :key="promo.id" :value="promo.name">
+                <option v-for="promo in (promotions || [])" :key="promo.id" :value="promo.name">
                   {{ promo.name }}{{ promo.description ? ` - ${promo.description}` : '' }}
                 </option>
               </select>

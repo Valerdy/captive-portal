@@ -27,10 +27,12 @@ const loadingPromotions = ref(true)
 
 onMounted(async () => {
   try {
-    promotions.value = await promotionService.getPromotions()
+    const data = await promotionService.getPromotions()
+    promotions.value = data || []
   } catch (error) {
     console.error('Erreur lors du chargement des promotions:', error)
     notificationStore.error('Erreur lors du chargement des promotions')
+    promotions.value = []
   } finally {
     loadingPromotions.value = false
   }
@@ -144,7 +146,7 @@ async function handleRegister() {
                 :disabled="loadingPromotions"
               >
                 <option value="" disabled>{{ loadingPromotions ? 'Chargement...' : 'Sélectionnez votre promotion' }}</option>
-                <option v-for="promo in promotions" :key="promo.id" :value="promo.name">
+                <option v-for="promo in (promotions || [])" :key="promo.id" :value="promo.name">
                   {{ promo.name }}{{ promo.description ? ` - ${promo.description}` : '' }}
                 </option>
               </select>
