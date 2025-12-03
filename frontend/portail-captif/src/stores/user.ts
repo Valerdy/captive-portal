@@ -139,6 +139,30 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function activateUsersRadius(userIds: number[]) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const result = await userService.activateUsersRadius(userIds)
+
+      // Mettre à jour les utilisateurs activés dans la liste
+      result.activated_users.forEach((activatedUser) => {
+        const index = users.value.findIndex(u => u.id === activatedUser.id)
+        if (index !== -1) {
+          users.value[index].is_radius_activated = true
+        }
+      })
+
+      return result
+    } catch (err) {
+      error.value = getErrorMessage(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -166,6 +190,7 @@ export const useUserStore = defineStore('user', () => {
     deleteUser,
     getUserDevices,
     getUserSessions,
+    activateUsersRadius,
     clearError,
     resetState
   }
