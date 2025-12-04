@@ -461,7 +461,8 @@ def activate_users_radius(request):
                     attribute='Cleartext-Password',
                     defaults={
                         'op': ':=',
-                        'value': radius_password
+                        'value': radius_password,
+                        'statut': True  # Activé par défaut lors de l'activation RADIUS
                     }
                 )
 
@@ -495,6 +496,7 @@ def activate_users_radius(request):
 
                 # 5. Marquer l'utilisateur comme activé dans RADIUS
                 user.is_radius_activated = True
+                user.is_radius_enabled = True  # Activé par défaut
                 user.save()
 
                 # Ajouter aux utilisateurs activés avec succès

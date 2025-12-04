@@ -4,6 +4,55 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+class Promotion(models.Model):
+    """Model for student promotions (classes/cohorts)"""
+    code = models.CharField(
+        max_length=50,
+        unique=True,
+        db_index=True,
+        help_text="Code de la promotion (ex: ING3, L1, M2, X2027)"
+    )
+    name = models.CharField(
+        max_length=200,
+        help_text="Nom complet de la promotion"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Description de la promotion"
+    )
+    year = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Année de la promotion"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Promotion active (si False, tous les utilisateurs de cette promotion sont désactivés)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'promotions'
+        ordering = ['code']
+        verbose_name = 'Promotion'
+        verbose_name_plural = 'Promotions'
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+    @property
+    def user_count(self):
+        """Return the number of users in this promotion"""
+        return self.users.count()
+
+    @property
+    def active_user_count(self):
+        """Return the number of active users in this promotion"""
+        return self.users.filter(is_active=True).count()
+
+
 class User(AbstractUser):
     """Extended User model for captive portal users"""
     ROLE_CHOICES = [
@@ -12,9 +61,17 @@ class User(AbstractUser):
     ]
 
     # Nouveaux champs pour le système d'inscription
-    promotion = models.CharField(max_length=100, blank=True, null=True, help_text="Promotion de l'étudiant (ex: ING3, L1, etc.)")
+    promotion = models.ForeignKey(
+        Promotion,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='users',
+        help_text="Promotion de l'étudiant"
+    )
     matricule = models.CharField(max_length=50, blank=True, null=True, help_text="Matricule de l'étudiant")
     is_radius_activated = models.BooleanField(default=False, help_text="Utilisateur activé dans RADIUS par un administrateur")
+    is_radius_enabled = models.BooleanField(default=True, help_text="Utilisateur activé/désactivé dans RADIUS (contrôle l'accès Internet)")
 
     # ATTENTION SÉCURITÉ: Mot de passe en clair pour RADIUS
     # Ce champ stocke le mot de passe en clair pour pouvoir le copier dans radcheck lors de l'activation

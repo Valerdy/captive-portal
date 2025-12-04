@@ -1,12 +1,33 @@
 // Types pour l'application Captive Portal
 
+export interface Promotion {
+  id: number
+  code: string
+  name: string
+  description?: string | null
+  year?: number | null
+  is_active: boolean
+  user_count?: number
+  active_user_count?: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface PromotionList {
+  id: number
+  code: string
+  name: string
+  is_active: boolean
+}
+
 export interface User {
   id: number
   username: string
   email: string
   first_name: string
   last_name: string
-  promotion?: string | null
+  promotion?: number | null  // ID de la promotion
+  promotion_detail?: PromotionList | null  // Détails de la promotion
   matricule?: string | null
   phone_number: string | null
   mac_address: string | null
@@ -17,6 +38,7 @@ export interface User {
   is_staff?: boolean
   is_superuser?: boolean
   is_radius_activated?: boolean
+  is_radius_enabled?: boolean  // Nouveau: statut RADIUS
   role_name?: string  // 'admin' | 'user'
   date_joined: string
   created_at: string

@@ -67,5 +67,23 @@ export const userService = {
       { user_ids: userIds }
     )
     return response.data
+  },
+
+  /**
+   * Activer un utilisateur individuellement dans RADIUS (toggle statut)
+   * Permet l'accès Internet via RADIUS
+   */
+  async activateUserRadius(userId: number): Promise<any> {
+    const response = await api.post(`/api/core/users/${userId}/activate_radius/`)
+    return response.data
+  },
+
+  /**
+   * Désactiver un utilisateur individuellement dans RADIUS (toggle statut)
+   * Bloque l'accès Internet via RADIUS
+   */
+  async deactivateUserRadius(userId: number): Promise<any> {
+    const response = await api.post(`/api/core/users/${userId}/deactivate_radius/`)
+    return response.data
   }
 }

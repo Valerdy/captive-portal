@@ -180,6 +180,10 @@ class RadCheck(models.Model):
     attribute = models.CharField(max_length=64, default='Cleartext-Password')
     op = models.CharField(max_length=2, default=':=')
     value = models.CharField(max_length=253)
+    statut = models.BooleanField(
+        default=True,
+        help_text="Statut de l'utilisateur (1=activé, 0=désactivé) - contrôle l'accès Internet via RADIUS"
+    )
 
     class Meta:
         db_table = 'radcheck'
@@ -189,7 +193,7 @@ class RadCheck(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.username} - {self.attribute}"
+        return f"{self.username} - {self.attribute} ({'activé' if self.statut else 'désactivé'})"
 
 
 class RadReply(models.Model):

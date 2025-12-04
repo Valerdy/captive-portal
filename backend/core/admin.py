@@ -1,6 +1,36 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Device, Session, Voucher
+from .models import User, Device, Session, Voucher, Promotion
+
+
+@admin.register(Promotion)
+class PromotionAdmin(admin.ModelAdmin):
+    """Admin interface for Promotion model"""
+    list_display = [
+        'code', 'name', 'year', 'is_active',
+        'user_count', 'active_user_count', 'created_at'
+    ]
+    list_filter = ['is_active', 'year', 'created_at']
+    search_fields = ['code', 'name', 'description']
+    readonly_fields = ['created_at', 'updated_at', 'user_count', 'active_user_count']
+    ordering = ['code']
+
+    fieldsets = (
+        ('Informations de base', {
+            'fields': ('code', 'name', 'year', 'description')
+        }),
+        ('Statut', {
+            'fields': ('is_active',)
+        }),
+        ('Statistiques', {
+            'fields': ('user_count', 'active_user_count'),
+            'classes': ('collapse',)
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
 
 
 @admin.register(User)
