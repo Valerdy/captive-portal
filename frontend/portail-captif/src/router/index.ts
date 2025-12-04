@@ -88,6 +88,12 @@ const router = createRouter({
       name: 'admin-quotas',
       component: () => import('../views/AdminQuotasView.vue'),
       meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/promotions',
+      name: 'admin-promotions',
+      component: () => import('../views/AdminPromotionsView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })

@@ -3,13 +3,16 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
+import { usePromotionStore } from '@/stores/promotion'
 import { useNotificationStore } from '@/stores/notification'
+import { userService } from '@/services/user.service'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const userStore = useUserStore()
+const promotionStore = usePromotionStore()
 const notificationStore = useNotificationStore()
 
 const users = computed(() => userStore.users)
@@ -38,7 +41,7 @@ const newUser = ref({
   password2: '',
   first_name: '',
   last_name: '',
-  promotion: '',
+  promotion_id: null as number | null,
   matricule: '',
   is_staff: false
 })
@@ -55,7 +58,8 @@ const filteredUsers = computed(() => {
       u.email?.toLowerCase().includes(query) ||
       u.first_name?.toLowerCase().includes(query) ||
       u.last_name?.toLowerCase().includes(query) ||
-      u.promotion?.toLowerCase().includes(query) ||
+      u.promotion_detail?.code?.toLowerCase().includes(query) ||
+      u.promotion_detail?.name?.toLowerCase().includes(query) ||
       u.matricule?.toLowerCase().includes(query)
     )
   }
@@ -113,11 +117,14 @@ onMounted(async () => {
   }
 
   try {
-    await userStore.fetchUsers()
+    await Promise.all([
+      userStore.fetchUsers(),
+      promotionStore.fetchPromotions()
+    ])
   } catch (error: any) {
     const message = error?.message || 'Erreur inconnue'
-    notificationStore.error(`Erreur lors du chargement des utilisateurs: ${message}`)
-    console.error('Erreur chargement utilisateurs:', error)
+    notificationStore.error(`Erreur lors du chargement des données: ${message}`)
+    console.error('Erreur chargement données:', error)
   }
 })
 
@@ -199,7 +206,7 @@ function openAddModal() {
     password2: '',
     first_name: '',
     last_name: '',
-    promotion: '',
+    promotion_id: null,
     matricule: '',
     is_staff: false
   }
@@ -219,7 +226,7 @@ async function handleAddUser() {
   // Validation des champs obligatoires
   if (!newUser.value.password || !newUser.value.password2 ||
       !newUser.value.first_name || !newUser.value.last_name ||
-      !newUser.value.promotion || !newUser.value.matricule) {
+      !newUser.value.promotion_id || !newUser.value.matricule) {
     notificationStore.warning('Veuillez remplir tous les champs requis')
     return
   }
@@ -248,7 +255,7 @@ async function handleAddUser() {
       password2: newUser.value.password2,
       first_name: newUser.value.first_name,
       last_name: newUser.value.last_name,
-      promotion: newUser.value.promotion,
+      promotion_id: newUser.value.promotion_id,
       matricule: newUser.value.matricule,
       is_staff: newUser.value.is_staff
     })
@@ -319,6 +326,39 @@ async function handleDelete(user: any) {
     notificationStore.error('Erreur lors de la suppression')
   } finally {
     isDeleting.value = false
+  }
+}
+
+// Activation/Désactivation RADIUS individuelle
+async function handleActivateRadiusIndividual(userId: number) {
+  if (!confirm('Activer l\'accès Internet pour cet utilisateur ?')) return
+
+  isActivating.value = true
+  try {
+    await userService.activateUserRadius(userId)
+    notificationStore.success('Utilisateur activé dans RADIUS')
+    await userStore.fetchUsers()  // Recharger pour mettre à jour is_radius_enabled
+  } catch (error: any) {
+    const message = error?.response?.data?.message || 'Erreur lors de l\'activation'
+    notificationStore.error(message)
+  } finally {
+    isActivating.value = false
+  }
+}
+
+async function handleDeactivateRadiusIndividual(userId: number) {
+  if (!confirm('Désactiver l\'accès Internet pour cet utilisateur ?')) return
+
+  isActivating.value = true
+  try {
+    await userService.deactivateUserRadius(userId)
+    notificationStore.success('Utilisateur désactivé dans RADIUS')
+    await userStore.fetchUsers()  // Recharger pour mettre à jour is_radius_enabled
+  } catch (error: any) {
+    const message = error?.response?.data?.message || 'Erreur lors de la désactivation'
+    notificationStore.error(message)
+  } finally {
+    isActivating.value = false
   }
 }
 </script>
@@ -465,8 +505,10 @@ async function handleDelete(user: any) {
               </td>
               <td>{{ user.email }}</td>
               <td>
-                <div v-if="user.promotion || user.matricule" class="info-cell">
-                  <span v-if="user.promotion" class="badge badge-light">{{ user.promotion }}</span>
+                <div v-if="user.promotion_detail || user.matricule" class="info-cell">
+                  <span v-if="user.promotion_detail" class="badge badge-light">
+                    {{ user.promotion_detail.code }}
+                  </span>
                   <span v-if="user.matricule" class="badge badge-light">{{ user.matricule }}</span>
                 </div>
                 <span v-else class="text-gray">-</span>
@@ -498,6 +540,7 @@ async function handleDelete(user: any) {
               <td>{{ new Date(user.date_joined).toLocaleDateString('fr-FR') }}</td>
               <td>
                 <div class="action-buttons">
+                  <!-- Bouton activation initiale RADIUS (pour les utilisateurs jamais activés) -->
                   <button
                     v-if="!user.is_radius_activated && user.is_active"
                     @click="handleActivateRadius([user.id])"
@@ -508,6 +551,32 @@ async function handleDelete(user: any) {
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
                     </svg>
                   </button>
+
+                  <!-- Boutons enable/disable RADIUS individuels (pour les utilisateurs déjà activés) -->
+                  <button
+                    v-if="user.is_radius_activated && (!user.is_radius_enabled || user.is_radius_enabled === false)"
+                    @click="handleActivateRadiusIndividual(user.id)"
+                    class="action-btn radius-enable"
+                    title="Activer l'accès Internet"
+                    :disabled="isActivating">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+
+                  <button
+                    v-if="user.is_radius_activated && user.is_radius_enabled"
+                    @click="handleDeactivateRadiusIndividual(user.id)"
+                    class="action-btn radius-disable"
+                    title="Désactiver l'accès Internet"
+                    :disabled="isActivating">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+
                   <button @click="handleEdit(user)" class="action-btn edit" title="Modifier">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -675,7 +744,16 @@ async function handleDelete(user: any) {
           <div class="form-row">
             <div class="form-group">
               <label>Promotion *</label>
-              <input v-model="newUser.promotion" type="text" placeholder="Ex: ING3, L1, M2..." required />
+              <select v-model="newUser.promotion_id" required class="form-select">
+                <option :value="null" disabled>Sélectionnez une promotion</option>
+                <option
+                  v-for="promo in promotionStore.promotions.filter(p => p.is_active)"
+                  :key="promo.id"
+                  :value="promo.id"
+                >
+                  {{ promo.code }} - {{ promo.name }}
+                </option>
+              </select>
             </div>
             <div class="form-group">
               <label>Matricule *</label>
@@ -1159,6 +1237,24 @@ async function handleDelete(user: any) {
   color: #10B981;
 }
 
+.action-btn.radius-enable:hover:not(:disabled) {
+  background: #D1FAE5;
+  border-color: #10B981;
+}
+
+.action-btn.radius-enable:hover:not(:disabled) svg {
+  color: #10B981;
+}
+
+.action-btn.radius-disable:hover:not(:disabled) {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+}
+
+.action-btn.radius-disable:hover:not(:disabled) svg {
+  color: #F59E0B;
+}
+
 .action-btn.edit:hover {
   background: #EFF6FF;
   border-color: #3B82F6;
@@ -1473,16 +1569,20 @@ async function handleDelete(user: any) {
 
 .form-group input[type="text"],
 .form-group input[type="email"],
-.form-group input[type="password"] {
+.form-group input[type="password"],
+.form-group select.form-select {
   width: 100%;
   padding: 0.75rem 1rem;
   border: 1px solid #E5E7EB;
   border-radius: 8px;
   font-size: 0.875rem;
   transition: all 0.2s;
+  background: white;
+  cursor: pointer;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select.form-select:focus {
   outline: none;
   border-color: #F97316;
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);

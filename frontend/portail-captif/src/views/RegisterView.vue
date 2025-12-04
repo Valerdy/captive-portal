@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { usePromotionStore } from '@/stores/promotion'
 import { useNotificationStore } from '@/stores/notification'
 import ErrorAlert from '@/components/ErrorAlert.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const promotionStore = usePromotionStore()
 const notificationStore = useNotificationStore()
 
 const formData = ref({
   first_name: '',
   last_name: '',
-  promotion: '',
+  promotion_id: null as number | null,
   matricule: '',
   password: '',
   password2: ''
@@ -22,12 +24,21 @@ const errorMessage = ref('')
 const showPassword = ref(false)
 const showPassword2 = ref(false)
 
+// Charger les promotions au montage
+onMounted(async () => {
+  try {
+    await promotionStore.fetchPromotions()
+  } catch (error) {
+    console.error('Erreur lors du chargement des promotions:', error)
+  }
+})
+
 async function handleRegister() {
   errorMessage.value = ''
 
   // Validation côté client
   if (!formData.value.first_name || !formData.value.last_name ||
-      !formData.value.promotion || !formData.value.matricule ||
+      !formData.value.promotion_id || !formData.value.matricule ||
       !formData.value.password || !formData.value.password2) {
     errorMessage.value = 'Tous les champs sont requis'
     notificationStore.error(errorMessage.value)
@@ -123,14 +134,21 @@ async function handleRegister() {
                 </svg>
                 Promotion *
               </label>
-              <input
+              <select
                 id="promotion"
-                v-model="formData.promotion"
-                type="text"
+                v-model="formData.promotion_id"
                 required
-                placeholder="Ex: ING3, L1, M2..."
-                autocomplete="off"
-              />
+                class="form-select"
+              >
+                <option :value="null" disabled>Sélectionnez votre promotion</option>
+                <option
+                  v-for="promo in promotionStore.promotions.filter(p => p.is_active)"
+                  :key="promo.id"
+                  :value="promo.id"
+                >
+                  {{ promo.code }} - {{ promo.name }}
+                </option>
+              </select>
             </div>
             <div class="form-group">
               <label for="matricule">
@@ -418,6 +436,35 @@ input:focus {
 
 input::placeholder {
   color: #999;
+}
+
+/* Select dropdown */
+.form-select {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #f8f8f8;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 3rem;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #f97316;
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.form-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Password input with toggle */
