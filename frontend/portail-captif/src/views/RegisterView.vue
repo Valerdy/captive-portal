@@ -2,18 +2,20 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { usePromotionStore } from '@/stores/promotion'
 import { useNotificationStore } from '@/stores/notification'
 import ErrorAlert from '@/components/ErrorAlert.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const promotionStore = usePromotionStore()
 const notificationStore = useNotificationStore()
 
 const formData = ref({
   first_name: '',
   last_name: '',
-  promotion: '',
+  promotion: null as number | null,
   matricule: '',
   password: '',
   password2: ''
@@ -21,6 +23,19 @@ const formData = ref({
 const errorMessage = ref('')
 const showPassword = ref(false)
 const showPassword2 = ref(false)
+
+const promotions = ref<{ id: number; name: string }[]>([])
+
+async function loadPromotions() {
+  try {
+    // Utiliser l'endpoint public pour les promotions actives
+    const list = await promotionStore.fetchActivePromotions()
+    promotions.value = list.map(p => ({ id: p.id, name: p.name }))
+  } catch (error) {
+    // en cas d'échec, on laisse la saisie libre via fallback
+    promotions.value = []
+  }
+}
 
 async function handleRegister() {
   errorMessage.value = ''
@@ -52,6 +67,7 @@ async function handleRegister() {
     notificationStore.error(errorMessage.value)
   }
 }
+loadPromotions()
 </script>
 
 <template>
@@ -123,14 +139,16 @@ async function handleRegister() {
                 </svg>
                 Promotion *
               </label>
-              <input
+              <select
                 id="promotion"
                 v-model="formData.promotion"
-                type="text"
                 required
-                placeholder="Ex: ING3, L1, M2..."
-                autocomplete="off"
-              />
+              >
+                <option value="" disabled>Choisir une promotion</option>
+                <option v-for="promo in promotions" :key="promo.id" :value="promo.id">
+                  {{ promo.name }}
+                </option>
+              </select>
             </div>
             <div class="form-group">
               <label for="matricule">

@@ -2,11 +2,12 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from .models import User, Device, Session, Voucher, BlockedSite, UserQuota
+from .models import User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion
 from .serializers import (
     UserSerializer, UserListSerializer, DeviceSerializer,
     SessionSerializer, SessionListSerializer, VoucherSerializer,
-    VoucherValidationSerializer, BlockedSiteSerializer, UserQuotaSerializer
+    VoucherValidationSerializer, BlockedSiteSerializer, UserQuotaSerializer,
+    PromotionSerializer
 )
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdmin, IsAuthenticatedUser
 from .decorators import rate_limit
@@ -69,6 +70,38 @@ class UserViewSet(viewsets.ModelViewSet):
         sessions = user.sessions.all()
         serializer = SessionListSerializer(sessions, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def deactivate_radius(self, request, pk=None):
+        """Désactive l'utilisateur dans FreeRADIUS (statut=0)"""
+        user = self.get_object()
+        from radius.models import RadCheck
+
+        updated = RadCheck.objects.filter(username=user.username).update(statut=False)
+        return Response({
+            'status': 'disabled',
+            'updated': updated
+        })
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def activate_radius(self, request, pk=None):
+        """Active l'utilisateur dans FreeRADIUS (statut=1)"""
+        user = self.get_object()
+        from radius.models import RadCheck
+
+        if not user.cleartext_password:
+            return Response({'error': 'Mot de passe en clair indisponible pour cet utilisateur'}, status=status.HTTP_400_BAD_REQUEST)
+
+        RadCheck.objects.update_or_create(
+            username=user.username,
+            attribute='Cleartext-Password',
+            defaults={
+                'op': ':=',
+                'value': user.cleartext_password,
+                'statut': True
+            }
+        )
+        return Response({'status': 'enabled'})
 
 
 class DeviceViewSet(viewsets.ModelViewSet):
@@ -281,6 +314,42 @@ class BlockedSiteViewSet(viewsets.ModelViewSet):
         sites = BlockedSite.objects.filter(type='blacklist', is_active=True)
         serializer = self.get_serializer(sites, many=True)
         return Response(serializer.data)
+
+
+class PromotionViewSet(viewsets.ModelViewSet):
+    """ViewSet pour gérer les promotions (activation/désactivation en masse)"""
+    queryset = Promotion.objects.all()
+    serializer_class = PromotionSerializer
+    permission_classes = [IsAdmin]
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def active(self, request):
+        """Liste des promotions actives (accessible publiquement pour l'inscription)"""
+        active_promotions = Promotion.objects.filter(is_active=True)
+        serializer = self.get_serializer(active_promotions, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def deactivate(self, request, pk=None):
+        promo = self.get_object()
+        promo.is_active = False
+        promo.save(update_fields=['is_active'])
+        # Désactiver tous les utilisateurs actifs dans cette promotion au niveau RADIUS
+        from radius.models import RadCheck
+        usernames = promo.users.filter(is_radius_activated=True).values_list('username', flat=True)
+        RadCheck.objects.filter(username__in=usernames).update(statut=False)
+        return Response({'status': 'promotion deactivated'})
+
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        promo = self.get_object()
+        promo.is_active = True
+        promo.save(update_fields=['is_active'])
+        # Réactiver uniquement les utilisateurs déjà activés dans RADIUS
+        from radius.models import RadCheck
+        usernames = promo.users.filter(is_radius_activated=True).values_list('username', flat=True)
+        RadCheck.objects.filter(username__in=usernames).update(statut=True)
+        return Response({'status': 'promotion activated'})
 
     @action(detail=False, methods=['get'])
     def whitelist(self, request):

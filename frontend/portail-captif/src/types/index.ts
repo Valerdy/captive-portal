@@ -1,12 +1,21 @@
 // Types pour l'application Captive Portal
 
+export interface Promotion {
+  id: number
+  name: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface User {
   id: number
   username: string
   email: string
   first_name: string
   last_name: string
-  promotion?: string | null
+  promotion?: number | null
+  promotion_name?: string | null
   matricule?: string | null
   phone_number: string | null
   mac_address: string | null
@@ -35,12 +44,14 @@ export interface LoginResponse {
 }
 
 export interface RegisterData {
-  username: string
-  email: string
+  username?: string
+  email?: string
   password: string
   password2: string
   first_name?: string
   last_name?: string
+  promotion?: number
+  matricule?: string
   phone_number?: string
 }
 

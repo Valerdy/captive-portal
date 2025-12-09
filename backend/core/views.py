@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
 from .serializers import UserSerializer
-from .models import Session, Device, User
+from .models import Session, Device, User, Promotion
 from .permissions import IsAdmin
 from .decorators import rate_limit
 from .utils import set_jwt_cookies, clear_jwt_cookies, generate_secure_password
@@ -39,7 +39,8 @@ def register(request):
     # Extraire les données requises
     first_name = request.data.get('first_name', '').strip()
     last_name = request.data.get('last_name', '').strip()
-    promotion = request.data.get('promotion', '').strip()
+    promotion_id = request.data.get('promotion') or request.data.get('promotion_id')
+    promotion_name = request.data.get('promotion_name') or request.data.get('promotion_label')
     matricule = request.data.get('matricule', '').strip()
     password = request.data.get('password')
     password2 = request.data.get('password2')
@@ -47,7 +48,7 @@ def register(request):
     email = request.data.get('email', '').strip()
 
     # Validation des champs requis
-    if not all([first_name, last_name, promotion, matricule, password, password2]):
+    if not all([first_name, last_name, matricule, password, password2]) or not (promotion_id or promotion_name):
         return Response({
             'error': 'Tous les champs sont requis',
             'detail': 'Veuillez remplir tous les champs: Nom, Prénom, Promotion, Matricule, Mot de passe'
@@ -92,6 +93,19 @@ def register(request):
                 'detail': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # Résoudre la promotion : priorise promotion_id, sinon crée/recupère par nom
+        promotion_obj = None
+        if promotion_id:
+            try:
+                promotion_obj = Promotion.objects.get(id=promotion_id)
+            except Promotion.DoesNotExist:
+                return Response({
+                    'error': 'Promotion introuvable',
+                    'detail': f'Promotion avec id={promotion_id} inexistante'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        elif promotion_name:
+            promotion_obj, _ = Promotion.objects.get_or_create(name=promotion_name.strip(), defaults={'is_active': True})
+
         # Utiliser une transaction pour garantir la cohérence
         with transaction.atomic():
             # Créer l'utilisateur directement
@@ -101,7 +115,7 @@ def register(request):
                 password=password,  # Stocké hashé par Django
                 first_name=first_name,
                 last_name=last_name,
-                promotion=promotion,
+                promotion=promotion_obj,
                 matricule=matricule,
                 is_active=True,
                 # NE PAS activer dans RADIUS - l'admin doit le faire manuellement
@@ -130,7 +144,8 @@ def register(request):
                     'email': user.email,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
-                    'promotion': user.promotion,
+                    'promotion': user.promotion.id if user.promotion else None,
+                    'promotion_name': user.promotion.name if user.promotion else None,
                     'matricule': user.matricule,
                     'role': user.role,
                     'is_radius_activated': user.is_radius_activated
@@ -461,7 +476,8 @@ def activate_users_radius(request):
                     attribute='Cleartext-Password',
                     defaults={
                         'op': ':=',
-                        'value': radius_password
+                        'value': radius_password,
+                        'statut': True
                     }
                 )
 

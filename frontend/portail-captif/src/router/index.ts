@@ -96,10 +96,9 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
-  // Initialiser l'auth depuis localStorage
-  if (!authStore.isAuthenticated) {
-    authStore.initializeAuth()
-  }
+  // Toujours initialiser l'auth depuis localStorage au début
+  // Cela garantit que l'état d'authentification est à jour avant les vérifications
+  authStore.initializeAuth()
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
   const requiresGuest = to.matched.some((record) => record.meta.requiresGuest)

@@ -4,6 +4,24 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+class Promotion(models.Model):
+    """
+    Promotion d'étudiants.
+    Permet d'activer/désactiver en masse l'accès des utilisateurs à FreeRADIUS.
+    """
+    name = models.CharField(max_length=100, unique=True, db_index=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'promotions'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class User(AbstractUser):
     """Extended User model for captive portal users"""
     ROLE_CHOICES = [
@@ -12,7 +30,14 @@ class User(AbstractUser):
     ]
 
     # Nouveaux champs pour le système d'inscription
-    promotion = models.CharField(max_length=100, blank=True, null=True, help_text="Promotion de l'étudiant (ex: ING3, L1, etc.)")
+    promotion = models.ForeignKey(
+        Promotion,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='users',
+        help_text="Promotion de l'étudiant"
+    )
     matricule = models.CharField(max_length=50, blank=True, null=True, help_text="Matricule de l'étudiant")
     is_radius_activated = models.BooleanField(default=False, help_text="Utilisateur activé dans RADIUS par un administrateur")
 

@@ -163,6 +163,36 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function activateUserRadius(userId: number) {
+    isLoading.value = true
+    error.value = null
+    try {
+      await userService.activateUserRadius(userId)
+      const index = users.value.findIndex(u => u.id === userId)
+      if (index !== -1) users.value[index].is_radius_activated = true
+    } catch (err) {
+      error.value = getErrorMessage(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function deactivateUserRadius(userId: number) {
+    isLoading.value = true
+    error.value = null
+    try {
+      await userService.deactivateUserRadius(userId)
+      const index = users.value.findIndex(u => u.id === userId)
+      if (index !== -1) users.value[index].is_radius_activated = false
+    } catch (err) {
+      error.value = getErrorMessage(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -191,6 +221,8 @@ export const useUserStore = defineStore('user', () => {
     getUserDevices,
     getUserSessions,
     activateUsersRadius,
+    activateUserRadius,
+    deactivateUserRadius,
     clearError,
     resetState
   }
