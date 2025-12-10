@@ -39,8 +39,23 @@ class User(AbstractUser):
         help_text="Promotion de l'étudiant"
     )
     matricule = models.CharField(max_length=50, blank=True, null=True, help_text="Matricule de l'étudiant")
-    is_radius_activated = models.BooleanField(default=False, help_text="Utilisateur activé dans RADIUS par un administrateur")
-    is_radius_enabled = models.BooleanField(default=True, help_text="Utilisateur activé/désactivé dans RADIUS (contrôle l'accès Internet)")
+
+    # RADIUS Status Management
+    # Deux états séparés pour gérer le cycle de vie RADIUS:
+    # 1. is_radius_activated: Indique si l'utilisateur a été provisionné dans RADIUS (une seule fois)
+    #    - False: Utilisateur jamais créé dans radcheck/radreply/radusergroup
+    #    - True: Utilisateur créé dans les tables RADIUS (action irréversible par admin)
+    # 2. is_radius_enabled: Contrôle l'accès actuel de l'utilisateur (toggle on/off)
+    #    - True: L'utilisateur PEUT se connecter au WiFi (statut=1 dans radcheck)
+    #    - False: L'utilisateur NE PEUT PAS se connecter (statut=0 dans radcheck)
+    is_radius_activated = models.BooleanField(
+        default=False,
+        help_text="Indique si l'utilisateur a été créé dans RADIUS (provisionné une fois par admin)"
+    )
+    is_radius_enabled = models.BooleanField(
+        default=True,
+        help_text="Contrôle si l'utilisateur peut actuellement accéder au WiFi (toggle on/off)"
+    )
 
     # ATTENTION SÉCURITÉ: Mot de passe en clair pour RADIUS
     # Ce champ stocke le mot de passe en clair pour pouvoir le copier dans radcheck lors de l'activation
@@ -82,6 +97,36 @@ class User(AbstractUser):
     def is_regular_user(self):
         """Check if user has regular user role"""
         return not self.is_admin()
+
+    # RADIUS Helper Methods
+    def can_access_radius(self):
+        """
+        Vérifie si l'utilisateur peut accéder au WiFi via RADIUS.
+        Retourne True SEULEMENT si:
+        - L'utilisateur est activé dans Django (is_active=True)
+        - L'utilisateur a été provisionné dans RADIUS (is_radius_activated=True)
+        - L'accès RADIUS est actuellement activé (is_radius_enabled=True)
+        """
+        return self.is_active and self.is_radius_activated and self.is_radius_enabled
+
+    def is_pending_radius_activation(self):
+        """
+        Vérifie si l'utilisateur est en attente d'activation RADIUS.
+        Retourne True si l'utilisateur est actif mais pas encore provisionné dans RADIUS.
+        """
+        return self.is_active and not self.is_radius_activated
+
+    def get_radius_status_display(self):
+        """
+        Retourne un statut RADIUS lisible pour les humains.
+        """
+        if not self.is_active:
+            return "Compte Django désactivé"
+        if not self.is_radius_activated:
+            return "En attente d'activation RADIUS"
+        if not self.is_radius_enabled:
+            return "Accès WiFi désactivé"
+        return "Accès WiFi actif"
 
 
 class Device(models.Model):
