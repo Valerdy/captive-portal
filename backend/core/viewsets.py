@@ -330,13 +330,48 @@ class PromotionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(active_promotions, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def users(self, request, pk=None):
+        """Récupère la liste des utilisateurs d'une promotion avec leurs statuts RADIUS"""
+        promotion = self.get_object()
+        users = promotion.users.filter(is_active=True).select_related('promotion')
+
+        users_data = []
+        for user in users:
+            users_data.append({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'matricule': user.matricule,
+                'is_active': user.is_active,
+                'is_radius_activated': user.is_radius_activated,
+                'is_radius_enabled': user.is_radius_enabled,
+                'radius_status': user.get_radius_status_display(),
+                'can_access_radius': user.can_access_radius(),
+            })
+
+        return Response({
+            'promotion': {
+                'id': promotion.id,
+                'code': promotion.code,
+                'name': promotion.name,
+                'is_active': promotion.is_active
+            },
+            'users': users_data,
+            'total_count': len(users_data)
+        })
+
     @action(detail=True, methods=['post'])
     def deactivate(self, request, pk=None):
         """
-        Désactive une promotion et désactive l'accès WiFi de tous ses utilisateurs.
+        Désactive une promotion et SUPPRIME tous les utilisateurs de RADIUS.
+        Les utilisateurs n'auront plus accès à Internet.
         Utilise une transaction atomique pour garantir la cohérence.
         """
         from django.db import transaction
+        from radius.models import RadReply, RadUserGroup
 
         promotion = self.get_object()
 
@@ -346,8 +381,8 @@ class PromotionViewSet(viewsets.ModelViewSet):
                 promotion.is_active = False
                 promotion.save(update_fields=['is_active'])
 
-                # Récupérer tous les utilisateurs qui ont été provisionnés dans RADIUS
-                users_to_disable = promotion.users.filter(is_radius_activated=True)
+                # Récupérer TOUS les utilisateurs actifs de la promotion
+                users_to_disable = promotion.users.filter(is_active=True)
                 disabled_count = 0
                 failed_count = 0
                 errors = []
@@ -357,17 +392,18 @@ class PromotionViewSet(viewsets.ModelViewSet):
                         # Utiliser select_for_update pour éviter les race conditions
                         user = User.objects.select_for_update().get(id=user.id)
 
-                        # Désactiver dans radcheck
-                        updated = RadCheck.objects.filter(username=user.username).update(statut=False)
+                        # SUPPRIMER toutes les entrées RADIUS
+                        RadCheck.objects.filter(username=user.username).delete()
+                        RadReply.objects.filter(username=user.username).delete()
+                        RadUserGroup.objects.filter(username=user.username).delete()
 
-                        if updated > 0:
-                            # Mettre à jour le statut dans User
-                            user.is_radius_enabled = False
-                            user.save(update_fields=['is_radius_enabled'])
-                            disabled_count += 1
-                        else:
-                            failed_count += 1
-                            errors.append(f"{user.username}: Non trouvé dans radcheck")
+                        # Mettre à jour les statuts dans User
+                        user.is_radius_activated = False
+                        user.is_radius_enabled = False
+                        user.save(update_fields=['is_radius_activated', 'is_radius_enabled'])
+
+                        disabled_count += 1
+
                     except Exception as e:
                         failed_count += 1
                         errors.append(f"{user.username}: {str(e)}")
@@ -379,7 +415,7 @@ class PromotionViewSet(viewsets.ModelViewSet):
                     'users_disabled': disabled_count,
                     'users_failed': failed_count,
                     'errors': errors if errors else None,
-                    'message': f'Promotion désactivée. {disabled_count} utilisateur(s) désactivé(s) dans RADIUS.'
+                    'message': f'Promotion désactivée. {disabled_count} utilisateur(s) supprimé(s) de RADIUS.'
                 })
 
         except Exception as e:
@@ -391,10 +427,12 @@ class PromotionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
         """
-        Active une promotion et réactive l'accès WiFi de tous ses utilisateurs déjà provisionnés.
+        Active une promotion et CRÉE les entrées RADIUS pour TOUS les utilisateurs.
+        Tous les utilisateurs auront accès à Internet.
         Utilise une transaction atomique pour garantir la cohérence.
         """
         from django.db import transaction
+        from radius.models import RadReply, RadUserGroup
 
         promotion = self.get_object()
 
@@ -404,8 +442,8 @@ class PromotionViewSet(viewsets.ModelViewSet):
                 promotion.is_active = True
                 promotion.save(update_fields=['is_active'])
 
-                # Réactiver uniquement les utilisateurs déjà provisionnés dans RADIUS
-                users_to_enable = promotion.users.filter(is_radius_activated=True)
+                # Récupérer TOUS les utilisateurs actifs de la promotion
+                users_to_enable = promotion.users.filter(is_active=True)
                 enabled_count = 0
                 failed_count = 0
                 errors = []
@@ -415,17 +453,60 @@ class PromotionViewSet(viewsets.ModelViewSet):
                         # Utiliser select_for_update pour éviter les race conditions
                         user = User.objects.select_for_update().get(id=user.id)
 
-                        # Réactiver dans radcheck
-                        updated = RadCheck.objects.filter(username=user.username).update(statut=True)
-
-                        if updated > 0:
-                            # Mettre à jour le statut dans User
-                            user.is_radius_enabled = True
-                            user.save(update_fields=['is_radius_enabled'])
-                            enabled_count += 1
-                        else:
+                        # Vérifier que le mot de passe en clair est disponible
+                        if not user.cleartext_password:
                             failed_count += 1
-                            errors.append(f"{user.username}: Non trouvé dans radcheck")
+                            errors.append(f"{user.username}: Mot de passe en clair non disponible")
+                            continue
+
+                        # CRÉER les entrées RADIUS
+
+                        # 1. radcheck - Mot de passe en clair
+                        RadCheck.objects.update_or_create(
+                            username=user.username,
+                            attribute='Cleartext-Password',
+                            defaults={
+                                'op': ':=',
+                                'value': user.cleartext_password,
+                                'statut': True
+                            }
+                        )
+
+                        # 2. radreply - Session timeout
+                        session_timeout = 86400 if user.is_staff else 3600
+                        RadReply.objects.update_or_create(
+                            username=user.username,
+                            attribute='Session-Timeout',
+                            defaults={
+                                'op': '=',
+                                'value': str(session_timeout)
+                            }
+                        )
+
+                        # 3. radreply - Limite de bande passante
+                        RadReply.objects.update_or_create(
+                            username=user.username,
+                            attribute='Mikrotik-Rate-Limit',
+                            defaults={
+                                'op': '=',
+                                'value': '10M/10M'
+                            }
+                        )
+
+                        # 4. radusergroup - Groupe utilisateur
+                        RadUserGroup.objects.update_or_create(
+                            username=user.username,
+                            groupname=user.role,
+                            defaults={'priority': 0}
+                        )
+
+                        # Mettre à jour les statuts dans User
+                        user.is_radius_activated = True
+                        user.is_radius_enabled = True
+                        user.save(update_fields=['is_radius_activated', 'is_radius_enabled'])
+
+                        enabled_count += 1
+
                     except Exception as e:
                         failed_count += 1
                         errors.append(f"{user.username}: {str(e)}")
@@ -437,7 +518,7 @@ class PromotionViewSet(viewsets.ModelViewSet):
                     'users_enabled': enabled_count,
                     'users_failed': failed_count,
                     'errors': errors if errors else None,
-                    'message': f'Promotion activée. {enabled_count} utilisateur(s) réactivé(s) dans RADIUS.'
+                    'message': f'Promotion activée. {enabled_count} utilisateur(s) créé(s) dans RADIUS.'
                 })
 
         except Exception as e:
