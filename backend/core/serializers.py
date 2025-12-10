@@ -26,7 +26,7 @@ class UserSerializer(serializers.ModelSerializer):
             'phone_number', 'mac_address',
             'ip_address', 'is_voucher_user', 'voucher_code',
             'is_active', 'is_staff', 'is_superuser',
-            'is_radius_activated',
+            'is_radius_activated', 'is_radius_enabled',
             'role', 'role_name',
             'date_joined', 'created_at', 'updated_at'
         ]

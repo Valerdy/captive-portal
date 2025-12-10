@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
 import { usePromotionStore } from '@/stores/promotion'
 import { useNotificationStore } from '@/stores/notification'
+import { userService } from '@/services/user.service'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
@@ -125,8 +126,8 @@ onMounted(async () => {
     ])
   } catch (error: any) {
     const message = error?.message || 'Erreur inconnue'
-    notificationStore.error(`Erreur lors du chargement des utilisateurs: ${message}`)
-    console.error('Erreur chargement utilisateurs:', error)
+    notificationStore.error(`Erreur lors du chargement des données: ${message}`)
+    console.error('Erreur chargement données:', error)
   }
 })
 
@@ -194,6 +195,9 @@ async function handleActivateRadius(userIds: number[]) {
     activationResult.value = result
     showActivationModal.value = true
 
+    // Rafraîchir la liste des utilisateurs pour afficher les statuts à jour
+    await userStore.fetchUsers()
+
     // Clear selection
     selectedUserIds.value = []
     selectAll.value = false
@@ -254,7 +258,7 @@ async function handleAddUser() {
   // Validation des champs obligatoires
   if (!newUser.value.password || !newUser.value.password2 ||
       !newUser.value.first_name || !newUser.value.last_name ||
-      !newUser.value.promotion || !newUser.value.matricule) {
+      !newUser.value.promotion_id || !newUser.value.matricule) {
     notificationStore.warning('Veuillez remplir tous les champs requis')
     return
   }
@@ -283,7 +287,7 @@ async function handleAddUser() {
       password2: newUser.value.password2,
       first_name: newUser.value.first_name,
       last_name: newUser.value.last_name,
-      promotion: newUser.value.promotion,
+      promotion_id: newUser.value.promotion_id,
       matricule: newUser.value.matricule,
       is_staff: newUser.value.is_staff
     })
@@ -355,6 +359,39 @@ async function handleDelete(user: any) {
     notificationStore.error('Erreur lors de la suppression')
   } finally {
     isDeleting.value = false
+  }
+}
+
+// Activation/Désactivation RADIUS individuelle
+async function handleActivateRadiusIndividual(userId: number) {
+  if (!confirm('Activer l\'accès Internet pour cet utilisateur ?')) return
+
+  isActivating.value = true
+  try {
+    await userService.activateUserRadius(userId)
+    notificationStore.success('Utilisateur activé dans RADIUS')
+    await userStore.fetchUsers()  // Recharger pour mettre à jour is_radius_enabled
+  } catch (error: any) {
+    const message = error?.response?.data?.message || 'Erreur lors de l\'activation'
+    notificationStore.error(message)
+  } finally {
+    isActivating.value = false
+  }
+}
+
+async function handleDeactivateRadiusIndividual(userId: number) {
+  if (!confirm('Désactiver l\'accès Internet pour cet utilisateur ?')) return
+
+  isActivating.value = true
+  try {
+    await userService.deactivateUserRadius(userId)
+    notificationStore.success('Utilisateur désactivé dans RADIUS')
+    await userStore.fetchUsers()  // Recharger pour mettre à jour is_radius_enabled
+  } catch (error: any) {
+    const message = error?.response?.data?.message || 'Erreur lors de la désactivation'
+    notificationStore.error(message)
+  } finally {
+    isActivating.value = false
   }
 }
 </script>
@@ -560,6 +597,7 @@ async function handleDelete(user: any) {
               <td>{{ new Date(user.date_joined).toLocaleDateString('fr-FR') }}</td>
               <td>
                 <div class="action-buttons">
+                  <!-- Bouton activation initiale RADIUS (pour les utilisateurs jamais activés) -->
                   <button
                     v-if="!user.is_radius_activated && user.is_active"
                     @click="handleActivateRadius([user.id])"
@@ -1297,6 +1335,24 @@ async function handleDelete(user: any) {
   color: #10B981;
 }
 
+.action-btn.radius-enable:hover:not(:disabled) {
+  background: #D1FAE5;
+  border-color: #10B981;
+}
+
+.action-btn.radius-enable:hover:not(:disabled) svg {
+  color: #10B981;
+}
+
+.action-btn.radius-disable:hover:not(:disabled) {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+}
+
+.action-btn.radius-disable:hover:not(:disabled) svg {
+  color: #F59E0B;
+}
+
 .action-btn.edit:hover {
   background: #EFF6FF;
   border-color: #3B82F6;
@@ -1611,16 +1667,20 @@ async function handleDelete(user: any) {
 
 .form-group input[type="text"],
 .form-group input[type="email"],
-.form-group input[type="password"] {
+.form-group input[type="password"],
+.form-group select.form-select {
   width: 100%;
   padding: 0.75rem 1rem;
   border: 1px solid #E5E7EB;
   border-radius: 8px;
   font-size: 0.875rem;
   transition: all 0.2s;
+  background: white;
+  cursor: pointer;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select.form-select:focus {
   outline: none;
   border-color: #F97316;
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);

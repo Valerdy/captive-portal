@@ -190,7 +190,7 @@ class RadCheck(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.username} - {self.attribute}"
+        return f"{self.username} - {self.attribute} ({'activé' if self.statut else 'désactivé'})"
 
 
 class RadReply(models.Model):

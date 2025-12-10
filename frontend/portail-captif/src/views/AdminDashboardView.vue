@@ -19,6 +19,11 @@ const notificationStore = useNotificationStore()
 
 const isLoading = ref(true)
 
+// Navigation helper
+function navigateTo(path: string) {
+  router.push(path)
+}
+
 // Calculer les statistiques en temps réel
 const activeSessions = computed(() =>
   sessionStore.sessions.filter(s => s.status === 'active').length

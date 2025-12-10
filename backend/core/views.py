@@ -65,24 +65,33 @@ def register(request):
         # Générer username si non fourni (basé sur le matricule)
         if not username:
             username = matricule
+            # Si le username existe déjà, ajouter un suffixe numérique
+            if User.objects.filter(username=username).exists():
+                counter = 1
+                original_username = username
+                while User.objects.filter(username=username).exists():
+                    username = f"{original_username}{counter}"
+                    counter += 1
+                print(f"ℹ️  Username collision detected for '{original_username}' - using '{username}' instead")
+        else:
+            # Si l'utilisateur a fourni un username, vérifier qu'il est unique
+            if User.objects.filter(username=username).exists():
+                return Response({
+                    'error': 'Nom d\'utilisateur déjà utilisé',
+                    'detail': f'Le nom d\'utilisateur "{username}" est déjà pris. Veuillez en choisir un autre.'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         # Générer email si non fourni
         if not email:
             email = f"{matricule}@student.ucac-icam.com"
-
-        # Vérifier si le username existe déjà
-        if User.objects.filter(username=username).exists():
-            return Response({
-                'error': 'Nom d\'utilisateur déjà utilisé',
-                'detail': f'Le nom d\'utilisateur "{username}" est déjà pris. Veuillez en choisir un autre.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Vérifier si l'email existe déjà
-        if User.objects.filter(email=email).exists():
-            return Response({
-                'error': 'Email déjà utilisé',
-                'detail': f'L\'email "{email}" est déjà associé à un compte.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            # Si l'email existe déjà, ajouter un suffixe numérique
+            if User.objects.filter(email=email).exists():
+                counter = 1
+                base_email = matricule
+                while User.objects.filter(email=email).exists():
+                    email = f"{base_email}{counter}@student.ucac-icam.com"
+                    counter += 1
+                print(f"ℹ️  Email collision detected - using '{email}' instead")
 
         # Valider le mot de passe avec les validateurs Django
         try:
@@ -511,6 +520,7 @@ def activate_users_radius(request):
 
                 # 5. Marquer l'utilisateur comme activé dans RADIUS
                 user.is_radius_activated = True
+                user.is_radius_enabled = True  # Activé par défaut
                 user.save()
 
                 # Ajouter aux utilisateurs activés avec succès

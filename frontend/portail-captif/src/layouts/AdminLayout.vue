@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 
 interface Props {
-  activePage?: 'dashboard' | 'users' | 'monitoring' | 'sites' | 'quotas'
+  activePage?: 'dashboard' | 'users' | 'monitoring' | 'sites' | 'quotas' | 'promotions'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -117,6 +117,18 @@ function navigateTo(route: string) {
             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Quotas
+        </button>
+        <button
+          @click="navigateTo('/admin/promotions')"
+          class="nav-item"
+          :class="{ active: activePage === 'promotions' }"
+        >
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+            <line x1="9" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Promotions
         </button>
       </nav>
     </header>

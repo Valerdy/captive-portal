@@ -26,6 +26,7 @@ export interface User {
   is_staff?: boolean
   is_superuser?: boolean
   is_radius_activated?: boolean
+  is_radius_enabled?: boolean  // Nouveau: statut RADIUS
   role_name?: string  // 'admin' | 'user'
   date_joined: string
   created_at: string

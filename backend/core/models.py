@@ -40,6 +40,7 @@ class User(AbstractUser):
     )
     matricule = models.CharField(max_length=50, blank=True, null=True, help_text="Matricule de l'étudiant")
     is_radius_activated = models.BooleanField(default=False, help_text="Utilisateur activé dans RADIUS par un administrateur")
+    is_radius_enabled = models.BooleanField(default=True, help_text="Utilisateur activé/désactivé dans RADIUS (contrôle l'accès Internet)")
 
     # ATTENTION SÉCURITÉ: Mot de passe en clair pour RADIUS
     # Ce champ stocke le mot de passe en clair pour pouvoir le copier dans radcheck lors de l'activation
