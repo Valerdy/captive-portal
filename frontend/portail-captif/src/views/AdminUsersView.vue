@@ -28,6 +28,7 @@ const filterStatus = ref('all')
 const filterRadiusStatus = ref('all')
 const isDeleting = ref(false)
 const isActivating = ref(false)
+const isDeactivating = ref(false)
 
 // Sélection multiple
 const selectedUserIds = ref<number[]>([])
@@ -41,10 +42,13 @@ const newUser = ref({
   password2: '',
   first_name: '',
   last_name: '',
-  promotion_id: null as number | null,
+  promotion: null as number | null,
   matricule: '',
   is_staff: false
 })
+
+const promotions = computed(() => promotionStore.promotions.filter(p => p.is_active))
+const allPromotions = computed(() => promotionStore.promotions)
 
 // Filtrage des utilisateurs
 const filteredUsers = computed(() => {
@@ -58,8 +62,7 @@ const filteredUsers = computed(() => {
       u.email?.toLowerCase().includes(query) ||
       u.first_name?.toLowerCase().includes(query) ||
       u.last_name?.toLowerCase().includes(query) ||
-      u.promotion_detail?.code?.toLowerCase().includes(query) ||
-      u.promotion_detail?.name?.toLowerCase().includes(query) ||
+      (u.promotion_name || '').toLowerCase().includes(query) ||
       u.matricule?.toLowerCase().includes(query)
     )
   }
@@ -137,12 +140,6 @@ async function handleTogglePromotion(promo: any) {
       await promotionStore.activatePromotion(promo.id)
       notificationStore.success(`Promotion ${promo.name} activée (RADIUS)`)
     }
-
-    // Rafraîchir les données pour afficher les statuts à jour
-    await Promise.all([
-      userStore.fetchUsers(),
-      promotionStore.fetchPromotions()
-    ])
   } catch (error) {
     notificationStore.error(promotionStore.error || 'Erreur lors du changement de statut promotion')
   }
@@ -223,9 +220,6 @@ async function handleDeactivateRadius(userId: number) {
   try {
     await userStore.deactivateUserRadius(userId)
     notificationStore.success('Utilisateur désactivé dans RADIUS')
-
-    // Rafraîchir la liste pour afficher le statut à jour
-    await userStore.fetchUsers()
   } catch (error) {
     notificationStore.error(userStore.error || 'Erreur lors de la désactivation')
   } finally {
@@ -244,7 +238,7 @@ function openAddModal() {
     password2: '',
     first_name: '',
     last_name: '',
-    promotion_id: null,
+    promotion: null,
     matricule: '',
     is_staff: false
   }
@@ -306,7 +300,7 @@ async function handleAddUser() {
 }
 
 function handleEdit(user: any) {
-  selectedUser.value = { ...user }
+  selectedUser.value = { ...user, promotion: user.promotion ?? null }
   showEditModal.value = true
 }
 
@@ -324,6 +318,7 @@ async function handleUpdateUser() {
       email: selectedUser.value.email,
       first_name: selectedUser.value.first_name,
       last_name: selectedUser.value.last_name,
+      promotion: selectedUser.value.promotion,
       is_staff: selectedUser.value.is_staff,
       is_active: selectedUser.value.is_active
     })
@@ -491,6 +486,32 @@ async function handleDeactivateRadiusIndividual(userId: number) {
         </div>
       </div>
 
+      <!-- Promotions -->
+      <div class="promo-card">
+        <div class="promo-header">
+          <h3>Promotions</h3>
+          <p class="text-gray">Activer/Désactiver l'accès RADIUS par promotion</p>
+        </div>
+        <div class="promo-list">
+          <div v-for="promo in allPromotions" :key="promo.id" class="promo-item">
+            <div>
+              <div class="promo-name">{{ promo.name }}</div>
+              <div class="promo-status" :class="promo.is_active ? 'active' : 'inactive'">
+                {{ promo.is_active ? 'Active' : 'Désactivée' }}
+              </div>
+            </div>
+            <button
+              class="btn-ghost"
+              :class="promo.is_active ? 'danger' : 'success'"
+              @click="handleTogglePromotion(promo)"
+            >
+              {{ promo.is_active ? 'Désactiver' : 'Activer' }}
+            </button>
+          </div>
+          <div v-if="allPromotions.length === 0" class="text-gray">Aucune promotion trouvée</div>
+        </div>
+      </div>
+
       <!-- Table -->
       <div v-if="isLoading" class="loading-container">
         <LoadingSpinner />
@@ -543,10 +564,8 @@ async function handleDeactivateRadiusIndividual(userId: number) {
               </td>
               <td>{{ user.email }}</td>
               <td>
-                <div v-if="user.promotion_detail || user.matricule" class="info-cell">
-                  <span v-if="user.promotion_detail" class="badge badge-light">
-                    {{ user.promotion_detail.code }}
-                  </span>
+                <div v-if="user.promotion_name || user.matricule" class="info-cell">
+                  <span v-if="user.promotion_name" class="badge badge-light">{{ user.promotion_name }}</span>
                   <span v-if="user.matricule" class="badge badge-light">{{ user.matricule }}</span>
                 </div>
                 <span v-else class="text-gray">-</span>
@@ -589,32 +608,17 @@ async function handleDeactivateRadiusIndividual(userId: number) {
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
                     </svg>
                   </button>
-
-                  <!-- Boutons enable/disable RADIUS individuels (pour les utilisateurs déjà activés) -->
                   <button
-                    v-if="user.is_radius_activated && (!user.is_radius_enabled || user.is_radius_enabled === false)"
-                    @click="handleActivateRadiusIndividual(user.id)"
-                    class="action-btn radius-enable"
-                    title="Activer l'accès Internet"
-                    :disabled="isActivating">
+                    v-else-if="user.is_radius_activated"
+                    @click="handleDeactivateRadius(user.id)"
+                    class="action-btn danger"
+                    title="Désactiver dans RADIUS"
+                    :disabled="isDeactivating">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                      <path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <line x1="7" y1="12" x2="17" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                   </button>
-
-                  <button
-                    v-if="user.is_radius_activated && user.is_radius_enabled"
-                    @click="handleDeactivateRadiusIndividual(user.id)"
-                    class="action-btn radius-disable"
-                    title="Désactiver l'accès Internet"
-                    :disabled="isActivating">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                      <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                  </button>
-
                   <button @click="handleEdit(user)" class="action-btn edit" title="Modifier">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -782,14 +786,10 @@ async function handleDeactivateRadiusIndividual(userId: number) {
           <div class="form-row">
             <div class="form-group">
               <label>Promotion *</label>
-              <select v-model="newUser.promotion_id" required class="form-select">
-                <option :value="null" disabled>Sélectionnez une promotion</option>
-                <option
-                  v-for="promo in promotionStore.promotions.filter(p => p.is_active)"
-                  :key="promo.id"
-                  :value="promo.id"
-                >
-                  {{ promo.code }} - {{ promo.name }}
+              <select v-model="newUser.promotion" required>
+                <option value="" disabled>Choisir une promotion</option>
+                <option v-for="promo in promotions" :key="promo.id" :value="promo.id">
+                  {{ promo.name }}
                 </option>
               </select>
             </div>
@@ -869,6 +869,18 @@ async function handleDeactivateRadiusIndividual(userId: number) {
             <div class="form-group">
               <label>Nom</label>
               <input v-model="selectedUser.last_name" type="text" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Promotion</label>
+              <select v-model="selectedUser.promotion">
+                <option :value="null">Aucune</option>
+                <option v-for="promo in promotions" :key="promo.id" :value="promo.id">
+                  {{ promo.name }}
+                </option>
+              </select>
             </div>
           </div>
 
@@ -1017,6 +1029,54 @@ async function handleDeactivateRadiusIndividual(userId: number) {
 
 .stat-box.warning {
   border-left-color: #F59E0B;
+}
+
+.promo-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.promo-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.promo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.promo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+}
+
+.promo-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.promo-status {
+  font-size: 12px;
+}
+
+.promo-status.active {
+  color: #059669;
+}
+
+.promo-status.inactive {
+  color: #DC2626;
 }
 
 .stat-value {

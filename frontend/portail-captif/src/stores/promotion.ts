@@ -5,22 +5,16 @@ import type { Promotion } from '@/types'
 import { getErrorMessage } from '@/services/api'
 
 export const usePromotionStore = defineStore('promotion', () => {
-  // State
   const promotions = ref<Promotion[]>([])
-  const currentPromotion = ref<Promotion | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
-  const totalCount = ref(0)
 
-  // Actions
-  async function fetchPromotions() {
+  async function fetchPromotions(params: { is_active?: boolean } = {}) {
     isLoading.value = true
     error.value = null
-
     try {
-      const response = await promotionService.getPromotions()
-      promotions.value = response.results
-      totalCount.value = response.count
+      promotions.value = await promotionService.list(params)
+      return promotions.value
     } catch (err) {
       error.value = getErrorMessage(err)
       throw err
@@ -29,13 +23,14 @@ export const usePromotionStore = defineStore('promotion', () => {
     }
   }
 
-  async function fetchPromotionById(promotionId: number) {
+  async function fetchActivePromotions() {
+    // Méthode publique pour récupérer les promotions actives (utilisée pour l'inscription)
     isLoading.value = true
     error.value = null
-
     try {
-      currentPromotion.value = await promotionService.getPromotionById(promotionId)
-      return currentPromotion.value
+      const activePromotions = await promotionService.active()
+      promotions.value = activePromotions
+      return activePromotions
     } catch (err) {
       error.value = getErrorMessage(err)
       throw err
@@ -44,15 +39,13 @@ export const usePromotionStore = defineStore('promotion', () => {
     }
   }
 
-  async function createPromotion(promotionData: Partial<Promotion>) {
+  async function createPromotion(data: Partial<Promotion>) {
     isLoading.value = true
     error.value = null
-
     try {
-      const newPromotion = await promotionService.createPromotion(promotionData)
-      promotions.value.unshift(newPromotion)
-      totalCount.value++
-      return newPromotion
+      const promo = await promotionService.create(data)
+      promotions.value.push(promo)
+      return promo
     } catch (err) {
       error.value = getErrorMessage(err)
       throw err
@@ -61,25 +54,13 @@ export const usePromotionStore = defineStore('promotion', () => {
     }
   }
 
-  async function updatePromotion(promotionId: number, promotionData: Partial<Promotion>) {
+  async function activatePromotion(id: number) {
     isLoading.value = true
     error.value = null
-
     try {
-      const updatedPromotion = await promotionService.updatePromotion(promotionId, promotionData)
-
-      // Mettre à jour dans la liste
-      const index = promotions.value.findIndex(p => p.id === promotionId)
-      if (index !== -1) {
-        promotions.value[index] = updatedPromotion
-      }
-
-      // Mettre à jour currentPromotion si c'est la même
-      if (currentPromotion.value?.id === promotionId) {
-        currentPromotion.value = updatedPromotion
-      }
-
-      return updatedPromotion
+      await promotionService.activate(id)
+      const idx = promotions.value.findIndex(p => p.id === id)
+      if (idx !== -1) promotions.value[idx].is_active = true
     } catch (err) {
       error.value = getErrorMessage(err)
       throw err
@@ -88,73 +69,13 @@ export const usePromotionStore = defineStore('promotion', () => {
     }
   }
 
-  async function deletePromotion(promotionId: number) {
+  async function deactivatePromotion(id: number) {
     isLoading.value = true
     error.value = null
-
     try {
-      await promotionService.deletePromotion(promotionId)
-
-      // Retirer de la liste
-      promotions.value = promotions.value.filter(p => p.id !== promotionId)
-      totalCount.value--
-
-      // Clear currentPromotion si c'était celui-là
-      if (currentPromotion.value?.id === promotionId) {
-        currentPromotion.value = null
-      }
-    } catch (err) {
-      error.value = getErrorMessage(err)
-      throw err
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  async function activatePromotionUsers(promotionId: number) {
-    isLoading.value = true
-    error.value = null
-
-    try {
-      const result = await promotionService.activatePromotionUsers(promotionId)
-      return result
-    } catch (err) {
-      error.value = getErrorMessage(err)
-      throw err
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  async function deactivatePromotionUsers(promotionId: number) {
-    isLoading.value = true
-    error.value = null
-
-    try {
-      const result = await promotionService.deactivatePromotionUsers(promotionId)
-      return result
-    } catch (err) {
-      error.value = getErrorMessage(err)
-      throw err
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  async function togglePromotionStatus(promotionId: number) {
-    isLoading.value = true
-    error.value = null
-
-    try {
-      const result = await promotionService.togglePromotionStatus(promotionId)
-
-      // Mettre à jour la promotion dans la liste
-      const index = promotions.value.findIndex(p => p.id === promotionId)
-      if (index !== -1) {
-        promotions.value[index].is_active = result.is_active
-      }
-
-      return result
+      await promotionService.deactivate(id)
+      const idx = promotions.value.findIndex(p => p.id === id)
+      if (idx !== -1) promotions.value[idx].is_active = false
     } catch (err) {
       error.value = getErrorMessage(err)
       throw err
@@ -167,31 +88,16 @@ export const usePromotionStore = defineStore('promotion', () => {
     error.value = null
   }
 
-  function resetState() {
-    promotions.value = []
-    currentPromotion.value = null
-    error.value = null
-    totalCount.value = 0
-  }
-
   return {
-    // State
     promotions,
-    currentPromotion,
     isLoading,
     error,
-    totalCount,
-
-    // Actions
     fetchPromotions,
-    fetchPromotionById,
+    fetchActivePromotions,
     createPromotion,
-    updatePromotion,
-    deletePromotion,
-    activatePromotionUsers,
-    deactivatePromotionUsers,
-    togglePromotionStatus,
-    clearError,
-    resetState
+    activatePromotion,
+    deactivatePromotion,
+    clearError
   }
 })
+

@@ -5,52 +5,21 @@ from datetime import timedelta
 
 
 class Promotion(models.Model):
-    """Model for student promotions (classes/cohorts)"""
-    code = models.CharField(
-        max_length=50,
-        unique=True,
-        db_index=True,
-        help_text="Code de la promotion (ex: ING3, L1, M2, X2027)"
-    )
-    name = models.CharField(
-        max_length=200,
-        help_text="Nom complet de la promotion"
-    )
-    description = models.TextField(
-        blank=True,
-        null=True,
-        help_text="Description de la promotion"
-    )
-    year = models.IntegerField(
-        blank=True,
-        null=True,
-        help_text="Année de la promotion"
-    )
-    is_active = models.BooleanField(
-        default=True,
-        help_text="Promotion active (si False, tous les utilisateurs de cette promotion sont désactivés)"
-    )
+    """
+    Promotion d'étudiants.
+    Permet d'activer/désactiver en masse l'accès des utilisateurs à FreeRADIUS.
+    """
+    name = models.CharField(max_length=100, unique=True, db_index=True)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'promotions'
-        ordering = ['code']
-        verbose_name = 'Promotion'
-        verbose_name_plural = 'Promotions'
+        ordering = ['name']
 
     def __str__(self):
-        return f"{self.code} - {self.name}"
-
-    @property
-    def user_count(self):
-        """Return the number of users in this promotion"""
-        return self.users.count()
-
-    @property
-    def active_user_count(self):
-        """Return the number of active users in this promotion"""
-        return self.users.filter(is_active=True).count()
+        return self.name
 
 
 class User(AbstractUser):
@@ -64,8 +33,8 @@ class User(AbstractUser):
     promotion = models.ForeignKey(
         Promotion,
         on_delete=models.SET_NULL,
-        blank=True,
         null=True,
+        blank=True,
         related_name='users',
         help_text="Promotion de l'étudiant"
     )

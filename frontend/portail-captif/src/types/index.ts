@@ -2,22 +2,10 @@
 
 export interface Promotion {
   id: number
-  code: string
-  name: string
-  description?: string | null
-  year?: number | null
-  is_active: boolean
-  user_count?: number
-  active_user_count?: number
-  created_at?: string
-  updated_at?: string
-}
-
-export interface PromotionList {
-  id: number
-  code: string
   name: string
   is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface User {
@@ -26,8 +14,8 @@ export interface User {
   email: string
   first_name: string
   last_name: string
-  promotion?: number | null  // ID de la promotion
-  promotion_detail?: PromotionList | null  // Détails de la promotion
+  promotion?: number | null
+  promotion_name?: string | null
   matricule?: string | null
   phone_number: string | null
   mac_address: string | null
@@ -57,12 +45,14 @@ export interface LoginResponse {
 }
 
 export interface RegisterData {
-  username: string
-  email: string
+  username?: string
+  email?: string
   password: string
   password2: string
   first_name?: string
   last_name?: string
+  promotion?: number
+  matricule?: string
   phone_number?: string
 }
 

@@ -7,7 +7,7 @@ from .serializers import (
     UserSerializer, UserListSerializer, DeviceSerializer,
     SessionSerializer, SessionListSerializer, VoucherSerializer,
     VoucherValidationSerializer, BlockedSiteSerializer, UserQuotaSerializer,
-    PromotionSerializer, PromotionListSerializer
+    PromotionSerializer
 )
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdmin, IsAuthenticatedUser
 from .decorators import rate_limit
@@ -176,82 +176,36 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
-    def activate_radius(self, request, pk=None):
-        """Activer un utilisateur dans RADIUS (activer l'accès Internet)"""
+    def deactivate_radius(self, request, pk=None):
+        """Désactive l'utilisateur dans FreeRADIUS (statut=0)"""
         user = self.get_object()
+        from radius.models import RadCheck
 
-        if not user.is_radius_activated:
-            return Response({
-                'status': 'error',
-                'message': 'Utilisateur non activé dans RADIUS. Veuillez d\'abord l\'activer via l\'endpoint d\'activation.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            # Mettre à jour le statut dans radcheck
-            radcheck_entries = RadCheck.objects.filter(username=user.username)
-            if not radcheck_entries.exists():
-                return Response({
-                    'status': 'error',
-                    'message': 'Utilisateur non trouvé dans radcheck'
-                }, status=status.HTTP_404_NOT_FOUND)
-
-            radcheck_entries.update(statut=True)
-            user.is_radius_enabled = True
-            user.save()
-
-            return Response({
-                'status': 'success',
-                'message': f'Utilisateur {user.username} activé dans RADIUS',
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'is_radius_enabled': user.is_radius_enabled
-                }
-            })
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': f'Erreur lors de l\'activation: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        updated = RadCheck.objects.filter(username=user.username).update(statut=False)
+        return Response({
+            'status': 'disabled',
+            'updated': updated
+        })
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
-    def deactivate_radius(self, request, pk=None):
-        """Désactiver un utilisateur dans RADIUS (bloquer l'accès Internet)"""
+    def activate_radius(self, request, pk=None):
+        """Active l'utilisateur dans FreeRADIUS (statut=1)"""
         user = self.get_object()
+        from radius.models import RadCheck
 
-        if not user.is_radius_activated:
-            return Response({
-                'status': 'error',
-                'message': 'Utilisateur non activé dans RADIUS'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        if not user.cleartext_password:
+            return Response({'error': 'Mot de passe en clair indisponible pour cet utilisateur'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            # Mettre à jour le statut dans radcheck
-            radcheck_entries = RadCheck.objects.filter(username=user.username)
-            if not radcheck_entries.exists():
-                return Response({
-                    'status': 'error',
-                    'message': 'Utilisateur non trouvé dans radcheck'
-                }, status=status.HTTP_404_NOT_FOUND)
-
-            radcheck_entries.update(statut=False)
-            user.is_radius_enabled = False
-            user.save()
-
-            return Response({
-                'status': 'success',
-                'message': f'Utilisateur {user.username} désactivé dans RADIUS',
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'is_radius_enabled': user.is_radius_enabled
-                }
-            })
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': f'Erreur lors de la désactivation: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        RadCheck.objects.update_or_create(
+            username=user.username,
+            attribute='Cleartext-Password',
+            defaults={
+                'op': ':=',
+                'value': user.cleartext_password,
+                'statut': True
+            }
+        )
+        return Response({'status': 'enabled'})
 
 
 class DeviceViewSet(viewsets.ModelViewSet):
@@ -464,6 +418,42 @@ class BlockedSiteViewSet(viewsets.ModelViewSet):
         sites = BlockedSite.objects.filter(type='blacklist', is_active=True)
         serializer = self.get_serializer(sites, many=True)
         return Response(serializer.data)
+
+
+class PromotionViewSet(viewsets.ModelViewSet):
+    """ViewSet pour gérer les promotions (activation/désactivation en masse)"""
+    queryset = Promotion.objects.all()
+    serializer_class = PromotionSerializer
+    permission_classes = [IsAdmin]
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def active(self, request):
+        """Liste des promotions actives (accessible publiquement pour l'inscription)"""
+        active_promotions = Promotion.objects.filter(is_active=True)
+        serializer = self.get_serializer(active_promotions, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def deactivate(self, request, pk=None):
+        promo = self.get_object()
+        promo.is_active = False
+        promo.save(update_fields=['is_active'])
+        # Désactiver tous les utilisateurs actifs dans cette promotion au niveau RADIUS
+        from radius.models import RadCheck
+        usernames = promo.users.filter(is_radius_activated=True).values_list('username', flat=True)
+        RadCheck.objects.filter(username__in=usernames).update(statut=False)
+        return Response({'status': 'promotion deactivated'})
+
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        promo = self.get_object()
+        promo.is_active = True
+        promo.save(update_fields=['is_active'])
+        # Réactiver uniquement les utilisateurs déjà activés dans RADIUS
+        from radius.models import RadCheck
+        usernames = promo.users.filter(is_radius_activated=True).values_list('username', flat=True)
+        RadCheck.objects.filter(username__in=usernames).update(statut=True)
+        return Response({'status': 'promotion activated'})
 
     @action(detail=False, methods=['get'])
     def whitelist(self, request):

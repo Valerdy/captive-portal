@@ -1,0 +1,32 @@
+[
+  {
+    "model": "core.promotion",
+    "pk": 1,
+    "fields": {
+      "name": "ING1",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.promotion",
+    "pk": 2,
+    "fields": {
+      "name": "ING2",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "core.promotion",
+    "pk": 3,
+    "fields": {
+      "name": "ING3",
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  }
+]

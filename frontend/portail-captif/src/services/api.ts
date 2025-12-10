@@ -34,8 +34,14 @@ api.interceptors.response.use(
   async (error: AxiosError<APIError>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
+    // Vérifier si on est sur une route publique
+    const currentPath = window.location.pathname
+    const publicRoutes = ['/login', '/register', '/', '/vouchers']
+    const isPublicRoute = publicRoutes.some(route => currentPath === route || currentPath.startsWith(route + '/'))
+
     // Si l'erreur est 401 (Unauthorized) et qu'on n'a pas déjà retry
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Ne pas essayer de rafraîchir le token si on est sur une route publique
+    if (error.response?.status === 401 && !originalRequest._retry && !isPublicRoute) {
       originalRequest._retry = true
 
       try {
@@ -58,11 +64,17 @@ api.interceptors.response.use(
         // Si le refresh échoue, déconnecter l'utilisateur
         console.error('Échec du refresh token:', refreshError)
         localStorage.removeItem('user') // On garde seulement les métadonnées utilisateur
-        window.location.href = '/login'
+        
+        // Rediriger vers /login seulement si on n'est pas déjà sur une route publique
+        if (!isPublicRoute) {
+          window.location.href = '/login'
+        }
+        
         return Promise.reject(refreshError)
       }
     }
 
+    // Pour les routes publiques ou si le refresh n'est pas nécessaire, rejeter l'erreur directement
     return Promise.reject(error)
   }
 )

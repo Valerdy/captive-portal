@@ -5,25 +5,10 @@ from .utils import generate_secure_password
 
 
 class PromotionSerializer(serializers.ModelSerializer):
-    """Serializer for Promotion model"""
-    user_count = serializers.ReadOnlyField()
-    active_user_count = serializers.ReadOnlyField()
-
     class Meta:
         model = Promotion
-        fields = [
-            'id', 'code', 'name', 'description', 'year',
-            'is_active', 'user_count', 'active_user_count',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'user_count', 'active_user_count']
-
-
-class PromotionListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for Promotion listing"""
-    class Meta:
-        model = Promotion
-        fields = ['id', 'code', 'name', 'is_active']
+        fields = ['id', 'name', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -31,20 +16,13 @@ class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
     role_name = serializers.SerializerMethodField()
-    promotion_detail = PromotionListSerializer(source='promotion', read_only=True)
-    promotion_id = serializers.PrimaryKeyRelatedField(
-        queryset=Promotion.objects.all(),
-        source='promotion',
-        write_only=True,
-        required=False,
-        allow_null=True
-    )
+    promotion_name = serializers.CharField(source='promotion.name', read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'password', 'password2',
-            'first_name', 'last_name', 'promotion', 'promotion_id', 'promotion_detail', 'matricule',
+            'first_name', 'last_name', 'promotion', 'promotion_name', 'matricule',
             'phone_number', 'mac_address',
             'ip_address', 'is_voucher_user', 'voucher_code',
             'is_active', 'is_staff', 'is_superuser',
@@ -52,7 +30,7 @@ class UserSerializer(serializers.ModelSerializer):
             'role', 'role_name',
             'date_joined', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role_name', 'is_radius_activated', 'promotion', 'promotion_detail']
+        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role_name', 'is_radius_activated', 'promotion_name']
 
     def get_role_name(self, obj):
         """Get the role name (synced with is_staff/is_superuser)"""
@@ -101,12 +79,13 @@ class UserSerializer(serializers.ModelSerializer):
 class UserListSerializer(serializers.ModelSerializer):
     """Simplified serializer for listing users"""
     role_name = serializers.SerializerMethodField()
+    promotion_name = serializers.CharField(source='promotion.name', read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'promotion', 'matricule', 'phone_number', 'mac_address', 'ip_address',
+            'promotion', 'promotion_name', 'matricule', 'phone_number', 'mac_address', 'ip_address',
             'is_voucher_user', 'is_active', 'is_staff', 'is_superuser',
             'is_radius_activated',
             'role_name', 'date_joined'

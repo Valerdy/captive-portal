@@ -1,67 +1,33 @@
 import api from './api'
-import type { Promotion, PaginatedResponse } from '@/types'
+import type { Promotion } from '@/types'
 
 export const promotionService = {
-  /**
-   * Récupérer toutes les promotions (admin only)
-   */
-  async getPromotions(): Promise<PaginatedResponse<Promotion>> {
-    const response = await api.get<PaginatedResponse<Promotion>>('/api/core/promotions/')
+  async list(params: { is_active?: boolean } = {}): Promise<Promotion[]> {
+    const response = await api.get('/api/core/promotions/', { params })
+    const data: any = response.data
+    // Normaliser la réponse pour supporter la pagination DRF
+    if (Array.isArray(data)) return data as Promotion[]
+    if (data?.results) return data.results as Promotion[]
+    return []
+  },
+
+  async active(): Promise<Promotion[]> {
+    // Endpoint public pour lister les promotions actives (utilisé pour l'inscription)
+    const response = await api.get<Promotion[]>('/api/core/promotions/active/')
     return response.data
   },
 
-  /**
-   * Récupérer une promotion par ID
-   */
-  async getPromotionById(promotionId: number): Promise<Promotion> {
-    const response = await api.get<Promotion>(`/api/core/promotions/${promotionId}/`)
+  async create(data: Partial<Promotion>): Promise<Promotion> {
+    const response = await api.post<Promotion>('/api/core/promotions/', data)
     return response.data
   },
 
-  /**
-   * Créer une nouvelle promotion (admin only)
-   */
-  async createPromotion(promotionData: Partial<Promotion>): Promise<Promotion> {
-    const response = await api.post<Promotion>('/api/core/promotions/', promotionData)
-    return response.data
+  async activate(id: number): Promise<void> {
+    await api.post(`/api/core/promotions/${id}/activate/`)
   },
 
-  /**
-   * Mettre à jour une promotion
-   */
-  async updatePromotion(promotionId: number, promotionData: Partial<Promotion>): Promise<Promotion> {
-    const response = await api.patch<Promotion>(`/api/core/promotions/${promotionId}/`, promotionData)
-    return response.data
-  },
-
-  /**
-   * Supprimer une promotion
-   */
-  async deletePromotion(promotionId: number): Promise<void> {
-    await api.delete(`/api/core/promotions/${promotionId}/`)
-  },
-
-  /**
-   * Activer tous les utilisateurs d'une promotion dans RADIUS
-   */
-  async activatePromotionUsers(promotionId: number): Promise<any> {
-    const response = await api.post(`/api/core/promotions/${promotionId}/activate_users/`)
-    return response.data
-  },
-
-  /**
-   * Désactiver tous les utilisateurs d'une promotion dans RADIUS
-   */
-  async deactivatePromotionUsers(promotionId: number): Promise<any> {
-    const response = await api.post(`/api/core/promotions/${promotionId}/deactivate_users/`)
-    return response.data
-  },
-
-  /**
-   * Toggle le statut de la promotion (active/inactive)
-   */
-  async togglePromotionStatus(promotionId: number): Promise<any> {
-    const response = await api.post(`/api/core/promotions/${promotionId}/toggle_status/`)
-    return response.data
+  async deactivate(id: number): Promise<void> {
+    await api.post(`/api/core/promotions/${id}/deactivate/`)
   }
 }
+

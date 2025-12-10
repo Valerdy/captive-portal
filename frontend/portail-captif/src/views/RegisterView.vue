@@ -15,7 +15,7 @@ const notificationStore = useNotificationStore()
 const formData = ref({
   first_name: '',
   last_name: '',
-  promotion_id: null as number | null,
+  promotion: null as number | null,
   matricule: '',
   password: '',
   password2: ''
@@ -24,14 +24,18 @@ const errorMessage = ref('')
 const showPassword = ref(false)
 const showPassword2 = ref(false)
 
-// Charger les promotions au montage
-onMounted(async () => {
+const promotions = ref<{ id: number; name: string }[]>([])
+
+async function loadPromotions() {
   try {
-    await promotionStore.fetchPromotions()
+    // Utiliser l'endpoint public pour les promotions actives
+    const list = await promotionStore.fetchActivePromotions()
+    promotions.value = list.map(p => ({ id: p.id, name: p.name }))
   } catch (error) {
-    console.error('Erreur lors du chargement des promotions:', error)
+    // en cas d'échec, on laisse la saisie libre via fallback
+    promotions.value = []
   }
-})
+}
 
 async function handleRegister() {
   errorMessage.value = ''
@@ -63,6 +67,7 @@ async function handleRegister() {
     notificationStore.error(errorMessage.value)
   }
 }
+loadPromotions()
 </script>
 
 <template>
@@ -136,17 +141,12 @@ async function handleRegister() {
               </label>
               <select
                 id="promotion"
-                v-model="formData.promotion_id"
+                v-model="formData.promotion"
                 required
-                class="form-select"
               >
-                <option :value="null" disabled>Sélectionnez votre promotion</option>
-                <option
-                  v-for="promo in promotionStore.promotions.filter(p => p.is_active)"
-                  :key="promo.id"
-                  :value="promo.id"
-                >
-                  {{ promo.code }} - {{ promo.name }}
+                <option value="" disabled>Choisir une promotion</option>
+                <option v-for="promo in promotions" :key="promo.id" :value="promo.id">
+                  {{ promo.name }}
                 </option>
               </select>
             </div>

@@ -180,10 +180,7 @@ class RadCheck(models.Model):
     attribute = models.CharField(max_length=64, default='Cleartext-Password')
     op = models.CharField(max_length=2, default=':=')
     value = models.CharField(max_length=253)
-    statut = models.BooleanField(
-        default=True,
-        help_text="Statut de l'utilisateur (1=activé, 0=désactivé) - contrôle l'accès Internet via RADIUS"
-    )
+    statut = models.BooleanField(default=True, help_text="1 = actif, 0 = désactivé")
 
     class Meta:
         db_table = 'radcheck'

@@ -58,6 +58,20 @@ export const userService = {
   },
 
   /**
+   * Activer un utilisateur (statut=1) dans RADIUS
+   */
+  async activateUserRadius(userId: number): Promise<void> {
+    await api.post(`/api/core/users/${userId}/activate_radius/`)
+  },
+
+  /**
+   * Désactiver un utilisateur (statut=0) dans RADIUS
+   */
+  async deactivateUserRadius(userId: number): Promise<void> {
+    await api.post(`/api/core/users/${userId}/deactivate_radius/`)
+  },
+
+  /**
    * Activer un ou plusieurs utilisateurs dans RADIUS (admin only)
    * L'utilisateur reste dans la table users (Django) ET est copié dans radcheck (RADIUS)
    */
