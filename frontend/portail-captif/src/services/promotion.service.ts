@@ -22,12 +22,43 @@ export const promotionService = {
     return response.data
   },
 
-  async activate(id: number): Promise<void> {
-    await api.post(`/api/core/promotions/${id}/activate/`)
+  async update(id: number, data: Partial<Promotion>): Promise<Promotion> {
+    const response = await api.patch<Promotion>(`/api/core/promotions/${id}/`, data)
+    return response.data
   },
 
-  async deactivate(id: number): Promise<void> {
-    await api.post(`/api/core/promotions/${id}/deactivate/`)
+  async delete(id: number): Promise<void> {
+    await api.delete(`/api/core/promotions/${id}/`)
+  },
+
+  async toggleStatus(id: number): Promise<Promotion> {
+    const response = await api.post<Promotion>(`/api/core/promotions/${id}/toggle_status/`)
+    return response.data
+  },
+
+  async activate(id: number): Promise<any> {
+    const response = await api.post(`/api/core/promotions/${id}/activate/`)
+    return response.data
+  },
+
+  async deactivate(id: number): Promise<any> {
+    const response = await api.post(`/api/core/promotions/${id}/deactivate/`)
+    return response.data
+  },
+
+  async getUsers(id: number): Promise<any> {
+    const response = await api.get(`/api/core/promotions/${id}/users/`)
+    return response.data
+  },
+
+  async activateUsers(id: number): Promise<any> {
+    const response = await api.post(`/api/core/promotions/${id}/activate_users/`)
+    return response.data
+  },
+
+  async deactivateUsers(id: number): Promise<any> {
+    const response = await api.post(`/api/core/promotions/${id}/deactivate_users/`)
+    return response.data
   }
 }
 
