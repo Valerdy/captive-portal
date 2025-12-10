@@ -27,12 +27,19 @@ def sync_user_to_radius(sender, instance, created, **kwargs):
 
     # Handle user deactivation
     if not instance.is_active:
-        # If user is deactivated, remove from RADIUS
-        RadCheck.objects.filter(username=instance.username).delete()
-        RadReply.objects.filter(username=instance.username).delete()
-        RadUserGroup.objects.filter(username=instance.username).delete()
-        print(f"🚫 User '{instance.username}' deactivated - removed from RADIUS")
+        # If user is deactivated, disable in RADIUS (using statut field instead of deleting)
+        # This preserves user configuration and allows re-activation
+        updated_count = RadCheck.objects.filter(username=instance.username).update(statut=False)
+        if updated_count > 0:
+            print(f"🚫 User '{instance.username}' deactivated - RADIUS access disabled (statut=False)")
+        else:
+            print(f"ℹ️  User '{instance.username}' deactivated - no RADIUS entry to disable")
         return
+
+    # If user is re-activated, ensure RADIUS entry is enabled
+    if instance.is_active and instance.is_radius_activated:
+        RadCheck.objects.filter(username=instance.username).update(statut=True)
+        print(f"✅ User '{instance.username}' reactivated - RADIUS access enabled (statut=True)")
 
     # Only update role-based settings (not password - it's already hashed)
     # Determine session timeout based on user role

@@ -128,6 +128,26 @@ onMounted(async () => {
   }
 })
 
+async function handleTogglePromotion(promo: any) {
+  try {
+    if (promo.is_active) {
+      await promotionStore.deactivatePromotion(promo.id)
+      notificationStore.success(`Promotion ${promo.name} désactivée (RADIUS)`)
+    } else {
+      await promotionStore.activatePromotion(promo.id)
+      notificationStore.success(`Promotion ${promo.name} activée (RADIUS)`)
+    }
+
+    // Rafraîchir les données pour afficher les statuts à jour
+    await Promise.all([
+      userStore.fetchUsers(),
+      promotionStore.fetchPromotions()
+    ])
+  } catch (error) {
+    notificationStore.error(promotionStore.error || 'Erreur lors du changement de statut promotion')
+  }
+}
+
 // Gestion de la sélection multiple
 function toggleSelectAll() {
   if (selectAll.value) {
@@ -178,6 +198,9 @@ async function handleActivateRadius(userIds: number[]) {
     activationResult.value = result
     showActivationModal.value = true
 
+    // Rafraîchir la liste des utilisateurs pour afficher les statuts à jour
+    await userStore.fetchUsers()
+
     // Clear selection
     selectedUserIds.value = []
     selectAll.value = false
@@ -192,6 +215,21 @@ async function handleActivateRadius(userIds: number[]) {
     notificationStore.error(userStore.error || 'Erreur lors de l\'activation')
   } finally {
     isActivating.value = false
+  }
+}
+
+async function handleDeactivateRadius(userId: number) {
+  isDeactivating.value = true
+  try {
+    await userStore.deactivateUserRadius(userId)
+    notificationStore.success('Utilisateur désactivé dans RADIUS')
+
+    // Rafraîchir la liste pour afficher le statut à jour
+    await userStore.fetchUsers()
+  } catch (error) {
+    notificationStore.error(userStore.error || 'Erreur lors de la désactivation')
+  } finally {
+    isDeactivating.value = false
   }
 }
 
