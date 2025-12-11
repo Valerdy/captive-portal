@@ -41,14 +41,14 @@ class Profile(models.Model):
         help_text="Si désactivé, le profil ne peut pas être assigné"
     )
 
-    # Bande passante (en Kbps)
+    # Bande passante (en Mbps)
     bandwidth_upload = models.IntegerField(
-        default=5120,
-        help_text="Bande passante upload en Kbps (ex: 5120 = 5 Mbps)"
+        default=5,
+        help_text="Bande passante upload en Mbps (ex: 5 = 5 Mbps)"
     )
     bandwidth_download = models.IntegerField(
-        default=10240,
-        help_text="Bande passante download en Kbps (ex: 10240 = 10 Mbps)"
+        default=10,
+        help_text="Bande passante download en Mbps (ex: 10 = 10 Mbps)"
     )
 
     # Quota de données
@@ -133,12 +133,12 @@ class Profile(models.Model):
     @property
     def bandwidth_upload_mbps(self):
         """Retourne la bande passante upload en Mbps"""
-        return round(self.bandwidth_upload / 1024, 2)
+        return self.bandwidth_upload
 
     @property
     def bandwidth_download_mbps(self):
         """Retourne la bande passante download en Mbps"""
-        return round(self.bandwidth_download / 1024, 2)
+        return self.bandwidth_download
 
     @property
     def daily_limit_gb(self):
