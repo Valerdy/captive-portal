@@ -18,6 +18,7 @@ function getErrorMessage(error: any): string {
 
 export const useProfileStore = defineStore('profile', () => {
   const profiles = ref<Profile[]>([])
+  const statistics = ref<any>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -116,12 +117,38 @@ export const useProfileStore = defineStore('profile', () => {
     }
   }
 
+  async function fetchStatistics() {
+    isLoading.value = true
+    error.value = null
+    try {
+      statistics.value = await profileService.getStatistics()
+      return statistics.value
+    } catch (err) {
+      error.value = getErrorMessage(err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function fetchStatisticsDetail(id: number) {
+    error.value = null
+    try {
+      const data = await profileService.getStatisticsDetail(id)
+      return data
+    } catch (err) {
+      error.value = getErrorMessage(err)
+      throw err
+    }
+  }
+
   function clearError() {
     error.value = null
   }
 
   return {
     profiles,
+    statistics,
     isLoading,
     error,
     fetchProfiles,
@@ -131,6 +158,8 @@ export const useProfileStore = defineStore('profile', () => {
     deleteProfile,
     getProfileUsers,
     getProfilePromotions,
+    fetchStatistics,
+    fetchStatisticsDetail,
     clearError
   }
 })
