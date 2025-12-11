@@ -1,9 +1,37 @@
 // Types pour l'application Captive Portal
 
+export interface Profile {
+  id: number
+  name: string
+  description: string | null
+  is_active: boolean
+  bandwidth_upload: number  // En Kbps
+  bandwidth_download: number  // En Kbps
+  bandwidth_upload_mbps: number  // Calculé en Mbps
+  bandwidth_download_mbps: number  // Calculé en Mbps
+  quota_type: 'unlimited' | 'limited'
+  data_volume: number  // En octets
+  data_volume_gb: number  // Calculé en Go
+  validity_duration: 7 | 14 | 30 | 60 | 90 | 180 | 365  // En jours
+  session_timeout: number  // En secondes
+  idle_timeout: number  // En secondes
+  simultaneous_use: number
+  created_by: number | null
+  created_by_username?: string | null
+  created_at: string
+  updated_at: string
+  users_count?: number
+  promotions_count?: number
+}
+
 export interface Promotion {
   id: number
   name: string
+  profile?: number | null
+  profile_name?: string | null
   is_active: boolean
+  user_count?: number
+  active_user_count?: number
   created_at: string
   updated_at: string
 }
@@ -16,6 +44,17 @@ export interface User {
   last_name: string
   promotion?: number | null
   promotion_name?: string | null
+  profile?: number | null
+  profile_name?: string | null
+  effective_profile?: {
+    id: number
+    name: string
+    quota_type: 'unlimited' | 'limited'
+    data_volume_gb: number
+    bandwidth_upload_mbps: number
+    bandwidth_download_mbps: number
+    validity_duration: number
+  } | null
   matricule?: string | null
   phone_number: string | null
   mac_address: string | null
