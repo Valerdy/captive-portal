@@ -94,6 +94,12 @@ const router = createRouter({
       name: 'admin-promotions',
       component: () => import('../views/AdminPromotionsView.vue'),
       meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/profiles',
+      name: 'admin-profiles',
+      component: () => import('../views/AdminProfilesView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })
