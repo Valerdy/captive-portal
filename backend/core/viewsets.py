@@ -155,13 +155,19 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
     def activate_radius(self, request, pk=None):
-        """Active l'utilisateur dans FreeRADIUS (statut=1)"""
+        """Active l'utilisateur dans FreeRADIUS avec les paramètres de son profil"""
         user = self.get_object()
-        from radius.models import RadCheck
+        from radius.models import RadCheck, RadReply, RadUserGroup
 
         if not user.cleartext_password:
-            return Response({'error': 'Mot de passe en clair indisponible pour cet utilisateur'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'error': 'Mot de passe en clair indisponible pour cet utilisateur'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
+        # Récupérer le profil effectif (individuel ou de promotion)
+        profile = user.get_effective_profile()
+
+        # 1. radcheck - Mot de passe en clair
         RadCheck.objects.update_or_create(
             username=user.username,
             attribute='Cleartext-Password',
@@ -171,7 +177,72 @@ class UserViewSet(viewsets.ModelViewSet):
                 'statut': True
             }
         )
-        return Response({'status': 'enabled'})
+
+        # 2. radreply - Session timeout (du profil ou valeur par défaut)
+        session_timeout = profile.session_timeout if profile else (86400 if user.is_staff else 3600)
+        RadReply.objects.update_or_create(
+            username=user.username,
+            attribute='Session-Timeout',
+            defaults={'op': '=', 'value': str(session_timeout)}
+        )
+
+        # 3. radreply - Idle timeout (du profil)
+        if profile:
+            RadReply.objects.update_or_create(
+                username=user.username,
+                attribute='Idle-Timeout',
+                defaults={'op': '=', 'value': str(profile.idle_timeout)}
+            )
+
+        # 4. radreply - Limite de bande passante (du profil ou valeur par défaut)
+        if profile:
+            upload_mbps = profile.bandwidth_upload / 1024
+            download_mbps = profile.bandwidth_download / 1024
+            bandwidth_value = f"{int(upload_mbps)}M/{int(download_mbps)}M"
+        else:
+            bandwidth_value = '10M/10M'
+
+        RadReply.objects.update_or_create(
+            username=user.username,
+            attribute='Mikrotik-Rate-Limit',
+            defaults={'op': '=', 'value': bandwidth_value}
+        )
+
+        # 5. radcheck - Simultaneous-Use (du profil ou valeur par défaut)
+        simultaneous_use = profile.simultaneous_use if profile else 1
+        RadCheck.objects.update_or_create(
+            username=user.username,
+            attribute='Simultaneous-Use',
+            defaults={'op': ':=', 'value': str(simultaneous_use), 'statut': True}
+        )
+
+        # 6. radcheck - Quota de données (si le profil a un quota limité)
+        if profile and profile.quota_type == 'limited':
+            RadCheck.objects.update_or_create(
+                username=user.username,
+                attribute='ChilliSpot-Max-Total-Octets',
+                defaults={'op': ':=', 'value': str(profile.data_volume), 'statut': True}
+            )
+
+        # 7. radusergroup - Groupe utilisateur
+        RadUserGroup.objects.update_or_create(
+            username=user.username,
+            groupname=user.role,
+            defaults={'priority': 0}
+        )
+
+        # Mettre à jour les statuts
+        user.is_radius_activated = True
+        user.is_radius_enabled = True
+        user.save(update_fields=['is_radius_activated', 'is_radius_enabled'])
+
+        return Response({
+            'status': 'enabled',
+            'profile': profile.name if profile else 'Default',
+            'bandwidth': bandwidth_value,
+            'session_timeout': session_timeout,
+            'quota_type': profile.quota_type if profile else 'unlimited'
+        })
 
 
 class DeviceViewSet(viewsets.ModelViewSet):
@@ -528,7 +599,10 @@ class PromotionViewSet(viewsets.ModelViewSet):
                             errors.append(f"{user.username}: Mot de passe en clair non disponible")
                             continue
 
-                        # CRÉER les entrées RADIUS
+                        # CRÉER les entrées RADIUS avec les paramètres du profil
+
+                        # Récupérer le profil effectif (individuel ou de promotion)
+                        profile = user.get_effective_profile()
 
                         # 1. radcheck - Mot de passe en clair
                         RadCheck.objects.update_or_create(
@@ -541,8 +615,8 @@ class PromotionViewSet(viewsets.ModelViewSet):
                             }
                         )
 
-                        # 2. radreply - Session timeout
-                        session_timeout = 86400 if user.is_staff else 3600
+                        # 2. radreply - Session timeout (du profil ou valeur par défaut)
+                        session_timeout = profile.session_timeout if profile else (86400 if user.is_staff else 3600)
                         RadReply.objects.update_or_create(
                             username=user.username,
                             attribute='Session-Timeout',
@@ -552,17 +626,62 @@ class PromotionViewSet(viewsets.ModelViewSet):
                             }
                         )
 
-                        # 3. radreply - Limite de bande passante
+                        # 3. radreply - Idle timeout (du profil ou valeur par défaut)
+                        if profile:
+                            RadReply.objects.update_or_create(
+                                username=user.username,
+                                attribute='Idle-Timeout',
+                                defaults={
+                                    'op': '=',
+                                    'value': str(profile.idle_timeout)
+                                }
+                            )
+
+                        # 4. radreply - Limite de bande passante (du profil ou valeur par défaut)
+                        if profile:
+                            # Format Mikrotik: upload/download en bps
+                            # Profil stocke en Kbps, Mikrotik attend en bps ou format "5M/10M"
+                            upload_mbps = profile.bandwidth_upload / 1024  # Convertir Kbps en Mbps
+                            download_mbps = profile.bandwidth_download / 1024
+                            bandwidth_value = f"{int(upload_mbps)}M/{int(download_mbps)}M"
+                        else:
+                            bandwidth_value = '10M/10M'  # Valeur par défaut
+
                         RadReply.objects.update_or_create(
                             username=user.username,
                             attribute='Mikrotik-Rate-Limit',
                             defaults={
                                 'op': '=',
-                                'value': '10M/10M'
+                                'value': bandwidth_value
                             }
                         )
 
-                        # 4. radusergroup - Groupe utilisateur
+                        # 5. radcheck - Simultaneous-Use (du profil ou valeur par défaut)
+                        simultaneous_use = profile.simultaneous_use if profile else 1
+                        RadCheck.objects.update_or_create(
+                            username=user.username,
+                            attribute='Simultaneous-Use',
+                            defaults={
+                                'op': ':=',
+                                'value': str(simultaneous_use),
+                                'statut': True
+                            }
+                        )
+
+                        # 6. radcheck - Quota de données (si le profil a un quota limité)
+                        if profile and profile.quota_type == 'limited':
+                            # ChilliSpot-Max-Total-Octets pour quota total
+                            RadCheck.objects.update_or_create(
+                                username=user.username,
+                                attribute='ChilliSpot-Max-Total-Octets',
+                                defaults={
+                                    'op': ':=',
+                                    'value': str(profile.data_volume),
+                                    'statut': True
+                                }
+                            )
+
+                        # 7. radusergroup - Groupe utilisateur
                         RadUserGroup.objects.update_or_create(
                             username=user.username,
                             groupname=user.role,
