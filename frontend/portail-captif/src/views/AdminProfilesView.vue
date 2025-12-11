@@ -57,42 +57,57 @@ const durationOptions = [
 
 // Filtrage des profils
 const filteredProfiles = computed(() => {
+  // S'assurer que profiles.value est bien un tableau
+  if (!Array.isArray(profiles.value)) {
+    return []
+  }
+
   let filtered = profiles.value
 
   // Filtre par recherche
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(p =>
-      p.name?.toLowerCase().includes(query) ||
-      p.description?.toLowerCase().includes(query)
+      p && (
+        p.name?.toLowerCase().includes(query) ||
+        p.description?.toLowerCase().includes(query)
+      )
     )
   }
 
   // Filtre par statut
   if (filterStatus.value !== 'all') {
     if (filterStatus.value === 'active') {
-      filtered = filtered.filter(p => p.is_active)
+      filtered = filtered.filter(p => p && p.is_active)
     } else {
-      filtered = filtered.filter(p => !p.is_active)
+      filtered = filtered.filter(p => p && !p.is_active)
     }
   }
 
   // Filtre par type de quota
   if (filterQuotaType.value !== 'all') {
-    filtered = filtered.filter(p => p.quota_type === filterQuotaType.value)
+    filtered = filtered.filter(p => p && p.quota_type === filterQuotaType.value)
   }
 
-  return filtered
+  // Filtrer les valeurs null ou undefined
+  return filtered.filter(p => p != null)
 })
 
 // Statistiques
-const stats = computed(() => ({
-  total: profiles.value.length,
-  active: profiles.value.filter(p => p.is_active).length,
-  inactive: profiles.value.filter(p => !p.is_active).length,
-  limited: profiles.value.filter(p => p.quota_type === 'limited').length,
-  unlimited: profiles.value.filter(p => p.quota_type === 'unlimited').length
-}))
+const stats = computed(() => {
+  // S'assurer que profiles.value est bien un tableau
+  if (!Array.isArray(profiles.value)) {
+    return { total: 0, active: 0, inactive: 0, limited: 0, unlimited: 0 }
+  }
+
+  return {
+    total: profiles.value.length,
+    active: profiles.value.filter(p => p && p.is_active).length,
+    inactive: profiles.value.filter(p => p && !p.is_active).length,
+    limited: profiles.value.filter(p => p && p.quota_type === 'limited').length,
+    unlimited: profiles.value.filter(p => p && p.quota_type === 'unlimited').length
+  }
+})
 
 onMounted(async () => {
   if (!authStore.isAdmin) {
