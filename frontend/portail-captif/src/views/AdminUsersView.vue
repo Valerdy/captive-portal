@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUserStore } from '@/stores/user'
 import { usePromotionStore } from '@/stores/promotion'
+import { useProfileStore } from '@/stores/profile'
 import { useNotificationStore } from '@/stores/notification'
 import { userService } from '@/services/user.service'
 import AdminLayout from '@/layouts/AdminLayout.vue'
@@ -13,6 +14,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const userStore = useUserStore()
 const promotionStore = usePromotionStore()
+const profileStore = useProfileStore()
 const notificationStore = useNotificationStore()
 
 const users = computed(() => userStore.users)
@@ -43,6 +45,7 @@ const newUser = ref({
   first_name: '',
   last_name: '',
   promotion: '' as number | string,
+  profile: '' as number | string,
   matricule: '',
   is_staff: false
 })
@@ -55,6 +58,11 @@ const promotions = computed(() => {
 const allPromotions = computed(() => {
   if (!Array.isArray(promotionStore.promotions)) return []
   return promotionStore.promotions
+})
+
+const profiles = computed(() => {
+  if (!Array.isArray(profileStore.profiles)) return []
+  return profileStore.profiles.filter(p => p && p.is_active)
 })
 
 // Filtrage des utilisateurs
@@ -129,7 +137,8 @@ onMounted(async () => {
   try {
     await Promise.all([
       userStore.fetchUsers(),
-      promotionStore.fetchPromotions()
+      promotionStore.fetchPromotions(),
+      profileStore.fetchProfiles()
     ])
   } catch (error: any) {
     const message = error?.message || 'Erreur inconnue'
@@ -246,6 +255,7 @@ function openAddModal() {
     first_name: '',
     last_name: '',
     promotion: '',
+    profile: '',
     matricule: '',
     is_staff: false
   }
@@ -287,7 +297,7 @@ async function handleAddUser() {
     const username = newUser.value.matricule
     const email = `${newUser.value.matricule}@student.ucac-icam.com`
 
-    await userStore.createUser({
+    const userData: any = {
       username: username,
       email: email,
       password: newUser.value.password,
@@ -297,7 +307,14 @@ async function handleAddUser() {
       promotion: Number(newUser.value.promotion),
       matricule: newUser.value.matricule,
       is_staff: newUser.value.is_staff
-    })
+    }
+
+    // Ajouter le profil seulement s'il est sélectionné
+    if (newUser.value.profile) {
+      userData.profile = Number(newUser.value.profile)
+    }
+
+    await userStore.createUser(userData)
 
     notificationStore.success('Utilisateur ajouté avec succès')
     closeAddModal()
@@ -307,7 +324,11 @@ async function handleAddUser() {
 }
 
 function handleEdit(user: any) {
-  selectedUser.value = { ...user, promotion: user.promotion ?? null }
+  selectedUser.value = {
+    ...user,
+    promotion: user.promotion ?? null,
+    profile: user.profile ?? null
+  }
   showEditModal.value = true
 }
 
@@ -326,6 +347,7 @@ async function handleUpdateUser() {
       first_name: selectedUser.value.first_name,
       last_name: selectedUser.value.last_name,
       promotion: selectedUser.value.promotion,
+      profile: selectedUser.value.profile || null,
       is_staff: selectedUser.value.is_staff,
       is_active: selectedUser.value.is_active
     })
@@ -806,6 +828,20 @@ async function handleDeactivateRadiusIndividual(userId: number) {
             </div>
           </div>
 
+          <div class="form-group">
+            <label>Profil RADIUS (optionnel)</label>
+            <select v-model="newUser.profile">
+              <option value="">Utiliser le profil de la promotion</option>
+              <option v-for="profile in profiles" :key="profile.id" :value="profile.id">
+                {{ profile.name }}
+                ({{ profile.quota_type === 'limited' ? profile.data_volume_gb + ' Go' : 'Illimité' }} - {{ profile.bandwidth_upload_mbps }}/{{ profile.bandwidth_download_mbps }} Mbps)
+              </option>
+            </select>
+            <small class="form-help">
+              Si non défini, l'utilisateur héritera du profil de sa promotion. Le profil individuel a priorité sur le profil de la promotion.
+            </small>
+          </div>
+
           <div class="info-note">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
@@ -889,6 +925,20 @@ async function handleDeactivateRadiusIndividual(userId: number) {
                 </option>
               </select>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label>Profil RADIUS (optionnel)</label>
+            <select v-model="selectedUser.profile">
+              <option :value="null">Utiliser le profil de la promotion</option>
+              <option v-for="profile in profiles" :key="profile.id" :value="profile.id">
+                {{ profile.name }}
+                ({{ profile.quota_type === 'limited' ? profile.data_volume_gb + ' Go' : 'Illimité' }} - {{ profile.bandwidth_upload_mbps }}/{{ profile.bandwidth_download_mbps }} Mbps)
+              </option>
+            </select>
+            <small class="form-help">
+              Si non défini, l'utilisateur héritera du profil de sa promotion. Le profil individuel a priorité sur le profil de la promotion.
+            </small>
           </div>
 
           <div class="form-group checkbox-group">
