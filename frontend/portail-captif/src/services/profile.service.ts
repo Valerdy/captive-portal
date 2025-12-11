@@ -63,5 +63,21 @@ export const profileService = {
   async getPromotions(id: number): Promise<any> {
     const response = await api.get(`/api/core/profiles/${id}/promotions/`)
     return response.data
+  },
+
+  /**
+   * Récupère les statistiques globales de tous les profils
+   */
+  async getStatistics(): Promise<any> {
+    const response = await api.get('/api/core/profiles/statistics/')
+    return response.data
+  },
+
+  /**
+   * Récupère les statistiques détaillées d'un profil spécifique
+   */
+  async getStatisticsDetail(id: number): Promise<any> {
+    const response = await api.get(`/api/core/profiles/${id}/statistics_detail/`)
+    return response.data
   }
 }
