@@ -3,11 +3,12 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .viewsets import (
     UserViewSet, DeviceViewSet, SessionViewSet, VoucherViewSet,
-    BlockedSiteViewSet, UserQuotaViewSet, PromotionViewSet
+    BlockedSiteViewSet, UserQuotaViewSet, PromotionViewSet, ProfileViewSet
 )
 from . import views
 
 router = DefaultRouter()
+router.register(r'profiles', ProfileViewSet, basename='profile')
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'devices', DeviceViewSet, basename='device')
 router.register(r'sessions', SessionViewSet, basename='session')

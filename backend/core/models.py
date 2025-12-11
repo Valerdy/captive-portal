@@ -4,6 +4,123 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+class Profile(models.Model):
+    """
+    Profil d'abonnement définissant les paramètres RADIUS (bande passante, quota, durée).
+    Peut être assigné à des utilisateurs individuels ou à des promotions entières.
+    """
+    QUOTA_TYPE_CHOICES = [
+        ('unlimited', 'Illimité'),
+        ('limited', 'Limité'),
+    ]
+
+    DURATION_CHOICES = [
+        (7, '7 jours'),
+        (14, '14 jours'),
+        (30, '30 jours'),
+        (60, '60 jours'),
+        (90, '90 jours'),
+        (180, '180 jours'),
+        (365, '365 jours'),
+    ]
+
+    # Informations de base
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        db_index=True,
+        help_text="Nom du profil (ex: Étudiant, Personnel, Invité)"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Description du profil"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Si désactivé, le profil ne peut pas être assigné"
+    )
+
+    # Bande passante (en Kbps)
+    bandwidth_upload = models.IntegerField(
+        default=5120,
+        help_text="Bande passante upload en Kbps (ex: 5120 = 5 Mbps)"
+    )
+    bandwidth_download = models.IntegerField(
+        default=10240,
+        help_text="Bande passante download en Kbps (ex: 10240 = 10 Mbps)"
+    )
+
+    # Quota de données
+    quota_type = models.CharField(
+        max_length=20,
+        choices=QUOTA_TYPE_CHOICES,
+        default='limited',
+        help_text="Type de quota (illimité ou limité)"
+    )
+    data_volume = models.BigIntegerField(
+        default=53687091200,  # 50 Go en octets
+        help_text="Volume de données attribué en octets (ex: 53687091200 = 50 Go)"
+    )
+
+    # Durée de validité
+    validity_duration = models.IntegerField(
+        choices=DURATION_CHOICES,
+        default=30,
+        help_text="Durée de validité du quota en jours"
+    )
+
+    # Paramètres RADIUS supplémentaires
+    session_timeout = models.IntegerField(
+        default=28800,  # 8 heures en secondes
+        help_text="Durée maximale d'une session en secondes (défaut: 8h)"
+    )
+    idle_timeout = models.IntegerField(
+        default=600,  # 10 minutes
+        help_text="Délai d'inactivité avant déconnexion en secondes (défaut: 10min)"
+    )
+    simultaneous_use = models.IntegerField(
+        default=1,
+        help_text="Nombre de connexions simultanées autorisées"
+    )
+
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='profiles_created',
+        help_text="Administrateur ayant créé ce profil"
+    )
+
+    class Meta:
+        db_table = 'profiles'
+        ordering = ['name']
+        verbose_name = 'Profil'
+        verbose_name_plural = 'Profils'
+
+    def __str__(self):
+        return f"{self.name} ({self.get_quota_type_display()})"
+
+    @property
+    def data_volume_gb(self):
+        """Retourne le volume de données en Go"""
+        return round(self.data_volume / (1024**3), 2)
+
+    @property
+    def bandwidth_upload_mbps(self):
+        """Retourne la bande passante upload en Mbps"""
+        return round(self.bandwidth_upload / 1024, 2)
+
+    @property
+    def bandwidth_download_mbps(self):
+        """Retourne la bande passante download en Mbps"""
+        return round(self.bandwidth_download / 1024, 2)
+
+
 class Promotion(models.Model):
     """
     Promotion d'étudiants.
@@ -11,6 +128,17 @@ class Promotion(models.Model):
     """
     name = models.CharField(max_length=100, unique=True, db_index=True)
     is_active = models.BooleanField(default=True)
+
+    # Profil assigné à la promotion
+    profile = models.ForeignKey(
+        Profile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='promotions',
+        help_text="Profil RADIUS appliqué à tous les utilisateurs de cette promotion"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -39,6 +167,16 @@ class User(AbstractUser):
         help_text="Promotion de l'étudiant"
     )
     matricule = models.CharField(max_length=50, blank=True, null=True, help_text="Matricule de l'étudiant")
+
+    # Profil RADIUS individuel (prioritaire sur le profil de la promotion)
+    profile = models.ForeignKey(
+        Profile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='users',
+        help_text="Profil RADIUS individuel (si non défini, utilise le profil de la promotion)"
+    )
 
     # RADIUS Status Management
     # Deux états séparés pour gérer le cycle de vie RADIUS:
@@ -127,6 +265,17 @@ class User(AbstractUser):
         if not self.is_radius_enabled:
             return "Accès WiFi désactivé"
         return "Accès WiFi actif"
+
+    def get_effective_profile(self):
+        """
+        Retourne le profil RADIUS effectif pour cet utilisateur.
+        Priorité: profil individuel > profil de la promotion > None
+        """
+        if self.profile:
+            return self.profile
+        if self.promotion and self.promotion.profile:
+            return self.promotion.profile
+        return None
 
 
 class Device(models.Model):

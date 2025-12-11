@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Device, Session, Voucher, Promotion
+from .models import User, Device, Session, Voucher, Promotion, Profile
 
 
 @admin.register(User)
@@ -8,32 +8,83 @@ class UserAdmin(BaseUserAdmin):
     """Admin interface for User model"""
     list_display = [
         'username', 'email', 'first_name', 'last_name',
-        'promotion', 'phone_number', 'mac_address',
+        'promotion', 'profile', 'phone_number', 'mac_address',
         'is_voucher_user', 'is_active'
     ]
-    list_filter = ['is_active', 'is_staff', 'is_voucher_user', 'date_joined', 'promotion']
-    search_fields = ['username', 'email', 'phone_number', 'mac_address', 'promotion__name']
+    list_filter = ['is_active', 'is_staff', 'is_voucher_user', 'date_joined', 'promotion', 'profile']
+    search_fields = ['username', 'email', 'phone_number', 'mac_address', 'promotion__name', 'profile__name']
     ordering = ['-date_joined']
+    autocomplete_fields = ['promotion', 'profile']
 
     fieldsets = BaseUserAdmin.fieldsets + (
         ('Captive Portal Info', {
-            'fields': ('promotion', 'phone_number', 'mac_address', 'ip_address', 'is_voucher_user', 'voucher_code')
+            'fields': ('promotion', 'profile', 'matricule', 'phone_number', 'mac_address', 'ip_address', 'is_voucher_user', 'voucher_code')
+        }),
+        ('RADIUS Status', {
+            'fields': ('is_radius_activated', 'is_radius_enabled', 'cleartext_password'),
+            'classes': ('collapse',)
         }),
     )
 
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ('Captive Portal Info', {
-            'fields': ('promotion', 'phone_number', 'mac_address', 'ip_address', 'is_voucher_user', 'voucher_code')
+            'fields': ('promotion', 'profile', 'matricule', 'phone_number', 'mac_address', 'ip_address', 'is_voucher_user', 'voucher_code')
         }),
     )
 
 
 @admin.register(Promotion)
 class PromotionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'is_active', 'created_at', 'updated_at']
-    list_filter = ['is_active']
+    list_display = ['name', 'profile', 'is_active', 'created_at', 'updated_at']
+    list_filter = ['is_active', 'profile']
     search_fields = ['name']
     ordering = ['name']
+    autocomplete_fields = ['profile']
+
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    """Admin interface for Profile model"""
+    list_display = [
+        'name', 'quota_type', 'data_volume_display',
+        'bandwidth_display', 'validity_duration', 'is_active', 'created_at'
+    ]
+    list_filter = ['is_active', 'quota_type', 'validity_duration', 'created_at']
+    search_fields = ['name', 'description']
+    ordering = ['name']
+    readonly_fields = ['created_at', 'updated_at', 'data_volume_gb', 'bandwidth_upload_mbps', 'bandwidth_download_mbps']
+
+    fieldsets = (
+        ('Informations de base', {
+            'fields': ('name', 'description', 'is_active', 'created_by')
+        }),
+        ('Bande passante', {
+            'fields': ('bandwidth_upload', 'bandwidth_upload_mbps', 'bandwidth_download', 'bandwidth_download_mbps'),
+            'description': 'Bande passante en Kbps (1 Mbps = 1024 Kbps)'
+        }),
+        ('Quota de données', {
+            'fields': ('quota_type', 'data_volume', 'data_volume_gb', 'validity_duration'),
+            'description': 'Volume en octets (1 Go = 1073741824 octets)'
+        }),
+        ('Paramètres de session RADIUS', {
+            'fields': ('session_timeout', 'idle_timeout', 'simultaneous_use'),
+            'classes': ('collapse',)
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def data_volume_display(self, obj):
+        """Affiche le volume de données en Go"""
+        return f"{obj.data_volume_gb} Go"
+    data_volume_display.short_description = 'Volume de données'
+
+    def bandwidth_display(self, obj):
+        """Affiche la bande passante en Mbps"""
+        return f"↑{obj.bandwidth_upload_mbps} / ↓{obj.bandwidth_download_mbps} Mbps"
+    bandwidth_display.short_description = 'Bande passante (UP/DOWN)'
 
 
 @admin.register(Device)

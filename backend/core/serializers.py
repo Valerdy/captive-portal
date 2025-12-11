@@ -1,14 +1,71 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion
+from .models import User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion, Profile
 from .utils import generate_secure_password
 
 
+class ProfileSerializer(serializers.ModelSerializer):
+    """Serializer for Profile model"""
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    data_volume_gb = serializers.FloatField(read_only=True)
+    bandwidth_upload_mbps = serializers.FloatField(read_only=True)
+    bandwidth_download_mbps = serializers.FloatField(read_only=True)
+
+    # Nombre d'utilisateurs et promotions utilisant ce profil
+    users_count = serializers.SerializerMethodField()
+    promotions_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Profile
+        fields = [
+            'id', 'name', 'description', 'is_active',
+            'bandwidth_upload', 'bandwidth_download',
+            'bandwidth_upload_mbps', 'bandwidth_download_mbps',
+            'quota_type', 'data_volume', 'data_volume_gb',
+            'validity_duration', 'session_timeout', 'idle_timeout',
+            'simultaneous_use', 'created_by', 'created_by_username',
+            'created_at', 'updated_at',
+            'users_count', 'promotions_count'
+        ]
+        read_only_fields = [
+            'id', 'created_at', 'updated_at', 'created_by_username',
+            'data_volume_gb', 'bandwidth_upload_mbps', 'bandwidth_download_mbps',
+            'users_count', 'promotions_count'
+        ]
+
+    def get_users_count(self, obj):
+        """Nombre d'utilisateurs utilisant ce profil (directement)"""
+        return obj.users.count()
+
+    def get_promotions_count(self, obj):
+        """Nombre de promotions utilisant ce profil"""
+        return obj.promotions.count()
+
+    def create(self, validated_data):
+        # Ajouter l'utilisateur courant comme créateur
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
 class PromotionSerializer(serializers.ModelSerializer):
+    profile_name = serializers.CharField(source='profile.name', read_only=True)
+    user_count = serializers.SerializerMethodField()
+    active_user_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Promotion
-        fields = ['id', 'name', 'is_active', 'created_at', 'updated_at']
-        read_only_fields = ['created_at', 'updated_at']
+        fields = ['id', 'name', 'profile', 'profile_name', 'is_active', 'created_at', 'updated_at', 'user_count', 'active_user_count']
+        read_only_fields = ['created_at', 'updated_at', 'profile_name', 'user_count', 'active_user_count']
+
+    def get_user_count(self, obj):
+        """Nombre total d'utilisateurs dans la promotion"""
+        return obj.users.count()
+
+    def get_active_user_count(self, obj):
+        """Nombre d'utilisateurs actifs dans la promotion"""
+        return obj.users.filter(is_active=True).count()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -17,12 +74,15 @@ class UserSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True, required=True)
     role_name = serializers.SerializerMethodField()
     promotion_name = serializers.CharField(source='promotion.name', read_only=True)
+    profile_name = serializers.CharField(source='profile.name', read_only=True)
+    effective_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'password', 'password2',
             'first_name', 'last_name', 'promotion', 'promotion_name', 'matricule',
+            'profile', 'profile_name', 'effective_profile',
             'phone_number', 'mac_address',
             'ip_address', 'is_voucher_user', 'voucher_code',
             'is_active', 'is_staff', 'is_superuser',
@@ -30,7 +90,22 @@ class UserSerializer(serializers.ModelSerializer):
             'role', 'role_name',
             'date_joined', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role_name', 'is_radius_activated', 'promotion_name']
+        read_only_fields = ['id', 'date_joined', 'created_at', 'updated_at', 'role_name', 'is_radius_activated', 'promotion_name', 'profile_name', 'effective_profile']
+
+    def get_effective_profile(self, obj):
+        """Retourne les informations du profil effectif de l'utilisateur"""
+        profile = obj.get_effective_profile()
+        if profile:
+            return {
+                'id': profile.id,
+                'name': profile.name,
+                'quota_type': profile.quota_type,
+                'data_volume_gb': profile.data_volume_gb,
+                'bandwidth_upload_mbps': profile.bandwidth_upload_mbps,
+                'bandwidth_download_mbps': profile.bandwidth_download_mbps,
+                'validity_duration': profile.validity_duration
+            }
+        return None
 
     def get_role_name(self, obj):
         """Get the role name (synced with is_staff/is_superuser)"""
@@ -80,12 +155,14 @@ class UserListSerializer(serializers.ModelSerializer):
     """Simplified serializer for listing users"""
     role_name = serializers.SerializerMethodField()
     promotion_name = serializers.CharField(source='promotion.name', read_only=True)
+    profile_name = serializers.CharField(source='profile.name', read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'promotion', 'promotion_name', 'matricule', 'phone_number', 'mac_address', 'ip_address',
+            'promotion', 'promotion_name', 'profile', 'profile_name', 'matricule',
+            'phone_number', 'mac_address', 'ip_address',
             'is_voucher_user', 'is_active', 'is_staff', 'is_superuser',
             'is_radius_activated',
             'role_name', 'date_joined'

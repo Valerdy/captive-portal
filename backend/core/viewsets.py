@@ -2,16 +2,85 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from .models import User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion
+from .models import User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion, Profile
 from .serializers import (
     UserSerializer, UserListSerializer, DeviceSerializer,
     SessionSerializer, SessionListSerializer, VoucherSerializer,
     VoucherValidationSerializer, BlockedSiteSerializer, UserQuotaSerializer,
-    PromotionSerializer
+    PromotionSerializer, ProfileSerializer
 )
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdmin, IsAuthenticatedUser
 from .decorators import rate_limit
 from radius.models import RadCheck
+
+
+class ProfileViewSet(viewsets.ModelViewSet):
+    """ViewSet for Profile model"""
+    queryset = Profile.objects.all()
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+    def get_queryset(self):
+        """Filtre les profils actifs pour les non-admins"""
+        user = self.request.user
+        if user.is_authenticated and (user.is_staff or user.is_superuser):
+            # Admins see all profiles
+            return Profile.objects.all()
+        # Regular users see only active profiles
+        return Profile.objects.filter(is_active=True)
+
+    @action(detail=True, methods=['get'])
+    def users(self, request, pk=None):
+        """Récupère la liste des utilisateurs utilisant ce profil"""
+        profile = self.get_object()
+        users = profile.users.filter(is_active=True)
+
+        users_data = []
+        for user in users:
+            users_data.append({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'promotion': {'id': user.promotion.id, 'name': user.promotion.name} if user.promotion else None,
+                'is_active': user.is_active,
+                'is_radius_activated': user.is_radius_activated,
+            })
+
+        return Response({
+            'profile': {'id': profile.id, 'name': profile.name},
+            'users': users_data,
+            'total_count': len(users_data)
+        })
+
+    @action(detail=True, methods=['get'])
+    def promotions(self, request, pk=None):
+        """Récupère la liste des promotions utilisant ce profil"""
+        profile = self.get_object()
+        promotions = profile.promotions.filter(is_active=True)
+
+        promotions_data = []
+        for promotion in promotions:
+            promotions_data.append({
+                'id': promotion.id,
+                'name': promotion.name,
+                'is_active': promotion.is_active,
+                'user_count': promotion.users.count()
+            })
+
+        return Response({
+            'profile': {'id': profile.id, 'name': profile.name},
+            'promotions': promotions_data,
+            'total_count': len(promotions_data)
+        })
+
+    @action(detail=False, methods=['get'])
+    def active(self, request):
+        """Liste des profils actifs uniquement"""
+        active_profiles = Profile.objects.filter(is_active=True)
+        serializer = self.get_serializer(active_profiles, many=True)
+        return Response(serializer.data)
 
 
 class UserViewSet(viewsets.ModelViewSet):
