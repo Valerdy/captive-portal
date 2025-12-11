@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Device, Session, Voucher, Promotion, Profile
+from .models import (
+    User, Device, Session, Voucher, Promotion, Profile,
+    UserProfileUsage, ProfileHistory, ProfileAlert
+)
 
 
 @admin.register(User)
@@ -52,7 +55,11 @@ class ProfileAdmin(admin.ModelAdmin):
     list_filter = ['is_active', 'quota_type', 'validity_duration', 'created_at']
     search_fields = ['name', 'description']
     ordering = ['name']
-    readonly_fields = ['created_at', 'updated_at', 'data_volume_gb', 'bandwidth_upload_mbps', 'bandwidth_download_mbps']
+    readonly_fields = [
+        'created_at', 'updated_at',
+        'data_volume_gb', 'bandwidth_upload_mbps', 'bandwidth_download_mbps',
+        'daily_limit_gb', 'weekly_limit_gb', 'monthly_limit_gb'
+    ]
 
     fieldsets = (
         ('Informations de base', {
@@ -65,6 +72,15 @@ class ProfileAdmin(admin.ModelAdmin):
         ('Quota de données', {
             'fields': ('quota_type', 'data_volume', 'data_volume_gb', 'validity_duration'),
             'description': 'Volume en octets (1 Go = 1073741824 octets)'
+        }),
+        ('Limites périodiques (optionnel)', {
+            'fields': (
+                'daily_limit', 'daily_limit_gb',
+                'weekly_limit', 'weekly_limit_gb',
+                'monthly_limit', 'monthly_limit_gb'
+            ),
+            'description': 'Limites de consommation journalière, hebdomadaire et mensuelle',
+            'classes': ('collapse',)
         }),
         ('Paramètres de session RADIUS', {
             'fields': ('session_timeout', 'idle_timeout', 'simultaneous_use'),
@@ -153,5 +169,144 @@ class VoucherAdmin(admin.ModelAdmin):
         }),
         ('Metadata', {
             'fields': ('created_by', 'created_at', 'notes')
+        }),
+    )
+
+
+@admin.register(UserProfileUsage)
+class UserProfileUsageAdmin(admin.ModelAdmin):
+    """Admin interface for UserProfileUsage model"""
+    list_display = [
+        'user', 'effective_profile_display', 'total_usage_gb_display',
+        'daily_usage_display', 'is_exceeded', 'is_expired_display', 'is_active'
+    ]
+    list_filter = ['is_active', 'is_exceeded', 'activation_date']
+    search_fields = ['user__username', 'user__email']
+    readonly_fields = [
+        'used_today_gb', 'used_week_gb', 'used_month_gb', 'used_total_gb',
+        'daily_usage_percent', 'weekly_usage_percent',
+        'monthly_usage_percent', 'total_usage_percent',
+        'last_daily_reset', 'last_weekly_reset', 'last_monthly_reset',
+        'created_at', 'updated_at'
+    ]
+    autocomplete_fields = ['user']
+    ordering = ['-created_at']
+
+    fieldsets = (
+        ('Utilisateur', {
+            'fields': ('user', 'is_active', 'activation_date')
+        }),
+        ('Consommation (octets)', {
+            'fields': ('used_today', 'used_week', 'used_month', 'used_total')
+        }),
+        ('Consommation (Go)', {
+            'fields': (
+                'used_today_gb', 'used_week_gb',
+                'used_month_gb', 'used_total_gb'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Pourcentages d\'utilisation', {
+            'fields': (
+                'daily_usage_percent', 'weekly_usage_percent',
+                'monthly_usage_percent', 'total_usage_percent'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Dates de reset', {
+            'fields': (
+                'last_daily_reset', 'last_weekly_reset', 'last_monthly_reset'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Statut', {
+            'fields': ('is_exceeded',)
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def effective_profile_display(self, obj):
+        """Affiche le profil effectif"""
+        profile = obj.get_effective_profile()
+        return profile.name if profile else "Aucun"
+    effective_profile_display.short_description = 'Profil effectif'
+
+    def total_usage_gb_display(self, obj):
+        """Affiche la consommation totale en Go"""
+        return f"{obj.used_total_gb} Go"
+    total_usage_gb_display.short_description = 'Total consommé'
+
+    def daily_usage_display(self, obj):
+        """Affiche la consommation journalière avec pourcentage"""
+        return f"{obj.used_today_gb} Go ({round(obj.daily_usage_percent, 1)}%)"
+    daily_usage_display.short_description = 'Aujourd\'hui'
+
+    def is_expired_display(self, obj):
+        """Affiche si le profil est expiré"""
+        return obj.is_expired()
+    is_expired_display.boolean = True
+    is_expired_display.short_description = 'Expiré'
+
+
+@admin.register(ProfileHistory)
+class ProfileHistoryAdmin(admin.ModelAdmin):
+    """Admin interface for ProfileHistory model"""
+    list_display = [
+        'user', 'change_type', 'old_profile', 'new_profile',
+        'changed_by', 'changed_at'
+    ]
+    list_filter = ['change_type', 'changed_at']
+    search_fields = [
+        'user__username', 'old_profile__name',
+        'new_profile__name', 'changed_by__username'
+    ]
+    readonly_fields = ['changed_at']
+    autocomplete_fields = ['user', 'old_profile', 'new_profile', 'changed_by']
+    ordering = ['-changed_at']
+
+    fieldsets = (
+        ('Changement', {
+            'fields': ('user', 'change_type', 'old_profile', 'new_profile')
+        }),
+        ('Auteur et date', {
+            'fields': ('changed_by', 'changed_at')
+        }),
+        ('Détails', {
+            'fields': ('reason',)
+        }),
+    )
+
+
+@admin.register(ProfileAlert)
+class ProfileAlertAdmin(admin.ModelAdmin):
+    """Admin interface for ProfileAlert model"""
+    list_display = [
+        'profile', 'alert_type', 'threshold_percent',
+        'threshold_days', 'notification_method', 'is_active'
+    ]
+    list_filter = ['alert_type', 'notification_method', 'is_active', 'created_at']
+    search_fields = ['profile__name', 'message_template']
+    readonly_fields = ['created_at', 'updated_at']
+    autocomplete_fields = ['profile', 'created_by']
+    ordering = ['-created_at']
+
+    fieldsets = (
+        ('Profil et type d\'alerte', {
+            'fields': ('profile', 'alert_type', 'is_active')
+        }),
+        ('Seuils', {
+            'fields': ('threshold_percent', 'threshold_days'),
+            'description': 'threshold_percent pour alertes quota, threshold_days pour alertes expiration'
+        }),
+        ('Notification', {
+            'fields': ('notification_method', 'message_template'),
+            'description': 'Template peut contenir: {username}, {percent}, {remaining_gb}, {days_remaining}'
+        }),
+        ('Métadonnées', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
         }),
     )

@@ -2,12 +2,17 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from .models import User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion, Profile
+from django.db import models
+from .models import (
+    User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion, Profile,
+    UserProfileUsage, ProfileHistory, ProfileAlert
+)
 from .serializers import (
     UserSerializer, UserListSerializer, DeviceSerializer,
     SessionSerializer, SessionListSerializer, VoucherSerializer,
     VoucherValidationSerializer, BlockedSiteSerializer, UserQuotaSerializer,
-    PromotionSerializer, ProfileSerializer
+    PromotionSerializer, ProfileSerializer,
+    UserProfileUsageSerializer, ProfileHistorySerializer, ProfileAlertSerializer
 )
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdmin, IsAuthenticatedUser
 from .decorators import rate_limit
@@ -812,3 +817,226 @@ class UserQuotaViewSet(viewsets.ModelViewSet):
         quota = UserQuota.objects.create(**quota_data)
         serializer = self.get_serializer(quota)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class UserProfileUsageViewSet(viewsets.ModelViewSet):
+    """ViewSet for UserProfileUsage model"""
+    queryset = UserProfileUsage.objects.all()
+    serializer_class = UserProfileUsageSerializer
+    permission_classes = [IsAdmin]
+
+    def get_queryset(self):
+        """Permet aux utilisateurs de voir leur propre usage"""
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            # Admins see all usages
+            return UserProfileUsage.objects.all().select_related('user')
+        # Regular users see only their own usage
+        return UserProfileUsage.objects.filter(user=user)
+
+    @action(detail=True, methods=['post'])
+    def reset_daily(self, request, pk=None):
+        """Réinitialise le compteur journalier"""
+        usage = self.get_object()
+        usage.reset_daily()
+        serializer = self.get_serializer(usage)
+        return Response({
+            'status': 'success',
+            'message': 'Compteur journalier réinitialisé',
+            'usage': serializer.data
+        })
+
+    @action(detail=True, methods=['post'])
+    def reset_weekly(self, request, pk=None):
+        """Réinitialise le compteur hebdomadaire"""
+        usage = self.get_object()
+        usage.reset_weekly()
+        serializer = self.get_serializer(usage)
+        return Response({
+            'status': 'success',
+            'message': 'Compteur hebdomadaire réinitialisé',
+            'usage': serializer.data
+        })
+
+    @action(detail=True, methods=['post'])
+    def reset_monthly(self, request, pk=None):
+        """Réinitialise le compteur mensuel"""
+        usage = self.get_object()
+        usage.reset_monthly()
+        serializer = self.get_serializer(usage)
+        return Response({
+            'status': 'success',
+            'message': 'Compteur mensuel réinitialisé',
+            'usage': serializer.data
+        })
+
+    @action(detail=True, methods=['post'])
+    def reset_all(self, request, pk=None):
+        """Réinitialise tous les compteurs"""
+        usage = self.get_object()
+        usage.reset_all()
+        serializer = self.get_serializer(usage)
+        return Response({
+            'status': 'success',
+            'message': 'Tous les compteurs réinitialisés',
+            'usage': serializer.data
+        })
+
+    @action(detail=True, methods=['post'])
+    def add_usage(self, request, pk=None):
+        """Ajoute de la consommation (pour tests ou intégration externe)"""
+        usage = self.get_object()
+        bytes_used = request.data.get('bytes_used', 0)
+
+        if bytes_used <= 0:
+            return Response(
+                {'error': 'bytes_used must be positive'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        usage.add_usage(bytes_used)
+        serializer = self.get_serializer(usage)
+        return Response({
+            'status': 'success',
+            'message': f'{bytes_used} octets ajoutés',
+            'usage': serializer.data
+        })
+
+    @action(detail=False, methods=['get'])
+    def my_usage(self, request):
+        """Récupère l'utilisation de l'utilisateur connecté"""
+        user = request.user
+        try:
+            usage = UserProfileUsage.objects.get(user=user)
+            serializer = self.get_serializer(usage)
+            return Response(serializer.data)
+        except UserProfileUsage.DoesNotExist:
+            return Response(
+                {'error': 'Aucune utilisation trouvée pour cet utilisateur'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class ProfileHistoryViewSet(viewsets.ModelViewSet):
+    """ViewSet for ProfileHistory model"""
+    queryset = ProfileHistory.objects.all()
+    serializer_class = ProfileHistorySerializer
+    permission_classes = [IsAdmin]
+    http_method_names = ['get', 'post', 'head', 'options']  # Read-only + POST
+
+    def get_queryset(self):
+        """Filtre par utilisateur si spécifié"""
+        queryset = ProfileHistory.objects.all().select_related(
+            'user', 'old_profile', 'new_profile', 'changed_by'
+        )
+
+        # Filtrer par utilisateur
+        user_id = self.request.query_params.get('user')
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+
+        # Filtrer par profil
+        profile_id = self.request.query_params.get('profile')
+        if profile_id:
+            queryset = queryset.filter(
+                models.Q(old_profile_id=profile_id) | models.Q(new_profile_id=profile_id)
+            )
+
+        return queryset.order_by('-changed_at')
+
+    @action(detail=False, methods=['get'])
+    def user_history(self, request):
+        """Récupère l'historique des changements de profil pour un utilisateur"""
+        user_id = request.query_params.get('user_id')
+        if not user_id:
+            return Response(
+                {'error': 'user_id parameter is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        history = ProfileHistory.objects.filter(user_id=user_id).select_related(
+            'old_profile', 'new_profile', 'changed_by'
+        ).order_by('-changed_at')
+
+        serializer = self.get_serializer(history, many=True)
+        return Response(serializer.data)
+
+
+class ProfileAlertViewSet(viewsets.ModelViewSet):
+    """ViewSet for ProfileAlert model"""
+    queryset = ProfileAlert.objects.all()
+    serializer_class = ProfileAlertSerializer
+    permission_classes = [IsAdmin]
+
+    def get_queryset(self):
+        """Filtre par profil si spécifié"""
+        queryset = ProfileAlert.objects.all().select_related('profile', 'created_by')
+
+        # Filtrer par profil
+        profile_id = self.request.query_params.get('profile')
+        if profile_id:
+            queryset = queryset.filter(profile_id=profile_id)
+
+        # Filtrer par statut actif
+        is_active = self.request.query_params.get('is_active')
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+
+        return queryset.order_by('-created_at')
+
+    @action(detail=False, methods=['post'])
+    def check_alerts(self, request):
+        """Vérifie les alertes pour tous les utilisateurs et retourne celles déclenchées"""
+        triggered_alerts = []
+
+        # Récupérer toutes les alertes actives
+        alerts = ProfileAlert.objects.filter(is_active=True).select_related('profile')
+
+        # Récupérer toutes les utilisations avec profil
+        usages = UserProfileUsage.objects.filter(is_active=True).select_related('user')
+
+        for usage in usages:
+            profile = usage.get_effective_profile()
+            if not profile:
+                continue
+
+            # Vérifier les alertes pour ce profil
+            profile_alerts = alerts.filter(profile=profile)
+
+            for alert in profile_alerts:
+                if alert.should_trigger(usage):
+                    triggered_alerts.append({
+                        'alert_id': alert.id,
+                        'alert_type': alert.alert_type,
+                        'user_id': usage.user.id,
+                        'username': usage.user.username,
+                        'profile_name': profile.name,
+                        'threshold': alert.threshold_percent,
+                        'current_usage_percent': usage.total_usage_percent,
+                        'days_remaining': usage.days_remaining(),
+                        'message': self._format_alert_message(alert, usage)
+                    })
+
+        return Response({
+            'triggered_count': len(triggered_alerts),
+            'alerts': triggered_alerts
+        })
+
+    def _format_alert_message(self, alert, usage):
+        """Formate le message d'alerte avec les données de l'utilisateur"""
+        if alert.message_template:
+            return alert.message_template.format(
+                username=usage.user.username,
+                percent=round(usage.total_usage_percent, 2),
+                remaining_gb=round(
+                    (usage.get_effective_profile().data_volume - usage.used_total) / (1024**3),
+                    2
+                ) if usage.get_effective_profile() else 0,
+                days_remaining=usage.days_remaining() or 0
+            )
+        else:
+            # Message par défaut
+            if alert.alert_type in ['quota_warning', 'quota_critical']:
+                return f"Attention: {round(usage.total_usage_percent, 2)}% de votre quota utilisé"
+            else:
+                return f"Votre profil expire dans {usage.days_remaining()} jour(s)"

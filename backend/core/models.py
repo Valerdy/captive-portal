@@ -70,6 +70,26 @@ class Profile(models.Model):
         help_text="Durée de validité du quota en jours"
     )
 
+    # Limites périodiques (optionnelles pour le suivi de consommation)
+    daily_limit = models.BigIntegerField(
+        default=5368709120,  # 5 Go
+        null=True,
+        blank=True,
+        help_text='Limite journalière en octets (ex: 5368709120 = 5 Go)'
+    )
+    weekly_limit = models.BigIntegerField(
+        default=32212254720,  # 30 Go
+        null=True,
+        blank=True,
+        help_text='Limite hebdomadaire en octets (ex: 32212254720 = 30 Go)'
+    )
+    monthly_limit = models.BigIntegerField(
+        default=128849018880,  # 120 Go
+        null=True,
+        blank=True,
+        help_text='Limite mensuelle en octets (ex: 128849018880 = 120 Go)'
+    )
+
     # Paramètres RADIUS supplémentaires
     session_timeout = models.IntegerField(
         default=28800,  # 8 heures en secondes
@@ -119,6 +139,27 @@ class Profile(models.Model):
     def bandwidth_download_mbps(self):
         """Retourne la bande passante download en Mbps"""
         return round(self.bandwidth_download / 1024, 2)
+
+    @property
+    def daily_limit_gb(self):
+        """Retourne la limite journalière en Go"""
+        if self.daily_limit is None:
+            return None
+        return round(self.daily_limit / (1024**3), 2)
+
+    @property
+    def weekly_limit_gb(self):
+        """Retourne la limite hebdomadaire en Go"""
+        if self.weekly_limit is None:
+            return None
+        return round(self.weekly_limit / (1024**3), 2)
+
+    @property
+    def monthly_limit_gb(self):
+        """Retourne la limite mensuelle en Go"""
+        if self.monthly_limit is None:
+            return None
+        return round(self.monthly_limit / (1024**3), 2)
 
 
 class Promotion(models.Model):
@@ -532,3 +573,393 @@ class UserQuota(models.Model):
         if self.monthly_limit == 0:
             return 0
         return min(100, (self.used_month / self.monthly_limit) * 100)
+
+
+class UserProfileUsage(models.Model):
+    """
+    Suivi de consommation utilisateur basé sur le profil assigné.
+    Remplace UserQuota avec une architecture plus cohérente.
+    """
+    user = models.OneToOneField(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='profile_usage',
+        help_text="Utilisateur dont on suit la consommation"
+    )
+
+    # Consommation en temps réel (en octets)
+    used_today = models.BigIntegerField(
+        default=0,
+        help_text="Consommation aujourd'hui en octets"
+    )
+    used_week = models.BigIntegerField(
+        default=0,
+        help_text="Consommation cette semaine en octets"
+    )
+    used_month = models.BigIntegerField(
+        default=0,
+        help_text="Consommation ce mois en octets"
+    )
+    used_total = models.BigIntegerField(
+        default=0,
+        help_text="Consommation totale depuis l'activation du profil actuel en octets"
+    )
+
+    # Dates de reset
+    last_daily_reset = models.DateTimeField(
+        default=timezone.now,
+        help_text="Date du dernier reset journalier"
+    )
+    last_weekly_reset = models.DateTimeField(
+        default=timezone.now,
+        help_text="Date du dernier reset hebdomadaire"
+    )
+    last_monthly_reset = models.DateTimeField(
+        default=timezone.now,
+        help_text="Date du dernier reset mensuel"
+    )
+    activation_date = models.DateTimeField(
+        default=timezone.now,
+        help_text="Date d'activation du profil actuel (pour validity_duration)"
+    )
+
+    # Statut
+    is_exceeded = models.BooleanField(
+        default=False,
+        help_text="True si un quota est dépassé"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Active le suivi de consommation"
+    )
+
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'user_profile_usage'
+        ordering = ['-created_at']
+        verbose_name = 'Utilisation de profil'
+        verbose_name_plural = 'Utilisations de profils'
+
+    def __str__(self):
+        return f"Usage de {self.user.username}"
+
+    def get_effective_profile(self):
+        """Récupère le profil effectif de l'utilisateur"""
+        return self.user.get_effective_profile()
+
+    def reset_daily(self):
+        """Réinitialise le compteur journalier"""
+        self.used_today = 0
+        self.last_daily_reset = timezone.now()
+        self.check_exceeded()
+        self.save()
+
+    def reset_weekly(self):
+        """Réinitialise le compteur hebdomadaire"""
+        self.used_week = 0
+        self.last_weekly_reset = timezone.now()
+        self.check_exceeded()
+        self.save()
+
+    def reset_monthly(self):
+        """Réinitialise le compteur mensuel"""
+        self.used_month = 0
+        self.last_monthly_reset = timezone.now()
+        self.check_exceeded()
+        self.save()
+
+    def reset_all(self):
+        """Réinitialise tous les compteurs"""
+        self.used_today = 0
+        self.used_week = 0
+        self.used_month = 0
+        self.used_total = 0
+        self.last_daily_reset = timezone.now()
+        self.last_weekly_reset = timezone.now()
+        self.last_monthly_reset = timezone.now()
+        self.activation_date = timezone.now()
+        self.is_exceeded = False
+        self.save()
+
+    def check_exceeded(self):
+        """Vérifie si un quota est dépassé en se basant sur le profil effectif"""
+        profile = self.get_effective_profile()
+        if not profile:
+            self.is_exceeded = False
+            return False
+
+        # Vérifier les limites périodiques si définies
+        daily_exceeded = (
+            profile.daily_limit is not None and
+            self.used_today >= profile.daily_limit
+        )
+        weekly_exceeded = (
+            profile.weekly_limit is not None and
+            self.used_week >= profile.weekly_limit
+        )
+        monthly_exceeded = (
+            profile.monthly_limit is not None and
+            self.used_month >= profile.monthly_limit
+        )
+
+        # Vérifier le quota total si limité
+        total_exceeded = False
+        if profile.quota_type == 'limited':
+            total_exceeded = self.used_total >= profile.data_volume
+
+        self.is_exceeded = (
+            daily_exceeded or weekly_exceeded or
+            monthly_exceeded or total_exceeded
+        )
+        return self.is_exceeded
+
+    def add_usage(self, bytes_used):
+        """Ajoute de la consommation à tous les compteurs"""
+        self.used_today += bytes_used
+        self.used_week += bytes_used
+        self.used_month += bytes_used
+        self.used_total += bytes_used
+        self.check_exceeded()
+        self.save()
+
+    def is_expired(self):
+        """Vérifie si le profil est expiré basé sur validity_duration"""
+        profile = self.get_effective_profile()
+        if not profile:
+            return False
+
+        expiry_date = self.activation_date + timedelta(days=profile.validity_duration)
+        return timezone.now() > expiry_date
+
+    def days_remaining(self):
+        """Retourne le nombre de jours restants avant expiration"""
+        profile = self.get_effective_profile()
+        if not profile:
+            return None
+
+        expiry_date = self.activation_date + timedelta(days=profile.validity_duration)
+        remaining = expiry_date - timezone.now()
+        return max(0, remaining.days)
+
+    @property
+    def daily_usage_percent(self):
+        """Calcule le pourcentage d'utilisation journalier"""
+        profile = self.get_effective_profile()
+        if not profile or profile.daily_limit is None or profile.daily_limit == 0:
+            return 0
+        return min(100, (self.used_today / profile.daily_limit) * 100)
+
+    @property
+    def weekly_usage_percent(self):
+        """Calcule le pourcentage d'utilisation hebdomadaire"""
+        profile = self.get_effective_profile()
+        if not profile or profile.weekly_limit is None or profile.weekly_limit == 0:
+            return 0
+        return min(100, (self.used_week / profile.weekly_limit) * 100)
+
+    @property
+    def monthly_usage_percent(self):
+        """Calcule le pourcentage d'utilisation mensuel"""
+        profile = self.get_effective_profile()
+        if not profile or profile.monthly_limit is None or profile.monthly_limit == 0:
+            return 0
+        return min(100, (self.used_month / profile.monthly_limit) * 100)
+
+    @property
+    def total_usage_percent(self):
+        """Calcule le pourcentage d'utilisation total"""
+        profile = self.get_effective_profile()
+        if not profile or profile.quota_type == 'unlimited':
+            return 0
+        if profile.data_volume == 0:
+            return 0
+        return min(100, (self.used_total / profile.data_volume) * 100)
+
+    @property
+    def used_today_gb(self):
+        """Retourne la consommation journalière en Go"""
+        return round(self.used_today / (1024**3), 2)
+
+    @property
+    def used_week_gb(self):
+        """Retourne la consommation hebdomadaire en Go"""
+        return round(self.used_week / (1024**3), 2)
+
+    @property
+    def used_month_gb(self):
+        """Retourne la consommation mensuelle en Go"""
+        return round(self.used_month / (1024**3), 2)
+
+    @property
+    def used_total_gb(self):
+        """Retourne la consommation totale en Go"""
+        return round(self.used_total / (1024**3), 2)
+
+
+class ProfileHistory(models.Model):
+    """
+    Historique des changements de profils pour audit trail.
+    Permet de tracker qui a changé le profil de qui et quand.
+    """
+    user = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='profile_history',
+        help_text="Utilisateur dont le profil a été modifié"
+    )
+    old_profile = models.ForeignKey(
+        Profile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='history_as_old',
+        help_text="Ancien profil (null si premier profil)"
+    )
+    new_profile = models.ForeignKey(
+        Profile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='history_as_new',
+        help_text="Nouveau profil (null si suppression)"
+    )
+    changed_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='profile_changes_made',
+        help_text="Administrateur qui a effectué le changement"
+    )
+    changed_at = models.DateTimeField(
+        default=timezone.now,
+        help_text="Date du changement"
+    )
+    reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Raison du changement (optionnel)"
+    )
+    change_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('assigned', 'Assignation'),
+            ('updated', 'Modification'),
+            ('removed', 'Suppression'),
+        ],
+        default='assigned',
+        help_text="Type de changement"
+    )
+
+    class Meta:
+        db_table = 'profile_history'
+        ordering = ['-changed_at']
+        verbose_name = 'Historique de profil'
+        verbose_name_plural = 'Historiques de profils'
+
+    def __str__(self):
+        if self.change_type == 'assigned':
+            return f"{self.user.username}: Profil assigné à '{self.new_profile.name if self.new_profile else 'None'}'"
+        elif self.change_type == 'updated':
+            return f"{self.user.username}: '{self.old_profile.name if self.old_profile else 'None'}' → '{self.new_profile.name if self.new_profile else 'None'}'"
+        else:
+            return f"{self.user.username}: Profil supprimé"
+
+
+class ProfileAlert(models.Model):
+    """
+    Système d'alertes automatiques basé sur les seuils de consommation.
+    Permet de notifier les utilisateurs et admins quand certains seuils sont atteints.
+    """
+    ALERT_TYPE_CHOICES = [
+        ('quota_warning', 'Avertissement quota'),
+        ('quota_critical', 'Quota critique'),
+        ('expiry_warning', 'Avertissement expiration'),
+        ('expiry_imminent', 'Expiration imminente'),
+    ]
+
+    NOTIFICATION_METHOD_CHOICES = [
+        ('email', 'Email'),
+        ('sms', 'SMS'),
+        ('system', 'Notification système'),
+        ('all', 'Tous les canaux'),
+    ]
+
+    profile = models.ForeignKey(
+        Profile,
+        on_delete=models.CASCADE,
+        related_name='alerts',
+        help_text="Profil concerné par l'alerte"
+    )
+    alert_type = models.CharField(
+        max_length=20,
+        choices=ALERT_TYPE_CHOICES,
+        help_text="Type d'alerte"
+    )
+    threshold_percent = models.IntegerField(
+        default=80,
+        help_text="Seuil en pourcentage pour déclencher l'alerte (ex: 80 = alerte à 80%)"
+    )
+    threshold_days = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Nombre de jours avant expiration pour déclencher l'alerte (pour expiry alerts)"
+    )
+    notification_method = models.CharField(
+        max_length=20,
+        choices=NOTIFICATION_METHOD_CHOICES,
+        default='system',
+        help_text="Méthode de notification"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Active ou désactive cette alerte"
+    )
+    message_template = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Template du message (peut contenir {username}, {percent}, {remaining_gb}, etc.)"
+    )
+
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='alerts_created',
+        help_text="Administrateur ayant créé cette alerte"
+    )
+
+    class Meta:
+        db_table = 'profile_alerts'
+        ordering = ['-created_at']
+        verbose_name = 'Alerte de profil'
+        verbose_name_plural = 'Alertes de profils'
+        unique_together = ['profile', 'alert_type', 'threshold_percent']
+
+    def __str__(self):
+        return f"{self.profile.name} - {self.get_alert_type_display()} @ {self.threshold_percent}%"
+
+    def should_trigger(self, usage):
+        """Vérifie si l'alerte doit être déclenchée pour un UserProfileUsage donné"""
+        if not self.is_active:
+            return False
+
+        if self.alert_type in ['quota_warning', 'quota_critical']:
+            # Alerte basée sur le pourcentage de consommation
+            usage_percent = usage.total_usage_percent
+            return usage_percent >= self.threshold_percent
+
+        elif self.alert_type in ['expiry_warning', 'expiry_imminent']:
+            # Alerte basée sur les jours restants
+            if self.threshold_days is None:
+                return False
+            days_remaining = usage.days_remaining()
+            return days_remaining is not None and days_remaining <= self.threshold_days
+
+        return False

@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion, Profile
+from .models import (
+    User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion, Profile,
+    UserProfileUsage, ProfileHistory, ProfileAlert
+)
 from .utils import generate_secure_password
 
 
@@ -10,6 +13,9 @@ class ProfileSerializer(serializers.ModelSerializer):
     data_volume_gb = serializers.FloatField(read_only=True)
     bandwidth_upload_mbps = serializers.FloatField(read_only=True)
     bandwidth_download_mbps = serializers.FloatField(read_only=True)
+    daily_limit_gb = serializers.FloatField(read_only=True)
+    weekly_limit_gb = serializers.FloatField(read_only=True)
+    monthly_limit_gb = serializers.FloatField(read_only=True)
 
     # Nombre d'utilisateurs et promotions utilisant ce profil
     users_count = serializers.SerializerMethodField()
@@ -22,6 +28,8 @@ class ProfileSerializer(serializers.ModelSerializer):
             'bandwidth_upload', 'bandwidth_download',
             'bandwidth_upload_mbps', 'bandwidth_download_mbps',
             'quota_type', 'data_volume', 'data_volume_gb',
+            'daily_limit', 'weekly_limit', 'monthly_limit',
+            'daily_limit_gb', 'weekly_limit_gb', 'monthly_limit_gb',
             'validity_duration', 'session_timeout', 'idle_timeout',
             'simultaneous_use', 'created_by', 'created_by_username',
             'created_at', 'updated_at',
@@ -30,6 +38,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id', 'created_at', 'updated_at', 'created_by_username',
             'data_volume_gb', 'bandwidth_upload_mbps', 'bandwidth_download_mbps',
+            'daily_limit_gb', 'weekly_limit_gb', 'monthly_limit_gb',
             'users_count', 'promotions_count'
         ]
 
@@ -326,3 +335,128 @@ class UserQuotaSerializer(serializers.ModelSerializer):
 
     def get_used_month_gb(self, obj):
         return round(obj.used_month / (1024 ** 3), 2)
+
+
+class UserProfileUsageSerializer(serializers.ModelSerializer):
+    """Serializer for UserProfileUsage model"""
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    effective_profile = serializers.SerializerMethodField()
+
+    # Pourcentages d'utilisation
+    daily_usage_percent = serializers.FloatField(read_only=True)
+    weekly_usage_percent = serializers.FloatField(read_only=True)
+    monthly_usage_percent = serializers.FloatField(read_only=True)
+    total_usage_percent = serializers.FloatField(read_only=True)
+
+    # Conversions en Go
+    used_today_gb = serializers.FloatField(read_only=True)
+    used_week_gb = serializers.FloatField(read_only=True)
+    used_month_gb = serializers.FloatField(read_only=True)
+    used_total_gb = serializers.FloatField(read_only=True)
+
+    # Informations d'expiration
+    is_expired = serializers.SerializerMethodField()
+    days_remaining = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserProfileUsage
+        fields = [
+            'id', 'user', 'user_username', 'effective_profile',
+            'used_today', 'used_week', 'used_month', 'used_total',
+            'used_today_gb', 'used_week_gb', 'used_month_gb', 'used_total_gb',
+            'daily_usage_percent', 'weekly_usage_percent',
+            'monthly_usage_percent', 'total_usage_percent',
+            'last_daily_reset', 'last_weekly_reset', 'last_monthly_reset',
+            'activation_date', 'is_exceeded', 'is_active',
+            'is_expired', 'days_remaining',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'user_username', 'effective_profile',
+            'used_today', 'used_week', 'used_month', 'used_total',
+            'used_today_gb', 'used_week_gb', 'used_month_gb', 'used_total_gb',
+            'daily_usage_percent', 'weekly_usage_percent',
+            'monthly_usage_percent', 'total_usage_percent',
+            'last_daily_reset', 'last_weekly_reset', 'last_monthly_reset',
+            'is_exceeded', 'is_expired', 'days_remaining',
+            'created_at', 'updated_at'
+        ]
+
+    def get_effective_profile(self, obj):
+        """Retourne le profil effectif de l'utilisateur"""
+        profile = obj.get_effective_profile()
+        if profile:
+            return {
+                'id': profile.id,
+                'name': profile.name,
+                'quota_type': profile.quota_type,
+                'data_volume_gb': profile.data_volume_gb,
+                'daily_limit_gb': profile.daily_limit_gb,
+                'weekly_limit_gb': profile.weekly_limit_gb,
+                'monthly_limit_gb': profile.monthly_limit_gb,
+            }
+        return None
+
+    def get_is_expired(self, obj):
+        """Vérifie si le profil est expiré"""
+        return obj.is_expired()
+
+    def get_days_remaining(self, obj):
+        """Retourne le nombre de jours restants"""
+        return obj.days_remaining()
+
+
+class ProfileHistorySerializer(serializers.ModelSerializer):
+    """Serializer for ProfileHistory model"""
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    old_profile_name = serializers.CharField(source='old_profile.name', read_only=True)
+    new_profile_name = serializers.CharField(source='new_profile.name', read_only=True)
+    changed_by_username = serializers.CharField(source='changed_by.username', read_only=True)
+
+    class Meta:
+        model = ProfileHistory
+        fields = [
+            'id', 'user', 'user_username',
+            'old_profile', 'old_profile_name',
+            'new_profile', 'new_profile_name',
+            'changed_by', 'changed_by_username',
+            'changed_at', 'reason', 'change_type'
+        ]
+        read_only_fields = [
+            'id', 'user_username', 'old_profile_name',
+            'new_profile_name', 'changed_by_username', 'changed_at'
+        ]
+
+    def create(self, validated_data):
+        # Ajouter l'utilisateur courant comme auteur du changement
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['changed_by'] = request.user
+        return super().create(validated_data)
+
+
+class ProfileAlertSerializer(serializers.ModelSerializer):
+    """Serializer for ProfileAlert model"""
+    profile_name = serializers.CharField(source='profile.name', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+
+    class Meta:
+        model = ProfileAlert
+        fields = [
+            'id', 'profile', 'profile_name',
+            'alert_type', 'threshold_percent', 'threshold_days',
+            'notification_method', 'is_active', 'message_template',
+            'created_by', 'created_by_username',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'profile_name', 'created_by', 'created_by_username',
+            'created_at', 'updated_at'
+        ]
+
+    def create(self, validated_data):
+        # Ajouter l'utilisateur courant comme créateur
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
