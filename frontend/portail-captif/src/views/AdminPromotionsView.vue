@@ -342,144 +342,145 @@ async function togglePromotionExpand(promotion: Promotion) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="promotion in filteredPromotions" :key="promotion.id"
-              @click="togglePromotionExpand(promotion)"
-              class="cursor-pointer hover:bg-gray-50">
-            <td><span class="id-badge">{{ promotion.id }}</span></td>
-            <td>
-              <span class="code-badge">{{ promotion.code }}</span>
-            </td>
-            <td>
-              <div class="name-cell">
-                <div class="name-text">{{ promotion.name }}</div>
-                <div v-if="promotion.description" class="description-text">
-                  {{ promotion.description }}
+          <template v-for="promotion in filteredPromotions" :key="promotion.id">
+            <tr @click="togglePromotionExpand(promotion)"
+                class="cursor-pointer hover:bg-gray-50">
+              <td><span class="id-badge">{{ promotion.id }}</span></td>
+              <td>
+                <span class="code-badge">{{ promotion.code }}</span>
+              </td>
+              <td>
+                <div class="name-cell">
+                  <div class="name-text">{{ promotion.name }}</div>
+                  <div v-if="promotion.description" class="description-text">
+                    {{ promotion.description }}
+                  </div>
                 </div>
-              </div>
-            </td>
-            <td>
-              <span v-if="promotion.year" class="year-badge">{{ promotion.year }}</span>
-              <span v-else class="text-gray">-</span>
-            </td>
-            <td>
-              <span class="count-badge">{{ promotion.user_count || 0 }}</span>
-            </td>
-            <td>
-              <span class="count-badge active">{{ promotion.active_user_count || 0 }}</span>
-            </td>
-            <td>
-              <span v-if="promotion.is_active" class="badge badge-success">Active</span>
-              <span v-else class="badge badge-gray">Inactive</span>
-            </td>
-            <td>
-              <div class="action-buttons">
-                <button
-                  v-if="promotion.user_count && promotion.user_count > 0"
-                  @click.stop="handleActivatePromotionUsers(promotion)"
-                  class="action-btn radius-enable"
-                  title="Activer tous les utilisateurs dans RADIUS"
-                  :disabled="isActivating">
+              </td>
+              <td>
+                <span v-if="promotion.year" class="year-badge">{{ promotion.year }}</span>
+                <span v-else class="text-gray">-</span>
+              </td>
+              <td>
+                <span class="count-badge">{{ promotion.user_count || 0 }}</span>
+              </td>
+              <td>
+                <span class="count-badge active">{{ promotion.active_user_count || 0 }}</span>
+              </td>
+              <td>
+                <span v-if="promotion.is_active" class="badge badge-success">Active</span>
+                <span v-else class="badge badge-gray">Inactive</span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button
+                    v-if="promotion.user_count && promotion.user_count > 0"
+                    @click.stop="handleActivatePromotionUsers(promotion)"
+                    class="action-btn radius-enable"
+                    title="Activer tous les utilisateurs dans RADIUS"
+                    :disabled="isActivating">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+
+                  <button
+                    v-if="promotion.user_count && promotion.user_count > 0"
+                    @click.stop="handleDeactivatePromotionUsers(promotion)"
+                    class="action-btn radius-disable"
+                    title="Désactiver tous les utilisateurs dans RADIUS"
+                    :disabled="isActivating">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+
+                  <button @click.stop="handleEdit(promotion)" class="action-btn edit" title="Modifier">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+
+                  <button
+                    @click.stop="handleToggleStatus(promotion)"
+                    :class="['action-btn', promotion.is_active ? 'danger' : 'success']"
+                    :title="promotion.is_active ? 'Désactiver' : 'Activer'">
+                    <svg v-if="promotion.is_active" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+
+                  <button @click.stop="handleDelete(promotion)" class="action-btn delete" title="Supprimer">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Rangée déroulable pour les utilisateurs -->
+            <tr v-if="expandedPromotion === promotion.id" class="expanded-row">
+              <td colspan="8" class="users-container">
+                <div v-if="isLoadingUsers" class="loading-users">
+                  <LoadingSpinner />
+                  <p>Chargement des utilisateurs...</p>
+                </div>
+
+                <div v-else-if="promotionUsers.length === 0" class="no-users">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
                   </svg>
-                </button>
+                  <p>Aucun utilisateur dans cette promotion</p>
+                </div>
 
-                <button
-                  v-if="promotion.user_count && promotion.user_count > 0"
-                  @click.stop="handleDeactivatePromotionUsers(promotion)"
-                  class="action-btn radius-disable"
-                  title="Désactiver tous les utilisateurs dans RADIUS"
-                  :disabled="isActivating">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                </button>
+                <div v-else class="users-list">
+                  <h4>Utilisateurs de la promotion {{ promotion.name }} ({{ promotionUsers.length }})</h4>
 
-                <button @click.stop="handleEdit(promotion)" class="action-btn edit" title="Modifier">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
+                  <div class="users-grid">
+                    <div v-for="user in promotionUsers" :key="user.id" class="user-card">
+                      <div class="user-avatar">
+                        {{ user.first_name?.charAt(0) || 'U' }}{{ user.last_name?.charAt(0) || '?' }}
+                      </div>
 
-                <button
-                  @click.stop="handleToggleStatus(promotion)"
-                  :class="['action-btn', promotion.is_active ? 'danger' : 'success']"
-                  :title="promotion.is_active ? 'Désactiver' : 'Activer'">
-                  <svg v-if="promotion.is_active" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                  <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
+                      <div class="user-info">
+                        <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                        <div class="user-username">@{{ user.username }}</div>
+                        <div v-if="user.matricule" class="user-matricule">{{ user.matricule }}</div>
+                      </div>
 
-                <button @click.stop="handleDelete(promotion)" class="action-btn delete" title="Supprimer">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Rangée déroulable pour les utilisateurs -->
-          <tr v-if="expandedPromotion === promotion.id" class="expanded-row">
-            <td colspan="8" class="users-container">
-              <div v-if="isLoadingUsers" class="loading-users">
-                <LoadingSpinner />
-                <p>Chargement des utilisateurs...</p>
-              </div>
-
-              <div v-else-if="promotionUsers.length === 0" class="no-users">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <p>Aucun utilisateur dans cette promotion</p>
-              </div>
-
-              <div v-else class="users-list">
-                <h4>Utilisateurs de la promotion {{ promotion.name }} ({{ promotionUsers.length }})</h4>
-
-                <div class="users-grid">
-                  <div v-for="user in promotionUsers" :key="user.id" class="user-card">
-                    <div class="user-avatar">
-                      {{ user.first_name?.charAt(0) || 'U' }}{{ user.last_name?.charAt(0) || '?' }}
-                    </div>
-
-                    <div class="user-info">
-                      <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
-                      <div class="user-username">@{{ user.username }}</div>
-                      <div v-if="user.matricule" class="user-matricule">{{ user.matricule }}</div>
-                    </div>
-
-                    <div class="user-status">
-                      <span v-if="user.can_access_radius" class="status-badge active">
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        Accès WiFi actif
-                      </span>
-                      <span v-else class="status-badge inactive">
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                        {{ user.radius_status }}
-                      </span>
+                      <div class="user-status">
+                        <span v-if="user.can_access_radius" class="status-badge active">
+                          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          Accès WiFi actif
+                        </span>
+                        <span v-else class="status-badge inactive">
+                          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                          </svg>
+                          {{ user.radius_status }}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </td>
-          </tr>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
 
