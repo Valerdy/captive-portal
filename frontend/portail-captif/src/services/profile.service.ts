@@ -6,16 +6,18 @@ export const profileService = {
    * Récupère la liste de tous les profils
    */
   async list(params: { is_active?: boolean } = {}): Promise<Profile[]> {
-    const response = await api.get<Profile[]>('/api/core/profiles/', { params })
-    return response.data
+    const response = await api.get<any>('/api/core/profiles/', { params })
+    // Django REST Framework retourne {count, results} pour les listes paginées
+    return Array.isArray(response.data) ? response.data : (response.data.results || [])
   },
 
   /**
    * Récupère la liste des profils actifs uniquement
    */
   async active(): Promise<Profile[]> {
-    const response = await api.get<Profile[]>('/api/core/profiles/active/')
-    return response.data
+    const response = await api.get<any>('/api/core/profiles/active/')
+    // Django REST Framework retourne {count, results} pour les listes paginées
+    return Array.isArray(response.data) ? response.data : (response.data.results || [])
   },
 
   /**
