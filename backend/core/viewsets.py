@@ -377,8 +377,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
         # 4. radreply - Limite de bande passante (du profil ou valeur par défaut)
         if profile:
-            upload_mbps = profile.bandwidth_upload / 1024
-            download_mbps = profile.bandwidth_download / 1024
+            # Les valeurs sont déjà en Mbps dans le modèle
+            upload_mbps = profile.bandwidth_upload
+            download_mbps = profile.bandwidth_download
             bandwidth_value = f"{int(upload_mbps)}M/{int(download_mbps)}M"
         else:
             bandwidth_value = '10M/10M'
@@ -811,10 +812,10 @@ class PromotionViewSet(viewsets.ModelViewSet):
 
                         # 4. radreply - Limite de bande passante (du profil ou valeur par défaut)
                         if profile:
-                            # Format Mikrotik: upload/download en bps
-                            # Profil stocke en Kbps, Mikrotik attend en bps ou format "5M/10M"
-                            upload_mbps = profile.bandwidth_upload / 1024  # Convertir Kbps en Mbps
-                            download_mbps = profile.bandwidth_download / 1024
+                            # Format Mikrotik: upload/download en Mbps (ex: "5M/10M")
+                            # Profil stocke déjà en Mbps
+                            upload_mbps = profile.bandwidth_upload
+                            download_mbps = profile.bandwidth_download
                             bandwidth_value = f"{int(upload_mbps)}M/{int(download_mbps)}M"
                         else:
                             bandwidth_value = '10M/10M'  # Valeur par défaut

@@ -33,8 +33,8 @@ const isLoadingDetails = ref(false)
 const newProfile = ref({
   name: '',
   description: '',
-  bandwidth_upload: 5120,  // 5 Mbps par défaut
-  bandwidth_download: 10240,  // 10 Mbps par défaut
+  bandwidth_upload: 5,  // 5 Mbps par défaut
+  bandwidth_download: 10,  // 10 Mbps par défaut
   quota_type: 'limited' as 'unlimited' | 'limited',
   data_volume: 53687091200,  // 50 Go par défaut
   validity_duration: 30,
@@ -129,8 +129,8 @@ function openAddModal() {
   newProfile.value = {
     name: '',
     description: '',
-    bandwidth_upload: 5120,
-    bandwidth_download: 10240,
+    bandwidth_upload: 5,
+    bandwidth_download: 10,
     quota_type: 'limited',
     data_volume: 53687091200,
     validity_duration: 30,
@@ -481,14 +481,14 @@ function formatSeconds(seconds: number): string {
 
             <div class="form-row">
               <div class="form-group">
-                <label>Upload (Kbps) *</label>
-                <input v-model.number="newProfile.bandwidth_upload" type="number" min="128" step="128" required />
-                <small class="help-text">{{ formatBandwidth(newProfile.bandwidth_upload) }}</small>
+                <label>Upload (Mbps) *</label>
+                <input v-model.number="newProfile.bandwidth_upload" type="number" min="1" step="1" required />
+                <small class="help-text">{{ newProfile.bandwidth_upload }} Mbps</small>
               </div>
               <div class="form-group">
-                <label>Download (Kbps) *</label>
-                <input v-model.number="newProfile.bandwidth_download" type="number" min="128" step="128" required />
-                <small class="help-text">{{ formatBandwidth(newProfile.bandwidth_download) }}</small>
+                <label>Download (Mbps) *</label>
+                <input v-model.number="newProfile.bandwidth_download" type="number" min="1" step="1" required />
+                <small class="help-text">{{ newProfile.bandwidth_download }} Mbps</small>
               </div>
             </div>
           </div>
@@ -596,14 +596,14 @@ function formatSeconds(seconds: number): string {
 
             <div class="form-row">
               <div class="form-group">
-                <label>Upload (Kbps) *</label>
-                <input v-model.number="selectedProfile.bandwidth_upload" type="number" min="128" step="128" required />
-                <small class="help-text">{{ formatBandwidth(selectedProfile.bandwidth_upload) }}</small>
+                <label>Upload (Mbps) *</label>
+                <input v-model.number="selectedProfile.bandwidth_upload" type="number" min="1" step="1" required />
+                <small class="help-text">{{ selectedProfile.bandwidth_upload }} Mbps</small>
               </div>
               <div class="form-group">
-                <label>Download (Kbps) *</label>
-                <input v-model.number="selectedProfile.bandwidth_download" type="number" min="128" step="128" required />
-                <small class="help-text">{{ formatBandwidth(selectedProfile.bandwidth_download) }}</small>
+                <label>Download (Mbps) *</label>
+                <input v-model.number="selectedProfile.bandwidth_download" type="number" min="1" step="1" required />
+                <small class="help-text">{{ selectedProfile.bandwidth_download }} Mbps</small>
               </div>
             </div>
           </div>
