@@ -13,8 +13,12 @@ export const promotionService = {
 
   async active(): Promise<Promotion[]> {
     // Endpoint public pour lister les promotions actives (utilisé pour l'inscription)
-    const response = await api.get<Promotion[]>('/api/core/promotions/active/')
-    return response.data
+    const response = await api.get<any>('/api/core/promotions/active/')
+    const data: any = response.data
+    // Normaliser la réponse pour supporter la pagination DRF
+    if (Array.isArray(data)) return data as Promotion[]
+    if (data?.results) return data.results as Promotion[]
+    return []
   },
 
   async create(data: Partial<Promotion>): Promise<Promotion> {
