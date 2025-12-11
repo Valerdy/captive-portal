@@ -4,7 +4,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .viewsets import (
     UserViewSet, DeviceViewSet, SessionViewSet, VoucherViewSet,
     BlockedSiteViewSet, UserQuotaViewSet, PromotionViewSet, ProfileViewSet,
-    UserProfileUsageViewSet, ProfileHistoryViewSet, ProfileAlertViewSet
+    UserProfileUsageViewSet, ProfileHistoryViewSet, ProfileAlertViewSet,
+    UserDisconnectionLogViewSet
 )
 from . import views
 
@@ -13,6 +14,7 @@ router.register(r'profiles', ProfileViewSet, basename='profile')
 router.register(r'profile-usage', UserProfileUsageViewSet, basename='profile-usage')
 router.register(r'profile-history', ProfileHistoryViewSet, basename='profile-history')
 router.register(r'profile-alerts', ProfileAlertViewSet, basename='profile-alert')
+router.register(r'disconnection-logs', UserDisconnectionLogViewSet, basename='disconnection-log')
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'devices', DeviceViewSet, basename='device')
 router.register(r'sessions', SessionViewSet, basename='session')

@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import (
     User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion, Profile,
-    UserProfileUsage, ProfileHistory, ProfileAlert
+    UserProfileUsage, ProfileHistory, ProfileAlert, UserDisconnectionLog
 )
 from .utils import generate_secure_password
 
@@ -517,3 +517,55 @@ class ProfileAlertSerializer(serializers.ModelSerializer):
         if request and hasattr(request, 'user'):
             validated_data['created_by'] = request.user
         return super().create(validated_data)
+
+
+class UserDisconnectionLogSerializer(serializers.ModelSerializer):
+    """Serializer for UserDisconnectionLog model"""
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    user_full_name = serializers.SerializerMethodField()
+    reason_display = serializers.CharField(source='get_reason_display', read_only=True)
+    reconnected_by_username = serializers.CharField(source='reconnected_by.username', read_only=True)
+    quota_used_gb = serializers.SerializerMethodField()
+    quota_limit_gb = serializers.SerializerMethodField()
+    duration_formatted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserDisconnectionLog
+        fields = [
+            'id', 'user', 'user_username', 'user_full_name',
+            'reason', 'reason_display', 'description',
+            'disconnected_at', 'reconnected_at', 'is_active',
+            'reconnected_by', 'reconnected_by_username',
+            'quota_used', 'quota_limit', 'quota_used_gb', 'quota_limit_gb',
+            'session_duration', 'duration_formatted'
+        ]
+        read_only_fields = [
+            'id', 'disconnected_at', 'reconnected_at', 'is_active',
+            'user_username', 'user_full_name', 'reason_display',
+            'reconnected_by_username', 'quota_used_gb', 'quota_limit_gb',
+            'duration_formatted'
+        ]
+
+    def get_user_full_name(self, obj):
+        """Retourne le nom complet de l'utilisateur"""
+        return f"{obj.user.first_name} {obj.user.last_name}"
+
+    def get_quota_used_gb(self, obj):
+        """Retourne le quota utilisé en Go"""
+        if obj.quota_used:
+            return round(obj.quota_used / (1024**3), 2)
+        return None
+
+    def get_quota_limit_gb(self, obj):
+        """Retourne la limite de quota en Go"""
+        if obj.quota_limit:
+            return round(obj.quota_limit / (1024**3), 2)
+        return None
+
+    def get_duration_formatted(self, obj):
+        """Retourne la durée de session formatée"""
+        if obj.session_duration:
+            hours = obj.session_duration // 3600
+            minutes = (obj.session_duration % 3600) // 60
+            return f"{hours}h{minutes:02d}m"
+        return None
