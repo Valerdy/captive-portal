@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePromotionStore } from '@/stores/promotion'
+import { useProfileStore } from '@/stores/profile'
 import { useNotificationStore } from '@/stores/notification'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
@@ -11,9 +12,14 @@ import type { Promotion } from '@/types'
 const router = useRouter()
 const authStore = useAuthStore()
 const promotionStore = usePromotionStore()
+const profileStore = useProfileStore()
 const notificationStore = useNotificationStore()
 
 const promotions = computed(() => promotionStore.promotions)
+const profiles = computed(() => {
+  if (!Array.isArray(profileStore.profiles)) return []
+  return profileStore.profiles.filter(p => p && p.is_active)
+})
 const isLoading = computed(() => promotionStore.isLoading)
 
 const showAddModal = ref(false)
@@ -28,38 +34,35 @@ const promotionUsers = ref<any[]>([])
 const isLoadingUsers = ref(false)
 
 const newPromotion = ref({
-  code: '',
   name: '',
-  description: '',
-  year: null as number | null,
+  profile: '' as number | string,
   is_active: true
 })
 
 // Filtrage des promotions
 const filteredPromotions = computed(() => {
+  if (!Array.isArray(promotions.value)) return []
+
   let filtered = promotions.value
 
   // Filtre par recherche
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(p =>
-      p.code?.toLowerCase().includes(query) ||
-      p.name?.toLowerCase().includes(query) ||
-      p.description?.toLowerCase().includes(query) ||
-      p.year?.toString().includes(query)
+      p && p.name?.toLowerCase().includes(query)
     )
   }
 
   // Filtre par statut
   if (filterStatus.value !== 'all') {
     if (filterStatus.value === 'active') {
-      filtered = filtered.filter(p => p.is_active)
+      filtered = filtered.filter(p => p && p.is_active)
     } else {
-      filtered = filtered.filter(p => !p.is_active)
+      filtered = filtered.filter(p => p && !p.is_active)
     }
   }
 
-  return filtered
+  return filtered.filter(p => p != null)
 })
 
 // Statistiques
@@ -79,7 +82,10 @@ onMounted(async () => {
   }
 
   try {
-    await promotionStore.fetchPromotions()
+    await Promise.all([
+      promotionStore.fetchPromotions(),
+      profileStore.fetchProfiles()
+    ])
   } catch (error: any) {
     const message = error?.message || 'Erreur inconnue'
     notificationStore.error(`Erreur lors du chargement: ${message}`)
@@ -89,10 +95,8 @@ onMounted(async () => {
 
 function openAddModal() {
   newPromotion.value = {
-    code: '',
     name: '',
-    description: '',
-    year: null,
+    profile: '',
     is_active: true
   }
   showAddModal.value = true
@@ -104,19 +108,23 @@ function closeAddModal() {
 
 async function handleAddPromotion() {
   // Validation
-  if (!newPromotion.value.code || !newPromotion.value.name) {
-    notificationStore.warning('Veuillez remplir tous les champs requis')
+  if (!newPromotion.value.name) {
+    notificationStore.warning('Veuillez remplir le nom de la promotion')
     return
   }
 
   try {
-    await promotionStore.createPromotion({
-      code: newPromotion.value.code,
+    const promotionData: any = {
       name: newPromotion.value.name,
-      description: newPromotion.value.description || null,
-      year: newPromotion.value.year,
       is_active: newPromotion.value.is_active
-    })
+    }
+
+    // Ajouter le profil seulement s'il est sélectionné
+    if (newPromotion.value.profile) {
+      promotionData.profile = Number(newPromotion.value.profile)
+    }
+
+    await promotionStore.createPromotion(promotionData)
 
     notificationStore.success('Promotion créée avec succès')
     closeAddModal()
@@ -138,14 +146,22 @@ function closeEditModal() {
 async function handleUpdatePromotion() {
   if (!selectedPromotion.value) return
 
+  // Validation
+  if (!selectedPromotion.value.name) {
+    notificationStore.warning('Veuillez remplir le nom de la promotion')
+    return
+  }
+
   try {
-    await promotionStore.updatePromotion(selectedPromotion.value.id, {
-      code: selectedPromotion.value.code,
+    const promotionData: any = {
       name: selectedPromotion.value.name,
-      description: selectedPromotion.value.description,
-      year: selectedPromotion.value.year,
       is_active: selectedPromotion.value.is_active
-    })
+    }
+
+    // Ajouter le profil (peut être null)
+    promotionData.profile = selectedPromotion.value.profile || null
+
+    await promotionStore.updatePromotion(selectedPromotion.value.id, promotionData)
 
     notificationStore.success('Promotion modifiée avec succès')
     closeEditModal()
@@ -509,25 +525,29 @@ async function togglePromotionExpand(promotion: Promotion) {
         </div>
 
         <div class="modal-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Code *</label>
-              <input v-model="newPromotion.code" type="text" placeholder="Ex: ING3, L1, M2..." required />
-            </div>
-            <div class="form-group">
-              <label>Année</label>
-              <input v-model.number="newPromotion.year" type="number" placeholder="2024" min="2000" max="2100" />
-            </div>
+          <div class="form-group">
+            <label>Nom de la promotion *</label>
+            <input
+              v-model="newPromotion.name"
+              type="text"
+              placeholder="Ex: L3 Informatique 2024, Master 2 IA, Licence 1..."
+              required
+            />
+            <small class="form-help">Le nom doit être unique et descriptif</small>
           </div>
 
           <div class="form-group">
-            <label>Nom *</label>
-            <input v-model="newPromotion.name" type="text" placeholder="Nom complet de la promotion" required />
-          </div>
-
-          <div class="form-group">
-            <label>Description</label>
-            <textarea v-model="newPromotion.description" rows="3" placeholder="Description optionnelle"></textarea>
+            <label>Profil RADIUS (optionnel)</label>
+            <select v-model="newPromotion.profile">
+              <option value="">Aucun profil assigné</option>
+              <option v-for="profile in profiles" :key="profile.id" :value="profile.id">
+                {{ profile.name }}
+                ({{ profile.quota_type === 'limited' ? profile.data_volume_gb + ' Go' : 'Illimité' }})
+              </option>
+            </select>
+            <small class="form-help">
+              Le profil définit les quotas et limites de bande passante pour tous les utilisateurs de cette promotion
+            </small>
           </div>
 
           <div class="form-group checkbox-group">
@@ -535,7 +555,7 @@ async function togglePromotionExpand(promotion: Promotion) {
               <input v-model="newPromotion.is_active" type="checkbox" />
               <span class="checkbox-text">
                 <strong>Promotion active</strong>
-                <small>Les promotions actives sont visibles lors de l'inscription</small>
+                <small>Les promotions actives sont visibles lors de l'inscription des nouveaux utilisateurs</small>
               </span>
             </label>
           </div>
@@ -562,25 +582,29 @@ async function togglePromotionExpand(promotion: Promotion) {
         </div>
 
         <div class="modal-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Code *</label>
-              <input v-model="selectedPromotion.code" type="text" required />
-            </div>
-            <div class="form-group">
-              <label>Année</label>
-              <input v-model.number="selectedPromotion.year" type="number" min="2000" max="2100" />
-            </div>
+          <div class="form-group">
+            <label>Nom de la promotion *</label>
+            <input
+              v-model="selectedPromotion.name"
+              type="text"
+              placeholder="Ex: L3 Informatique 2024, Master 2 IA..."
+              required
+            />
+            <small class="form-help">Le nom doit être unique et descriptif</small>
           </div>
 
           <div class="form-group">
-            <label>Nom *</label>
-            <input v-model="selectedPromotion.name" type="text" required />
-          </div>
-
-          <div class="form-group">
-            <label>Description</label>
-            <textarea v-model="selectedPromotion.description" rows="3"></textarea>
+            <label>Profil RADIUS (optionnel)</label>
+            <select v-model="selectedPromotion.profile">
+              <option :value="null">Aucun profil assigné</option>
+              <option v-for="profile in profiles" :key="profile.id" :value="profile.id">
+                {{ profile.name }}
+                ({{ profile.quota_type === 'limited' ? profile.data_volume_gb + ' Go' : 'Illimité' }})
+              </option>
+            </select>
+            <small class="form-help">
+              Le profil définit les quotas et limites de bande passante pour tous les utilisateurs
+            </small>
           </div>
 
           <div class="form-group checkbox-group">
@@ -1401,5 +1425,14 @@ async function togglePromotionExpand(promotion: Promotion) {
 .status-badge.inactive {
   background: #FEE2E2;
   color: #DC2626;
+}
+
+/* Texte d'aide pour les formulaires */
+.form-help {
+  display: block;
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 0.375rem;
+  line-height: 1.4;
 }
 </style>
