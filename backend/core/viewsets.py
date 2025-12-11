@@ -389,15 +389,7 @@ class UserViewSet(viewsets.ModelViewSet):
             defaults={'op': '=', 'value': bandwidth_value}
         )
 
-        # 5. radcheck - Simultaneous-Use (du profil ou valeur par défaut)
-        simultaneous_use = profile.simultaneous_use if profile else 1
-        RadCheck.objects.update_or_create(
-            username=user.username,
-            attribute='Simultaneous-Use',
-            defaults={'op': ':=', 'value': str(simultaneous_use), 'statut': True}
-        )
-
-        # 6. radcheck - Quota de données (si le profil a un quota limité)
+        # 5. radcheck - Quota de données (si le profil a un quota limité)
         if profile and profile.quota_type == 'limited':
             RadCheck.objects.update_or_create(
                 username=user.username,
@@ -836,19 +828,7 @@ class PromotionViewSet(viewsets.ModelViewSet):
                             }
                         )
 
-                        # 5. radcheck - Simultaneous-Use (du profil ou valeur par défaut)
-                        simultaneous_use = profile.simultaneous_use if profile else 1
-                        RadCheck.objects.update_or_create(
-                            username=user.username,
-                            attribute='Simultaneous-Use',
-                            defaults={
-                                'op': ':=',
-                                'value': str(simultaneous_use),
-                                'statut': True
-                            }
-                        )
-
-                        # 6. radcheck - Quota de données (si le profil a un quota limité)
+                        # 5. radcheck - Quota de données (si le profil a un quota limité)
                         if profile and profile.quota_type == 'limited':
                             # ChilliSpot-Max-Total-Octets pour quota total
                             RadCheck.objects.update_or_create(
