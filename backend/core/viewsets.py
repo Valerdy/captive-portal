@@ -87,6 +87,182 @@ class ProfileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(active_profiles, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """
+        Statistiques globales sur tous les profils.
+        Retourne des données agrégées pour le dashboard admin.
+        """
+        from django.db.models import Count, Sum, Avg, Q
+
+        profiles = Profile.objects.all()
+
+        # Statistiques générales
+        total_profiles = profiles.count()
+        active_profiles = profiles.filter(is_active=True).count()
+        inactive_profiles = total_profiles - active_profiles
+
+        # Répartition par type de quota
+        unlimited_profiles = profiles.filter(quota_type='unlimited').count()
+        limited_profiles = profiles.filter(quota_type='limited').count()
+
+        # Statistiques sur l'utilisation des profils
+        profiles_with_stats = []
+        for profile in profiles:
+            # Utilisateurs directs
+            direct_users = profile.users.filter(is_active=True).count()
+
+            # Utilisateurs via promotions
+            promotion_users = User.objects.filter(
+                promotion__profile=profile,
+                is_active=True,
+                profile__isnull=True  # Ne pas compter ceux qui ont un profil direct
+            ).count()
+
+            total_users = direct_users + promotion_users
+
+            # Consommation moyenne pour ce profil
+            usages = UserProfileUsage.objects.filter(
+                user__profile=profile,
+                is_active=True
+            )
+
+            avg_usage = usages.aggregate(
+                avg_today=Avg('used_today'),
+                avg_week=Avg('used_week'),
+                avg_month=Avg('used_month'),
+                avg_total=Avg('used_total')
+            )
+
+            # Nombre d'utilisateurs qui ont dépassé leur quota
+            exceeded_count = usages.filter(is_exceeded=True).count()
+
+            profiles_with_stats.append({
+                'profile_id': profile.id,
+                'profile_name': profile.name,
+                'quota_type': profile.quota_type,
+                'is_active': profile.is_active,
+                'direct_users': direct_users,
+                'promotion_users': promotion_users,
+                'total_users': total_users,
+                'avg_usage_today_gb': round(avg_usage['avg_today'] / (1024**3), 2) if avg_usage['avg_today'] else 0,
+                'avg_usage_week_gb': round(avg_usage['avg_week'] / (1024**3), 2) if avg_usage['avg_week'] else 0,
+                'avg_usage_month_gb': round(avg_usage['avg_month'] / (1024**3), 2) if avg_usage['avg_month'] else 0,
+                'avg_usage_total_gb': round(avg_usage['avg_total'] / (1024**3), 2) if avg_usage['avg_total'] else 0,
+                'exceeded_count': exceeded_count,
+                'exceeded_percent': round((exceeded_count / total_users * 100), 2) if total_users > 0 else 0
+            })
+
+        # Trier par nombre d'utilisateurs (du plus utilisé au moins utilisé)
+        profiles_with_stats.sort(key=lambda x: x['total_users'], reverse=True)
+
+        # Top 5 profils les plus utilisés
+        top_profiles = profiles_with_stats[:5]
+
+        return Response({
+            'summary': {
+                'total_profiles': total_profiles,
+                'active_profiles': active_profiles,
+                'inactive_profiles': inactive_profiles,
+                'unlimited_profiles': unlimited_profiles,
+                'limited_profiles': limited_profiles,
+            },
+            'top_profiles': top_profiles,
+            'all_profiles': profiles_with_stats
+        })
+
+    @action(detail=True, methods=['get'])
+    def statistics_detail(self, request, pk=None):
+        """
+        Statistiques détaillées pour un profil spécifique.
+        """
+        from django.db.models import Avg, Max, Min, Sum
+
+        profile = self.get_object()
+
+        # Utilisateurs utilisant ce profil
+        direct_users = User.objects.filter(profile=profile, is_active=True)
+        promotion_users = User.objects.filter(
+            promotion__profile=profile,
+            is_active=True,
+            profile__isnull=True
+        )
+
+        all_users = direct_users.count() + promotion_users.count()
+
+        # Statistiques d'utilisation
+        usages = UserProfileUsage.objects.filter(
+            user__in=list(direct_users) + list(promotion_users),
+            is_active=True
+        )
+
+        usage_stats = usages.aggregate(
+            avg_today=Avg('used_today'),
+            avg_week=Avg('used_week'),
+            avg_month=Avg('used_month'),
+            avg_total=Avg('used_total'),
+            max_total=Max('used_total'),
+            min_total=Min('used_total'),
+            total_consumed=Sum('used_total')
+        )
+
+        # Répartition par statut
+        exceeded_users = usages.filter(is_exceeded=True).count()
+        active_users = usages.filter(is_exceeded=False).count()
+
+        # Répartition par tranche de consommation (% du quota)
+        if profile.quota_type == 'limited':
+            ranges = {
+                '0-25%': 0,
+                '25-50%': 0,
+                '50-75%': 0,
+                '75-100%': 0,
+                '>100%': 0
+            }
+
+            for usage in usages:
+                percent = usage.total_usage_percent
+                if percent < 25:
+                    ranges['0-25%'] += 1
+                elif percent < 50:
+                    ranges['25-50%'] += 1
+                elif percent < 75:
+                    ranges['50-75%'] += 1
+                elif percent <= 100:
+                    ranges['75-100%'] += 1
+                else:
+                    ranges['>100%'] += 1
+        else:
+            ranges = None
+
+        return Response({
+            'profile': {
+                'id': profile.id,
+                'name': profile.name,
+                'quota_type': profile.quota_type,
+                'data_volume_gb': profile.data_volume_gb,
+                'bandwidth_upload_mbps': profile.bandwidth_upload_mbps,
+                'bandwidth_download_mbps': profile.bandwidth_download_mbps,
+            },
+            'users': {
+                'direct': direct_users.count(),
+                'via_promotion': promotion_users.count(),
+                'total': all_users,
+                'exceeded': exceeded_users,
+                'active': active_users,
+            },
+            'consumption': {
+                'avg_today_gb': round(usage_stats['avg_today'] / (1024**3), 2) if usage_stats['avg_today'] else 0,
+                'avg_week_gb': round(usage_stats['avg_week'] / (1024**3), 2) if usage_stats['avg_week'] else 0,
+                'avg_month_gb': round(usage_stats['avg_month'] / (1024**3), 2) if usage_stats['avg_month'] else 0,
+                'avg_total_gb': round(usage_stats['avg_total'] / (1024**3), 2) if usage_stats['avg_total'] else 0,
+                'max_total_gb': round(usage_stats['max_total'] / (1024**3), 2) if usage_stats['max_total'] else 0,
+                'min_total_gb': round(usage_stats['min_total'] / (1024**3), 2) if usage_stats['min_total'] else 0,
+                'total_consumed_gb': round(usage_stats['total_consumed'] / (1024**3), 2) if usage_stats['total_consumed'] else 0,
+            },
+            'distribution': ranges
+        })
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """ViewSet for User model"""
