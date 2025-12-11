@@ -5,14 +5,15 @@ from django.utils import timezone
 from django.db import models
 from .models import (
     User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion, Profile,
-    UserProfileUsage, ProfileHistory, ProfileAlert
+    UserProfileUsage, ProfileHistory, ProfileAlert, UserDisconnectionLog
 )
 from .serializers import (
     UserSerializer, UserListSerializer, DeviceSerializer,
     SessionSerializer, SessionListSerializer, VoucherSerializer,
     VoucherValidationSerializer, BlockedSiteSerializer, UserQuotaSerializer,
     PromotionSerializer, ProfileSerializer,
-    UserProfileUsageSerializer, ProfileHistorySerializer, ProfileAlertSerializer
+    UserProfileUsageSerializer, ProfileHistorySerializer, ProfileAlertSerializer,
+    UserDisconnectionLogSerializer
 )
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrAdmin, IsAuthenticatedUser
 from .decorators import rate_limit
@@ -1196,3 +1197,103 @@ class ProfileAlertViewSet(viewsets.ModelViewSet):
                 return f"Attention: {round(usage.total_usage_percent, 2)}% de votre quota utilisé"
             else:
                 return f"Votre profil expire dans {usage.days_remaining()} jour(s)"
+
+
+class UserDisconnectionLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for UserDisconnectionLog - Read only for users, full access for admins
+
+    Permet de:
+    - Lister les logs de déconnexion
+    - Voir le statut actuel de déconnexion d'un utilisateur
+    - (Admin) Réactiver un utilisateur
+    """
+    queryset = UserDisconnectionLog.objects.all()
+    serializer_class = UserDisconnectionLogSerializer
+
+    def get_permissions(self):
+        """Permissions personnalisées selon l'action"""
+        if self.action in ['reactivate_user', 'list', 'retrieve']:
+            permission_classes = [IsAdmin]
+        else:
+            permission_classes = [IsAuthenticatedUser]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """Filtre les logs selon l'utilisateur"""
+        user = self.request.user
+
+        if user.is_staff or user.is_superuser:
+            # Les admins voient tous les logs
+            queryset = UserDisconnectionLog.objects.all()
+        else:
+            # Les utilisateurs ne voient que leurs propres logs
+            queryset = UserDisconnectionLog.objects.filter(user=user)
+
+        # Filtres optionnels
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+
+        reason = self.request.query_params.get('reason', None)
+        if reason:
+            queryset = queryset.filter(reason=reason)
+
+        return queryset.select_related('user', 'reconnected_by')
+
+    @action(detail=False, methods=['get'], url_path='current')
+    def current_disconnection(self, request):
+        """
+        Retourne la déconnexion active de l'utilisateur connecté
+
+        GET /api/core/disconnection-logs/current/
+        """
+        try:
+            log = UserDisconnectionLog.objects.filter(
+                user=request.user,
+                is_active=True
+            ).select_related('user').latest('disconnected_at')
+
+            serializer = self.get_serializer(log)
+            return Response(serializer.data)
+        except UserDisconnectionLog.DoesNotExist:
+            return Response({
+                'is_disconnected': False,
+                'message': 'Aucune déconnexion active'
+            }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='reactivate', permission_classes=[IsAdmin])
+    def reactivate_user(self, request, pk=None):
+        """
+        Réactive un utilisateur en marquant la déconnexion comme résolue
+        et en mettant à jour le statut dans radcheck
+
+        POST /api/core/disconnection-logs/{id}/reactivate/
+        """
+        log = self.get_object()
+
+        if not log.is_active:
+            return Response({
+                'error': 'Cette déconnexion a déjà été résolue'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with models.transaction.atomic():
+                # Réactiver le log
+                log.reactivate(admin_user=request.user)
+
+                # Mettre à jour statut=1 dans radcheck
+                updated = RadCheck.objects.filter(
+                    username=log.user.username
+                ).update(statut=True)
+
+                return Response({
+                    'message': f'Utilisateur {log.user.username} réactivé avec succès',
+                    'radcheck_updated': updated,
+                    'reconnected_at': log.reconnected_at,
+                    'reconnected_by': request.user.username
+                })
+        except Exception as e:
+            return Response({
+                'error': f'Erreur lors de la réactivation: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

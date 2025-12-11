@@ -963,3 +963,99 @@ class ProfileAlert(models.Model):
             return days_remaining is not None and days_remaining <= self.threshold_days
 
         return False
+
+
+class UserDisconnectionLog(models.Model):
+    """
+    Logs des déconnexions automatiques d'utilisateurs
+    Stocke pourquoi un utilisateur a été désactivé (quota atteint, session expirée, etc.)
+    """
+    REASON_CHOICES = [
+        ('quota_exceeded', 'Quota de données dépassé'),
+        ('session_expired', 'Session expirée'),
+        ('daily_limit', 'Limite journalière atteinte'),
+        ('weekly_limit', 'Limite hebdomadaire atteinte'),
+        ('monthly_limit', 'Limite mensuelle atteinte'),
+        ('idle_timeout', 'Délai d\'inactivité dépassé'),
+        ('validity_expired', 'Durée de validité expirée'),
+        ('manual', 'Désactivation manuelle par admin'),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='disconnection_logs',
+        help_text="Utilisateur concerné"
+    )
+    reason = models.CharField(
+        max_length=50,
+        choices=REASON_CHOICES,
+        help_text="Raison de la déconnexion"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Description détaillée de la raison"
+    )
+    disconnected_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Date et heure de la déconnexion"
+    )
+    reconnected_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Date et heure de la reconnexion (si réactivé)"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="True si l'utilisateur est toujours déconnecté"
+    )
+    reconnected_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reconnections_performed',
+        help_text="Admin qui a réactivé l'utilisateur"
+    )
+
+    # Données au moment de la déconnexion (pour référence)
+    quota_used = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text="Quota utilisé en octets au moment de la déconnexion"
+    )
+    quota_limit = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text="Limite de quota en octets"
+    )
+    session_duration = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Durée de la session en secondes"
+    )
+
+    class Meta:
+        db_table = 'user_disconnection_logs'
+        ordering = ['-disconnected_at']
+        indexes = [
+            models.Index(fields=['user', 'is_active']),
+            models.Index(fields=['disconnected_at']),
+            models.Index(fields=['reason']),
+        ]
+        verbose_name = "Log de déconnexion"
+        verbose_name_plural = "Logs de déconnexions"
+
+    def __str__(self):
+        status = "Actif" if self.is_active else "Résolu"
+        return f"{self.user.username} - {self.get_reason_display()} ({status})"
+
+    def reactivate(self, admin_user=None):
+        """Marque la déconnexion comme résolue et réactive l'utilisateur"""
+        from django.utils import timezone
+        self.is_active = False
+        self.reconnected_at = timezone.now()
+        if admin_user:
+            self.reconnected_by = admin_user
+        self.save()
+
