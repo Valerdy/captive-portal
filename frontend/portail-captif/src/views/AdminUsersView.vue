@@ -245,7 +245,7 @@ function openAddModal() {
     password2: '',
     first_name: '',
     last_name: '',
-    promotion: null,
+    promotion: '',
     matricule: '',
     is_staff: false
   }
@@ -265,7 +265,7 @@ async function handleAddUser() {
   // Validation des champs obligatoires
   if (!newUser.value.password || !newUser.value.password2 ||
       !newUser.value.first_name || !newUser.value.last_name ||
-      !newUser.value.promotion_id || !newUser.value.matricule) {
+      !newUser.value.promotion || !newUser.value.matricule) {
     notificationStore.warning('Veuillez remplir tous les champs requis')
     return
   }
@@ -294,7 +294,7 @@ async function handleAddUser() {
       password2: newUser.value.password2,
       first_name: newUser.value.first_name,
       last_name: newUser.value.last_name,
-      promotion_id: newUser.value.promotion_id,
+      promotion: Number(newUser.value.promotion),
       matricule: newUser.value.matricule,
       is_staff: newUser.value.is_staff
     })
