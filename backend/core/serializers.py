@@ -21,6 +21,20 @@ class ProfileSerializer(serializers.ModelSerializer):
     users_count = serializers.SerializerMethodField()
     promotions_count = serializers.SerializerMethodField()
 
+    # Champs pour assigner ce profil à des promotions/utilisateurs
+    assign_to_promotions = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text="Liste des IDs de promotions à assigner à ce profil"
+    )
+    assign_to_users = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text="Liste des IDs d'utilisateurs à assigner à ce profil"
+    )
+
     class Meta:
         model = Profile
         fields = [
@@ -33,7 +47,8 @@ class ProfileSerializer(serializers.ModelSerializer):
             'validity_duration', 'session_timeout', 'idle_timeout',
             'simultaneous_use', 'created_by', 'created_by_username',
             'created_at', 'updated_at',
-            'users_count', 'promotions_count'
+            'users_count', 'promotions_count',
+            'assign_to_promotions', 'assign_to_users'
         ]
         read_only_fields = [
             'id', 'created_at', 'updated_at', 'created_by_username',
@@ -51,11 +66,53 @@ class ProfileSerializer(serializers.ModelSerializer):
         return obj.promotions.count()
 
     def create(self, validated_data):
+        # Extraire les listes d'assignation
+        promotion_ids = validated_data.pop('assign_to_promotions', [])
+        user_ids = validated_data.pop('assign_to_users', [])
+
         # Ajouter l'utilisateur courant comme créateur
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
             validated_data['created_by'] = request.user
-        return super().create(validated_data)
+
+        # Créer le profil
+        profile = super().create(validated_data)
+
+        # Assigner le profil aux promotions sélectionnées
+        if promotion_ids:
+            Promotion.objects.filter(id__in=promotion_ids).update(profile=profile)
+
+        # Assigner le profil aux utilisateurs sélectionnés
+        if user_ids:
+            User.objects.filter(id__in=user_ids).update(profile=profile)
+
+        return profile
+
+    def update(self, instance, validated_data):
+        # Extraire les listes d'assignation
+        promotion_ids = validated_data.pop('assign_to_promotions', None)
+        user_ids = validated_data.pop('assign_to_users', None)
+
+        # Mettre à jour le profil
+        profile = super().update(instance, validated_data)
+
+        # Assigner le profil aux promotions sélectionnées (si fourni)
+        if promotion_ids is not None:
+            # Retirer ce profil de toutes les promotions actuelles
+            Promotion.objects.filter(profile=profile).update(profile=None)
+            # Assigner aux nouvelles promotions
+            if promotion_ids:
+                Promotion.objects.filter(id__in=promotion_ids).update(profile=profile)
+
+        # Assigner le profil aux utilisateurs sélectionnés (si fourni)
+        if user_ids is not None:
+            # Retirer ce profil de tous les utilisateurs actuels
+            User.objects.filter(profile=profile).update(profile=None)
+            # Assigner aux nouveaux utilisateurs
+            if user_ids:
+                User.objects.filter(id__in=user_ids).update(profile=profile)
+
+        return profile
 
 
 class PromotionSerializer(serializers.ModelSerializer):

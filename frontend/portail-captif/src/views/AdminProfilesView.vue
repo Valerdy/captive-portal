@@ -3,6 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProfileStore } from '@/stores/profile'
+import { useUserStore } from '@/stores/user'
+import { usePromotionStore } from '@/stores/promotion'
 import { useNotificationStore } from '@/stores/notification'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
@@ -11,6 +13,8 @@ import type { Profile } from '@/types'
 const router = useRouter()
 const authStore = useAuthStore()
 const profileStore = useProfileStore()
+const userStore = useUserStore()
+const promotionStore = usePromotionStore()
 const notificationStore = useNotificationStore()
 
 const profiles = computed(() => profileStore.profiles)
@@ -41,7 +45,19 @@ const newProfile = ref({
   session_timeout: 28800,  // 8 heures
   idle_timeout: 600,  // 10 minutes
   simultaneous_use: 1,
-  is_active: true
+  is_active: true,
+  assign_to_promotions: [] as number[],
+  assign_to_users: [] as number[]
+})
+
+const promotions = computed(() => {
+  if (!Array.isArray(promotionStore.promotions)) return []
+  return promotionStore.promotions.filter(p => p && p.is_active)
+})
+
+const users = computed(() => {
+  if (!Array.isArray(userStore.users)) return []
+  return userStore.users.filter(u => u && u.is_active && !u.is_staff)
 })
 
 // Durées disponibles
@@ -117,7 +133,11 @@ onMounted(async () => {
   }
 
   try {
-    await profileStore.fetchProfiles()
+    await Promise.all([
+      profileStore.fetchProfiles(),
+      promotionStore.fetchPromotions(),
+      userStore.fetchUsers()
+    ])
   } catch (error: any) {
     const message = error?.message || 'Erreur inconnue'
     notificationStore.error(`Erreur lors du chargement: ${message}`)
@@ -137,7 +157,9 @@ function openAddModal() {
     session_timeout: 28800,
     idle_timeout: 600,
     simultaneous_use: 1,
-    is_active: true
+    is_active: true,
+    assign_to_promotions: [],
+    assign_to_users: []
   }
   showAddModal.value = true
 }
@@ -541,6 +563,31 @@ function formatSeconds(seconds: number): string {
               <label>Connexions simultanées</label>
               <input v-model.number="newProfile.simultaneous_use" type="number" min="1" max="10" />
               <small class="help-text">Nombre de connexions simultanées autorisées</small>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4 class="section-title">Assigner ce profil à (optionnel)</h4>
+            <p class="section-description">Sélectionnez les promotions et/ou utilisateurs qui utiliseront ce profil automatiquement</p>
+
+            <div class="form-group">
+              <label>Promotions</label>
+              <select v-model="newProfile.assign_to_promotions" multiple size="5">
+                <option v-for="promo in promotions" :key="promo.id" :value="promo.id">
+                  {{ promo.name }} ({{ promo.user_count || 0 }} utilisateurs)
+                </option>
+              </select>
+              <small class="form-help">Maintenez Ctrl/Cmd pour sélectionner plusieurs promotions</small>
+            </div>
+
+            <div class="form-group">
+              <label>Utilisateurs individuels</label>
+              <select v-model="newProfile.assign_to_users" multiple size="5">
+                <option v-for="user in users" :key="user.id" :value="user.id">
+                  {{ user.first_name }} {{ user.last_name }} ({{ user.username }})
+                </option>
+              </select>
+              <small class="form-help">Maintenez Ctrl/Cmd pour sélectionner plusieurs utilisateurs</small>
             </div>
           </div>
         </div>
@@ -1257,6 +1304,13 @@ function formatSeconds(seconds: number): string {
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid #E5E7EB;
+}
+
+.section-description {
+  font-size: 0.875rem;
+  color: #6B7280;
+  margin-bottom: 1rem;
+  line-height: 1.5;
 }
 
 .form-row {
