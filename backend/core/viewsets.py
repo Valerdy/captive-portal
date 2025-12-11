@@ -676,7 +676,6 @@ class PromotionViewSet(viewsets.ModelViewSet):
         return Response({
             'promotion': {
                 'id': promotion.id,
-                'code': promotion.code,
                 'name': promotion.name,
                 'is_active': promotion.is_active
             },
