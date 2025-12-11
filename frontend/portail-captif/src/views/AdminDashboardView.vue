@@ -6,6 +6,7 @@ import { useSessionStore } from '@/stores/session'
 import { useDeviceStore } from '@/stores/device'
 import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
+import { useProfileStore } from '@/stores/profile'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import VueApexCharts from 'vue3-apexcharts'
@@ -16,6 +17,7 @@ const sessionStore = useSessionStore()
 const deviceStore = useDeviceStore()
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
+const profileStore = useProfileStore()
 
 const isLoading = ref(true)
 
@@ -75,6 +77,17 @@ const stats = computed(() => ({
   totalBandwidth: totalBandwidth.value,
   todayBandwidth: todayBandwidth.value
 }))
+
+// Stats de profils
+const profileStats = computed(() => {
+  if (!profileStore.statistics) return null
+  return profileStore.statistics.summary
+})
+
+const topProfiles = computed(() => {
+  if (!profileStore.statistics) return []
+  return profileStore.statistics.top_profiles || []
+})
 
 // Graphique de bande passante (24h)
 const bandwidthChartOptions = computed(() => ({
@@ -241,6 +254,97 @@ const sessionsPieChartSeries = computed(() => {
   return [active, expired, terminated]
 })
 
+// Graphique Top 5 profils les plus utilisés
+const topProfilesChartOptions = computed(() => ({
+  chart: {
+    type: 'bar',
+    height: 350,
+    toolbar: { show: false },
+    fontFamily: 'Inter, sans-serif'
+  },
+  colors: ['#10B981'],
+  plotOptions: {
+    bar: {
+      borderRadius: 8,
+      columnWidth: '70%',
+      distributed: false
+    }
+  },
+  dataLabels: { enabled: false },
+  xaxis: {
+    categories: topProfiles.value.map(p => p.profile_name),
+    labels: {
+      style: { colors: '#6B7280', fontSize: '12px' },
+      rotate: -45,
+      rotateAlways: true
+    }
+  },
+  yaxis: {
+    title: { text: 'Nombre d\'utilisateurs' },
+    labels: {
+      style: { colors: '#6B7280', fontSize: '12px' },
+      formatter: (val: number) => `${Math.round(val)}`
+    }
+  },
+  grid: { borderColor: '#E5E7EB' },
+  tooltip: {
+    theme: 'light',
+    y: { formatter: (val: number) => `${val} utilisateurs` }
+  }
+}))
+
+const topProfilesChartSeries = computed(() => {
+  return [{
+    name: 'Utilisateurs',
+    data: topProfiles.value.map(p => p.total_users)
+  }]
+})
+
+// Graphique de répartition des types de quotas
+const quotaTypesPieChartOptions = computed(() => ({
+  chart: {
+    type: 'donut',
+    fontFamily: 'Inter, sans-serif'
+  },
+  colors: ['#3B82F6', '#F59E0B'],
+  labels: ['Quotas Limités', 'Quotas Illimités'],
+  legend: {
+    position: 'bottom',
+    fontSize: '14px',
+    fontWeight: 500
+  },
+  plotOptions: {
+    pie: {
+      donut: {
+        size: '70%',
+        labels: {
+          show: true,
+          total: {
+            show: true,
+            label: 'Total',
+            fontSize: '16px',
+            fontWeight: 600,
+            color: '#1F2937'
+          }
+        }
+      }
+    }
+  },
+  dataLabels: { enabled: false },
+  tooltip: {
+    theme: 'light',
+    y: { formatter: (val: number) => `${val} profils` }
+  }
+}))
+
+const quotaTypesPieChartSeries = computed(() => {
+  if (!profileStats.value) return [0, 0]
+  return [
+    profileStats.value.limited_profiles || 0,
+    profileStats.value.unlimited_profiles || 0
+  ]
+})
+
 onMounted(async () => {
   if (!authStore.isAdmin) {
     notificationStore.error('Accès refusé')
@@ -252,7 +356,8 @@ onMounted(async () => {
     await Promise.all([
       userStore.fetchUsers(),
       sessionStore.fetchSessions(),
-      deviceStore.fetchDevices()
+      deviceStore.fetchDevices(),
+      profileStore.fetchStatistics()
     ])
   } catch (error: any) {
     const message = error?.message || 'Erreur inconnue'
@@ -325,6 +430,34 @@ onMounted(async () => {
               <span class="stat-badge danger">Total: {{ stats.totalBandwidth }} GB</span>
             </div>
           </div>
+
+          <div class="stat-card">
+            <div class="stat-icon profiles">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3>{{ profileStats?.total_profiles || 0 }}</h3>
+              <p>Profils créés</p>
+              <span class="stat-badge success">{{ profileStats?.active_profiles || 0 }} actifs</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon quota">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3>{{ profileStats?.limited_profiles || 0 }}</h3>
+              <p>Profils avec quota limité</p>
+              <span class="stat-badge warning">{{ profileStats?.unlimited_profiles || 0 }} illimités</span>
+            </div>
+          </div>
         </div>
 
         <!-- Graphiques -->
@@ -373,6 +506,44 @@ onMounted(async () => {
               />
             </div>
           </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>Top 5 Profils les Plus Utilisés</h2>
+              <p class="chart-subtitle">Nombre d'utilisateurs par profil</p>
+            </div>
+            <div class="chart-body">
+              <VueApexCharts
+                v-if="topProfiles.length > 0"
+                type="bar"
+                height="350"
+                :options="topProfilesChartOptions"
+                :series="topProfilesChartSeries"
+              />
+              <div v-else class="no-data">
+                <p>Aucune donnée disponible</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>Répartition des Types de Quotas</h2>
+              <p class="chart-subtitle">Limités vs Illimités</p>
+            </div>
+            <div class="chart-body">
+              <VueApexCharts
+                v-if="profileStats"
+                type="donut"
+                height="350"
+                :options="quotaTypesPieChartOptions"
+                :series="quotaTypesPieChartSeries"
+              />
+              <div v-else class="no-data">
+                <p>Aucune donnée disponible</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Actions rapides -->
@@ -413,6 +584,18 @@ onMounted(async () => {
               </div>
               <h3>Configurer quotas</h3>
               <p>Définir les limites</p>
+            </button>
+
+            <button @click="navigateTo('/admin/profiles')" class="action-btn">
+              <div class="action-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <h3>Gérer les profils</h3>
+              <p>Créer et configurer des profils</p>
             </button>
 
             <button @click="navigateTo('/admin/monitoring')" class="action-btn">
@@ -498,6 +681,16 @@ onMounted(async () => {
   color: #DC2626;
 }
 
+.stat-icon.profiles {
+  background: #EDE9FE;
+  color: #8B5CF6;
+}
+
+.stat-icon.quota {
+  background: #FBCFE8;
+  color: #EC4899;
+}
+
 .stat-content {
   flex: 1;
 }
@@ -579,6 +772,15 @@ onMounted(async () => {
 
 .chart-body {
   margin: 0 -0.5rem;
+}
+
+.no-data {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 350px;
+  color: #9CA3AF;
+  font-size: 1rem;
 }
 
 /* Actions rapides */
