@@ -15,7 +15,7 @@ const notificationStore = useNotificationStore()
 const formData = ref({
   first_name: '',
   last_name: '',
-  promotion: null as number | null,
+  promotion: '' as number | string,
   matricule: '',
   password: '',
   password2: ''
@@ -42,7 +42,7 @@ async function handleRegister() {
 
   // Validation côté client
   if (!formData.value.first_name || !formData.value.last_name ||
-      !formData.value.promotion_id || !formData.value.matricule ||
+      !formData.value.promotion || !formData.value.matricule ||
       !formData.value.password || !formData.value.password2) {
     errorMessage.value = 'Tous les champs sont requis'
     notificationStore.error(errorMessage.value)
@@ -67,7 +67,10 @@ async function handleRegister() {
     notificationStore.error(errorMessage.value)
   }
 }
-loadPromotions()
+
+onMounted(() => {
+  loadPromotions()
+})
 </script>
 
 <template>

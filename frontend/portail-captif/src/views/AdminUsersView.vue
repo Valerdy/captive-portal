@@ -42,13 +42,20 @@ const newUser = ref({
   password2: '',
   first_name: '',
   last_name: '',
-  promotion: null as number | null,
+  promotion: '' as number | string,
   matricule: '',
   is_staff: false
 })
 
-const promotions = computed(() => promotionStore.promotions.filter(p => p.is_active))
-const allPromotions = computed(() => promotionStore.promotions)
+const promotions = computed(() => {
+  if (!Array.isArray(promotionStore.promotions)) return []
+  return promotionStore.promotions.filter(p => p && p.is_active)
+})
+
+const allPromotions = computed(() => {
+  if (!Array.isArray(promotionStore.promotions)) return []
+  return promotionStore.promotions
+})
 
 // Filtrage des utilisateurs
 const filteredUsers = computed(() => {
