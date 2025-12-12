@@ -181,6 +181,11 @@ class RadCheck(models.Model):
     op = models.CharField(max_length=2, default=':=')
     value = models.CharField(max_length=253)
     statut = models.BooleanField(default=True, help_text="1 = actif, 0 = désactivé")
+    quota = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text="Quota de données en octets (ex: 53687091200 = 50 Go). NULL = illimité"
+    )
 
     class Meta:
         db_table = 'radcheck'
@@ -298,3 +303,81 @@ class RadPostAuth(models.Model):
 
     def __str__(self):
         return f"{self.username} - {self.reply} at {self.authdate}"
+
+
+class RadAcct(models.Model):
+    """
+    FreeRADIUS radacct table - Accounting and session data
+    Stores detailed information about user sessions including data usage
+    """
+    radacctid = models.BigAutoField(primary_key=True, db_column='radacctid')
+    acctsessionid = models.CharField(max_length=64, db_index=True, db_column='acctsessionid')
+    acctuniqueid = models.CharField(max_length=32, unique=True, db_column='acctuniqueid')
+    username = models.CharField(max_length=64, db_index=True)
+
+    # NAS information
+    nasipaddress = models.GenericIPAddressField(db_column='nasipaddress')
+    nasportid = models.CharField(max_length=15, blank=True, null=True, db_column='nasportid')
+    nasporttype = models.CharField(max_length=32, blank=True, null=True, db_column='nasporttype')
+
+    # Session timing
+    acctstarttime = models.DateTimeField(null=True, blank=True, db_index=True, db_column='acctstarttime')
+    acctupdatetime = models.DateTimeField(null=True, blank=True, db_column='acctupdatetime')
+    acctstoptime = models.DateTimeField(null=True, blank=True, db_index=True, db_column='acctstoptime')
+    acctsessiontime = models.IntegerField(null=True, blank=True, db_column='acctsessiontime', help_text='Session duration in seconds')
+
+    # Authentication type
+    acctauthentic = models.CharField(max_length=32, blank=True, null=True, db_column='acctauthentic')
+
+    # Connection info
+    connectinfo_start = models.CharField(max_length=50, blank=True, null=True, db_column='connectinfo_start')
+    connectinfo_stop = models.CharField(max_length=50, blank=True, null=True, db_column='connectinfo_stop')
+
+    # Data usage - INPUT (Download)
+    acctinputoctets = models.BigIntegerField(null=True, blank=True, default=0, db_column='acctinputoctets')
+    acctoutputoctets = models.BigIntegerField(null=True, blank=True, default=0, db_column='acctoutputoctets')
+
+    # Called and Calling Station ID (MAC addresses)
+    calledstationid = models.CharField(max_length=50, blank=True, null=True, db_column='calledstationid')
+    callingstationid = models.CharField(max_length=50, blank=True, null=True, db_column='callingstationid')
+
+    # Termination
+    acctterminatecause = models.CharField(max_length=32, blank=True, null=True, db_column='acctterminatecause')
+
+    # Service type
+    servicetype = models.CharField(max_length=32, blank=True, null=True, db_column='servicetype')
+
+    # Framed protocol and IP
+    framedprotocol = models.CharField(max_length=32, blank=True, null=True, db_column='framedprotocol')
+    framedipaddress = models.GenericIPAddressField(null=True, blank=True, db_index=True, db_column='framedipaddress')
+
+    class Meta:
+        managed = False  # Table gérée par FreeRADIUS, pas par Django
+        db_table = 'radacct'
+        ordering = ['-acctstarttime']
+        indexes = [
+            models.Index(fields=['username', '-acctstarttime']),
+            models.Index(fields=['acctsessionid']),
+            models.Index(fields=['framedipaddress']),
+            models.Index(fields=['nasipaddress']),
+        ]
+
+    def __str__(self):
+        return f"{self.username} - {self.acctsessionid}"
+
+    @property
+    def total_octets(self):
+        """Calculate total data transferred (input + output)"""
+        input_octets = self.acctinputoctets or 0
+        output_octets = self.acctoutputoctets or 0
+        return input_octets + output_octets
+
+    @property
+    def total_input(self):
+        """Total download in bytes"""
+        return self.acctinputoctets or 0
+
+    @property
+    def total_output(self):
+        """Total upload in bytes"""
+        return self.acctoutputoctets or 0
