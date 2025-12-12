@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSessionStore } from '@/stores/session'
 import { useDeviceStore } from '@/stores/device'
+import DisconnectionAlert from '@/components/DisconnectionAlert.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -104,6 +105,9 @@ onMounted(async () => {
     <!-- Contenu Principal -->
     <main class="dashboard-content">
       <h2>Tableau de bord</h2>
+
+      <!-- Alerte de déconnexion automatique -->
+      <DisconnectionAlert />
 
       <!-- Grille de statistiques -->
       <div class="stats-grid">

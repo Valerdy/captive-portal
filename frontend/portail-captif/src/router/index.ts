@@ -100,6 +100,12 @@ const router = createRouter({
       name: 'admin-profiles',
       component: () => import('../views/AdminProfilesView.vue'),
       meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/disconnections',
+      name: 'admin-disconnections',
+      component: () => import('../views/AdminDisconnectionsView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })
