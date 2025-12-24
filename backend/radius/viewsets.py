@@ -443,3 +443,164 @@ class RadPostAuthViewSet(viewsets.ReadOnlyModelViewSet):
         logs = RadPostAuth.objects.filter(username=username)
         serializer = self.get_serializer(logs, many=True)
         return Response(serializer.data)
+
+
+# ============================================================================
+# MikroTik Integration ViewSet
+# ============================================================================
+
+class MikrotikIntegrationViewSet(viewsets.ViewSet):
+    """
+    ViewSet pour l'intégration MikroTik.
+    Permet de récupérer et synchroniser les profils Hotspot.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    @action(detail=False, methods=['get'])
+    def hotspot_profiles(self, request):
+        """
+        Récupère la liste des profils Hotspot depuis MikroTik.
+
+        GET /api/radius/mikrotik/hotspot_profiles/
+        """
+        from .services import MikrotikProfileService
+
+        try:
+            profiles = MikrotikProfileService.get_hotspot_profiles()
+            return Response({
+                'success': True,
+                'profiles': profiles
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    @action(detail=False, methods=['get'])
+    def default_profile(self, request):
+        """
+        Récupère le profil par défaut du Hotspot MikroTik.
+
+        GET /api/radius/mikrotik/default_profile/
+        """
+        from .services import MikrotikProfileService
+
+        try:
+            profile = MikrotikProfileService.get_default_profile()
+            if profile:
+                # Mapper vers le format Django
+                django_mapping = MikrotikProfileService.map_mikrotik_to_django_profile(profile)
+                return Response({
+                    'success': True,
+                    'mikrotik_profile': profile,
+                    'django_mapping': django_mapping
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': 'Aucun profil par défaut trouvé'
+                }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    @action(detail=False, methods=['post'])
+    def import_profile(self, request):
+        """
+        Importe un profil MikroTik vers Django.
+
+        POST /api/radius/mikrotik/import_profile/
+        Body: {"mikrotik_profile_name": "default"}
+        """
+        from .services import MikrotikProfileService
+        from core.models import Profile
+
+        profile_name = request.data.get('mikrotik_profile_name', 'default')
+
+        try:
+            # Récupérer les profils MikroTik
+            profiles = MikrotikProfileService.get_hotspot_profiles()
+            mikrotik_profile = next(
+                (p for p in profiles if p.get('name') == profile_name),
+                None
+            )
+
+            if not mikrotik_profile:
+                return Response({
+                    'success': False,
+                    'error': f'Profil "{profile_name}" non trouvé dans MikroTik'
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            # Mapper vers Django
+            django_data = MikrotikProfileService.map_mikrotik_to_django_profile(mikrotik_profile)
+
+            # Vérifier si un profil avec ce nom existe déjà
+            existing = Profile.objects.filter(name=django_data['name']).first()
+            if existing:
+                # Mettre à jour
+                for key, value in django_data.items():
+                    setattr(existing, key, value)
+                existing.save()
+                message = f'Profil "{django_data["name"]}" mis à jour depuis MikroTik'
+                profile = existing
+            else:
+                # Créer
+                profile = Profile.objects.create(
+                    created_by=request.user,
+                    **django_data
+                )
+                message = f'Profil "{django_data["name"]}" importé depuis MikroTik'
+
+            return Response({
+                'success': True,
+                'message': message,
+                'profile': {
+                    'id': profile.id,
+                    'name': profile.name,
+                    'bandwidth_upload': profile.bandwidth_upload,
+                    'bandwidth_download': profile.bandwidth_download,
+                    'session_timeout': profile.session_timeout,
+                    'idle_timeout': profile.idle_timeout
+                }
+            })
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def connection_test(self, request):
+        """
+        Teste la connexion avec l'agent MikroTik.
+
+        GET /api/radius/mikrotik/connection_test/
+        """
+        import requests
+
+        try:
+            response = requests.get(
+                'http://localhost:3001/health',
+                timeout=5
+            )
+            response.raise_for_status()
+
+            return Response({
+                'success': True,
+                'message': 'Connexion MikroTik agent réussie',
+                'agent_status': response.json()
+            })
+        except requests.ConnectionError:
+            return Response({
+                'success': False,
+                'error': 'Impossible de contacter l\'agent MikroTik. Vérifiez qu\'il est démarré.'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

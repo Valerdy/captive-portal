@@ -81,5 +81,43 @@ export const profileService = {
   async getStatisticsDetail(id: number): Promise<any> {
     const response = await api.get(`/api/core/profiles/${id}/statistics_detail/`)
     return response.data
+  },
+
+  /**
+   * Assigne ce profil à un utilisateur individuel
+   */
+  async assignToUser(profileId: number, userId: number): Promise<any> {
+    const response = await api.post(`/api/core/profiles/${profileId}/assign_to_user/`, {
+      user_id: userId
+    })
+    return response.data
+  },
+
+  /**
+   * Assigne ce profil à une promotion et synchronise tous ses utilisateurs
+   */
+  async assignToPromotion(profileId: number, promotionId: number): Promise<any> {
+    const response = await api.post(`/api/core/profiles/${profileId}/assign_to_promotion/`, {
+      promotion_id: promotionId
+    })
+    return response.data
+  },
+
+  /**
+   * Retire ce profil d'un utilisateur
+   */
+  async removeFromUser(profileId: number, userId: number): Promise<any> {
+    const response = await api.post(`/api/core/profiles/${profileId}/remove_from_user/`, {
+      user_id: userId
+    })
+    return response.data
+  },
+
+  /**
+   * Force la synchronisation de tous les utilisateurs de ce profil vers RADIUS
+   */
+  async syncToRadius(profileId: number): Promise<any> {
+    const response = await api.post(`/api/core/profiles/${profileId}/sync_to_radius/`)
+    return response.data
   }
 }

@@ -1,0 +1,141 @@
+# Politique de vérification des quotas pour Captive Portal
+#
+# Cette politique vérifie:
+# 1. Si le compte utilisateur est actif (statut=1)
+# 2. Si le quota de données n'est pas dépassé
+# 3. Retourne Access-Reject si l'une des conditions n'est pas remplie
+#
+# Installation:
+# 1. Copier ce fichier dans /etc/freeradius/3.0/policy.d/
+# 2. Ajouter "captive_portal_quota" dans la section authorize du site
+# 3. Redémarrer FreeRADIUS
+
+# ============================================================================
+# POLITIQUE PRINCIPALE DE VÉRIFICATION DES QUOTAS
+# ============================================================================
+
+captive_portal_quota {
+    # Vérifier d'abord si l'utilisateur existe et est actif
+    if (&User-Name) {
+        # Exécuter la requête SQL pour vérifier le quota
+        update control {
+            &Tmp-String-0 := "%{sql:SELECT \
+                CASE \
+                    WHEN rc.statut = 0 THEN 'DISABLED' \
+                    WHEN rc.quota IS NULL THEN 'OK' \
+                    WHEN rc.quota = 0 THEN 'OK' \
+                    WHEN COALESCE((SELECT SUM(acctinputoctets + acctoutputoctets) FROM radacct WHERE username = '%{User-Name}'), 0) >= rc.quota THEN 'QUOTA_EXCEEDED' \
+                    ELSE 'OK' \
+                END as status \
+                FROM radcheck rc \
+                WHERE rc.username = '%{User-Name}' \
+                AND rc.attribute = 'Cleartext-Password' \
+                LIMIT 1}"
+        }
+
+        # Vérifier le résultat
+        if (&control:Tmp-String-0 == 'DISABLED') {
+            # Compte désactivé
+            update reply {
+                &Reply-Message := "Votre compte a été désactivé. Contactez l'administrateur."
+            }
+            reject
+        }
+
+        if (&control:Tmp-String-0 == 'QUOTA_EXCEEDED') {
+            # Quota dépassé
+            update reply {
+                &Reply-Message := "Votre quota de données a été épuisé. Votre accès a été suspendu."
+            }
+            reject
+        }
+
+        # Si OK, continuer l'authentification normale
+        if (&control:Tmp-String-0 == 'OK') {
+            noop
+        }
+    }
+}
+
+# ============================================================================
+# POLITIQUE DE VÉRIFICATION DES CONNEXIONS SIMULTANÉES
+# ============================================================================
+
+captive_portal_simul_check {
+    # Récupérer la limite de connexions simultanées
+    update control {
+        &Tmp-Integer-0 := "%{sql:SELECT COALESCE( \
+            (SELECT value FROM radcheck \
+             WHERE username = '%{User-Name}' \
+             AND attribute = 'Simultaneous-Use' \
+             LIMIT 1), 1)}"
+    }
+
+    # Compter les sessions actives
+    update control {
+        &Tmp-Integer-1 := "%{sql:SELECT COUNT(*) FROM radacct \
+            WHERE username = '%{User-Name}' \
+            AND acctstoptime IS NULL}"
+    }
+
+    # Vérifier si la limite est atteinte
+    if (&control:Tmp-Integer-1 >= &control:Tmp-Integer-0) {
+        update reply {
+            &Reply-Message := "Nombre maximum de connexions simultanées atteint."
+        }
+        reject
+    }
+}
+
+# ============================================================================
+# POLITIQUE POST-AUTH POUR MISE À JOUR DU QUOTA
+# ============================================================================
+
+captive_portal_post_auth {
+    # Log de l'authentification réussie
+    update reply {
+        &Reply-Message += "Authentification réussie pour %{User-Name}"
+    }
+
+    # Ajouter les attributs de session
+    # (déjà gérés par radreply, mais on peut les forcer ici si nécessaire)
+    noop
+}
+
+# ============================================================================
+# POLITIQUE ACCOUNTING POUR SUIVI DE CONSOMMATION
+# ============================================================================
+
+captive_portal_accounting {
+    # Cette politique est appelée lors des mises à jour de comptabilisation
+    # Elle peut être utilisée pour déclencher des actions quand le quota approche
+
+    if (&Acct-Status-Type == "Interim-Update" || &Acct-Status-Type == "Stop") {
+        # Calculer la consommation totale
+        update control {
+            &Tmp-Integer-0 := "%{sql:SELECT COALESCE( \
+                (SELECT SUM(acctinputoctets + acctoutputoctets) FROM radacct \
+                 WHERE username = '%{User-Name}'), 0)}"
+        }
+
+        # Récupérer le quota
+        update control {
+            &Tmp-Integer-1 := "%{sql:SELECT COALESCE( \
+                (SELECT quota FROM radcheck \
+                 WHERE username = '%{User-Name}' \
+                 AND attribute = 'Cleartext-Password' \
+                 LIMIT 1), 0)}"
+        }
+
+        # Si le quota est défini et atteint, on peut envoyer un CoA
+        # (Ceci nécessite une configuration supplémentaire du NAS)
+        if (&control:Tmp-Integer-1 > 0) {
+            if (&control:Tmp-Integer-0 >= &control:Tmp-Integer-1) {
+                # Quota atteint - Marquer pour déconnexion
+                # Note: Le CoA (Change of Authorization) peut être utilisé ici
+                # pour déconnecter l'utilisateur en temps réel
+                noop
+            }
+        }
+    }
+}
