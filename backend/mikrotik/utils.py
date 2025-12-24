@@ -207,3 +207,99 @@ class MikrotikAgentClient:
             System resource information
         """
         return self._make_request('GET', '/api/mikrotik/system/resources')
+
+    # DNS Static Entries Management
+    # =============================
+
+    def get_dns_static_entries(self) -> Dict[str, Any]:
+        """
+        Get all DNS static entries from Mikrotik
+
+        Returns:
+            List of DNS static entries
+        """
+        return self._make_request('GET', '/api/mikrotik/dns/static')
+
+    def create_dns_static_entry(
+        self,
+        name: Optional[str] = None,
+        address: str = '0.0.0.0',
+        regexp: Optional[str] = None,
+        comment: Optional[str] = None,
+        disabled: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Create a new DNS static entry on Mikrotik
+
+        Args:
+            name: Domain name to match (e.g., 'facebook.com')
+            address: IP address to resolve to (default: 0.0.0.0 for blocking)
+            regexp: Regex pattern for matching (e.g., '.*\\.tiktok\\.com$')
+            comment: Entry comment for identification
+            disabled: Whether the entry is disabled
+
+        Returns:
+            Created entry data with ID
+        """
+        data = {
+            'address': address,
+            'disabled': disabled
+        }
+
+        if name:
+            data['name'] = name
+        if regexp:
+            data['regexp'] = regexp
+        if comment:
+            data['comment'] = comment
+
+        return self._make_request('POST', '/api/mikrotik/dns/static', data)
+
+    def update_dns_static_entry(
+        self,
+        entry_id: str,
+        name: Optional[str] = None,
+        address: Optional[str] = None,
+        regexp: Optional[str] = None,
+        comment: Optional[str] = None,
+        disabled: Optional[bool] = None
+    ) -> Dict[str, Any]:
+        """
+        Update an existing DNS static entry
+
+        Args:
+            entry_id: ID of the entry to update
+            name: New domain name
+            address: New IP address
+            regexp: New regex pattern
+            comment: New comment
+            disabled: New disabled state
+
+        Returns:
+            Updated entry data
+        """
+        data = {}
+        if name is not None:
+            data['name'] = name
+        if address is not None:
+            data['address'] = address
+        if regexp is not None:
+            data['regexp'] = regexp
+        if comment is not None:
+            data['comment'] = comment
+        if disabled is not None:
+            data['disabled'] = disabled
+
+        return self._make_request('PUT', f'/api/mikrotik/dns/static/{entry_id}', data)
+
+    def delete_dns_static_entry(self, entry_id: str) -> Dict[str, Any]:
+        """
+        Delete a DNS static entry
+
+        Args:
+            entry_id: ID of the entry to delete
+
+        Returns:
+            Deletion result
+        """
+        return self._make_request('DELETE', f'/api/mikrotik/dns/static/{entry_id}')

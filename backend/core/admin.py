@@ -1,8 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib import messages
+from django.utils.html import format_html
+from django.utils import timezone
 from .models import (
     User, Device, Session, Voucher, Promotion, Profile,
-    UserProfileUsage, ProfileHistory, ProfileAlert
+    UserProfileUsage, ProfileHistory, ProfileAlert, BlockedSite
 )
 
 
@@ -310,3 +313,360 @@ class ProfileAlertAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(BlockedSite)
+class BlockedSiteAdmin(admin.ModelAdmin):
+    """
+    Interface d'administration pour les sites bloqués.
+
+    Fonctionnalités:
+    - Synchronisation automatique avec MikroTik lors de l'ajout/modification/suppression
+    - Actions en masse pour synchroniser ou resynchroniser les entrées
+    - Affichage du statut de synchronisation avec indicateurs visuels
+    - Filtres par catégorie, statut de sync, et type
+    """
+
+    list_display = [
+        'domain', 'category', 'type', 'is_active',
+        'sync_status_display', 'scope_display', 'added_date'
+    ]
+    list_filter = [
+        'is_active', 'type', 'category', 'sync_status',
+        'added_date', 'profile', 'promotion'
+    ]
+    search_fields = ['domain', 'reason']
+    readonly_fields = [
+        'mikrotik_id', 'sync_status', 'last_sync_at',
+        'last_sync_error', 'added_date', 'updated_at'
+    ]
+    autocomplete_fields = ['added_by', 'profile', 'promotion']
+    ordering = ['-added_date']
+    actions = [
+        'sync_to_mikrotik', 'force_resync',
+        'activate_selected', 'deactivate_selected'
+    ]
+
+    fieldsets = (
+        ('Domaine à bloquer', {
+            'fields': ('domain', 'category', 'type', 'is_active'),
+            'description': (
+                'Entrez le domaine complet (ex: facebook.com). '
+                'Utilisez le préfixe * pour bloquer les sous-domaines (ex: *.tiktok.com)'
+            )
+        }),
+        ('Ciblage (optionnel)', {
+            'fields': ('profile', 'promotion'),
+            'description': (
+                'Laissez vide pour un blocage global. '
+                'Sélectionnez un profil OU une promotion pour un blocage ciblé.'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Informations', {
+            'fields': ('reason', 'added_by')
+        }),
+        ('Synchronisation MikroTik', {
+            'fields': (
+                'mikrotik_id', 'sync_status',
+                'last_sync_at', 'last_sync_error'
+            ),
+            'classes': ('collapse',),
+            'description': 'Informations de synchronisation avec le routeur MikroTik'
+        }),
+        ('Métadonnées', {
+            'fields': ('added_date', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def sync_status_display(self, obj):
+        """Affiche le statut de sync avec un indicateur visuel"""
+        colors = {
+            'synced': '#28a745',    # Vert
+            'pending': '#ffc107',   # Jaune
+            'error': '#dc3545',     # Rouge
+        }
+        icons = {
+            'synced': '✓',
+            'pending': '⏳',
+            'error': '✗',
+        }
+        color = colors.get(obj.sync_status, '#6c757d')
+        icon = icons.get(obj.sync_status, '?')
+
+        if obj.sync_status == 'error' and obj.last_sync_error:
+            title = f"Erreur: {obj.last_sync_error[:100]}"
+        elif obj.sync_status == 'synced' and obj.last_sync_at:
+            title = f"Synchronisé le {obj.last_sync_at.strftime('%d/%m/%Y %H:%M')}"
+        else:
+            title = obj.get_sync_status_display()
+
+        return format_html(
+            '<span style="color: {}; font-weight: bold;" title="{}">{} {}</span>',
+            color, title, icon, obj.get_sync_status_display()
+        )
+    sync_status_display.short_description = 'Sync MikroTik'
+    sync_status_display.admin_order_field = 'sync_status'
+
+    def scope_display(self, obj):
+        """Affiche la portée du blocage (global, profil, ou promotion)"""
+        if obj.is_global:
+            return format_html(
+                '<span style="color: #17a2b8;">🌐 Global</span>'
+            )
+        elif obj.profile:
+            return format_html(
+                '<span style="color: #6f42c1;">👤 {}</span>',
+                obj.profile.name
+            )
+        elif obj.promotion:
+            return format_html(
+                '<span style="color: #fd7e14;">🎓 {}</span>',
+                obj.promotion.name
+            )
+        return '-'
+    scope_display.short_description = 'Portée'
+
+    def save_model(self, request, obj, form, change):
+        """
+        Sauvegarde le modèle et synchronise avec MikroTik.
+
+        La synchronisation est effectuée automatiquement après la sauvegarde.
+        En cas d'erreur MikroTik, l'entrée est quand même sauvegardée avec
+        le statut 'error' pour permettre une resynchronisation ultérieure.
+        """
+        # Définir l'utilisateur qui ajoute si c'est une création
+        if not change:
+            obj.added_by = request.user
+
+        # Marquer comme pending si le domaine ou is_active a changé
+        if change:
+            old_obj = BlockedSite.objects.get(pk=obj.pk)
+            if old_obj.domain != obj.domain or old_obj.is_active != obj.is_active:
+                obj.sync_status = 'pending'
+                obj.mikrotik_id = None
+
+        # Sauvegarder d'abord
+        super().save_model(request, obj, form, change)
+
+        # Tenter la synchronisation avec MikroTik
+        self._sync_single_site(request, obj)
+
+    def delete_model(self, request, obj):
+        """
+        Supprime l'entrée DNS de MikroTik avant de supprimer l'objet Django.
+        """
+        if obj.mikrotik_id:
+            try:
+                from mikrotik.dns_service import MikrotikDNSBlockingService
+                service = MikrotikDNSBlockingService()
+                result = service.remove_blocked_domain(obj)
+                if result.get('success'):
+                    messages.success(
+                        request,
+                        f"Entrée DNS '{obj.domain}' supprimée de MikroTik"
+                    )
+                else:
+                    messages.warning(
+                        request,
+                        f"Erreur lors de la suppression sur MikroTik: {result.get('error')}"
+                    )
+            except Exception as e:
+                messages.error(
+                    request,
+                    f"Impossible de contacter MikroTik: {e}"
+                )
+
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        """
+        Supprime les entrées DNS de MikroTik avant la suppression en masse.
+        """
+        try:
+            from mikrotik.dns_service import MikrotikDNSBlockingService
+            service = MikrotikDNSBlockingService()
+
+            removed = 0
+            errors = []
+
+            for obj in queryset.filter(mikrotik_id__isnull=False):
+                result = service.remove_blocked_domain(obj)
+                if result.get('success'):
+                    removed += 1
+                else:
+                    errors.append(f"{obj.domain}: {result.get('error')}")
+
+            if removed > 0:
+                messages.success(
+                    request,
+                    f"{removed} entrée(s) DNS supprimée(s) de MikroTik"
+                )
+            if errors:
+                messages.warning(
+                    request,
+                    f"Erreurs: {', '.join(errors[:3])}"
+                )
+
+        except Exception as e:
+            messages.error(
+                request,
+                f"Impossible de contacter MikroTik: {e}"
+            )
+
+        super().delete_queryset(request, queryset)
+
+    def _sync_single_site(self, request, obj):
+        """Synchronise un site unique avec MikroTik"""
+        try:
+            from mikrotik.dns_service import MikrotikDNSBlockingService
+            service = MikrotikDNSBlockingService()
+
+            if obj.is_active:
+                result = service.update_blocked_domain(obj)
+            else:
+                result = service.remove_blocked_domain(obj)
+
+            if result.get('success'):
+                messages.success(
+                    request,
+                    f"Site '{obj.domain}' synchronisé avec MikroTik"
+                )
+            else:
+                messages.warning(
+                    request,
+                    f"Erreur de synchronisation: {result.get('error')}"
+                )
+
+        except Exception as e:
+            obj.mark_error(str(e))
+            messages.error(
+                request,
+                f"Impossible de contacter MikroTik: {e}. "
+                f"L'entrée a été sauvegardée et pourra être synchronisée plus tard."
+            )
+
+    @admin.action(description="🔄 Synchroniser avec MikroTik")
+    def sync_to_mikrotik(self, request, queryset):
+        """
+        Action admin pour synchroniser les entrées sélectionnées avec MikroTik.
+        """
+        try:
+            from mikrotik.dns_service import MikrotikDNSBlockingService
+            service = MikrotikDNSBlockingService()
+
+            added = 0
+            updated = 0
+            removed = 0
+            errors = []
+
+            for obj in queryset:
+                if obj.is_active:
+                    if obj.mikrotik_id:
+                        result = service.update_blocked_domain(obj)
+                        if result.get('success'):
+                            updated += 1
+                    else:
+                        result = service.add_blocked_domain(obj)
+                        if result.get('success'):
+                            added += 1
+                else:
+                    result = service.remove_blocked_domain(obj)
+                    if result.get('success'):
+                        removed += 1
+
+                if not result.get('success'):
+                    errors.append(f"{obj.domain}: {result.get('error')}")
+
+            # Messages de résultat
+            if added or updated or removed:
+                messages.success(
+                    request,
+                    f"Synchronisation: {added} ajouté(s), "
+                    f"{updated} mis à jour, {removed} supprimé(s)"
+                )
+            if errors:
+                messages.warning(
+                    request,
+                    f"Erreurs ({len(errors)}): {', '.join(errors[:3])}"
+                )
+
+        except Exception as e:
+            messages.error(request, f"Erreur de connexion MikroTik: {e}")
+
+    @admin.action(description="🔃 Forcer la resynchronisation")
+    def force_resync(self, request, queryset):
+        """
+        Force la resynchronisation en supprimant et recréant les entrées.
+        """
+        try:
+            from mikrotik.dns_service import MikrotikDNSBlockingService
+            service = MikrotikDNSBlockingService()
+
+            resynced = 0
+            errors = []
+
+            for obj in queryset.filter(is_active=True):
+                # Supprimer l'ancienne entrée si elle existe
+                if obj.mikrotik_id:
+                    service.remove_blocked_domain(obj)
+
+                # Marquer comme pending et recréer
+                obj.mark_pending()
+                result = service.add_blocked_domain(obj)
+
+                if result.get('success'):
+                    resynced += 1
+                else:
+                    errors.append(f"{obj.domain}: {result.get('error')}")
+
+            if resynced > 0:
+                messages.success(
+                    request,
+                    f"{resynced} site(s) resynchronisé(s)"
+                )
+            if errors:
+                messages.warning(
+                    request,
+                    f"Erreurs ({len(errors)}): {', '.join(errors[:3])}"
+                )
+
+        except Exception as e:
+            messages.error(request, f"Erreur de connexion MikroTik: {e}")
+
+    @admin.action(description="✓ Activer les sites sélectionnés")
+    def activate_selected(self, request, queryset):
+        """Active les sites et les synchronise avec MikroTik"""
+        updated = queryset.update(is_active=True, sync_status='pending')
+        messages.info(
+            request,
+            f"{updated} site(s) activé(s). "
+            f"Utilisez 'Synchroniser avec MikroTik' pour appliquer."
+        )
+
+    @admin.action(description="✗ Désactiver les sites sélectionnés")
+    def deactivate_selected(self, request, queryset):
+        """Désactive les sites et les supprime de MikroTik"""
+        try:
+            from mikrotik.dns_service import MikrotikDNSBlockingService
+            service = MikrotikDNSBlockingService()
+
+            removed = 0
+            for obj in queryset.filter(mikrotik_id__isnull=False):
+                result = service.remove_blocked_domain(obj)
+                if result.get('success'):
+                    removed += 1
+
+            updated = queryset.update(is_active=False)
+            messages.success(
+                request,
+                f"{updated} site(s) désactivé(s), {removed} retiré(s) de MikroTik"
+            )
+
+        except Exception as e:
+            queryset.update(is_active=False)
+            messages.warning(
+                request,
+                f"Sites désactivés mais erreur MikroTik: {e}"
+            )
