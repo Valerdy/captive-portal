@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from .models import RadiusServer, RadiusAuthLog, RadiusAccounting, RadiusClient
 
 
@@ -8,12 +9,19 @@ class RadiusServerAdmin(admin.ModelAdmin):
     list_display = ['name', 'host', 'auth_port', 'acct_port', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'host']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at', 'secret_status']
     ordering = ['name']
 
     fieldsets = (
         ('Server Info', {
-            'fields': ('name', 'host', 'auth_port', 'acct_port', 'secret')
+            # SECURITY: secret field removed from direct display
+            'fields': ('name', 'host', 'auth_port', 'acct_port', 'secret_status'),
+            'description': 'Le secret RADIUS n\'est jamais affiché pour des raisons de sécurité.'
+        }),
+        ('Modifier le secret', {
+            'fields': ('secret',),
+            'classes': ('collapse',),
+            'description': 'Entrez un nouveau secret uniquement si vous souhaitez le modifier.'
         }),
         ('Settings', {
             'fields': ('is_active', 'timeout', 'retries')
@@ -23,6 +31,13 @@ class RadiusServerAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def secret_status(self, obj):
+        """Indique si le secret est configuré sans l'afficher"""
+        if obj.secret:
+            return format_html('<span style="color: green;">✓ Configuré (non affiché)</span>')
+        return format_html('<span style="color: red;">✗ Non configuré</span>')
+    secret_status.short_description = 'Secret RADIUS'
 
 
 @admin.register(RadiusAuthLog)
@@ -36,6 +51,9 @@ class RadiusAuthLogAdmin(admin.ModelAdmin):
     search_fields = ['username', 'ip_address', 'mac_address', 'nas_ip_address']
     readonly_fields = ['timestamp']
     ordering = ['-timestamp']
+
+    # Fix N+1 queries
+    list_select_related = ['server', 'user']
 
     fieldsets = (
         ('Authentication Info', {
@@ -68,6 +86,9 @@ class RadiusAccountingAdmin(admin.ModelAdmin):
     search_fields = ['session_id', 'username', 'framed_ip_address', 'mac_address']
     readonly_fields = ['timestamp', 'total_octets']
     ordering = ['-timestamp']
+
+    # Fix N+1 queries
+    list_select_related = ['server', 'user']
 
     fieldsets = (
         ('Session Info', {
@@ -104,12 +125,18 @@ class RadiusClientAdmin(admin.ModelAdmin):
     list_display = ['name', 'shortname', 'ip_address', 'nas_type', 'is_active', 'created_at']
     list_filter = ['is_active', 'nas_type', 'created_at']
     search_fields = ['name', 'shortname', 'ip_address', 'description']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at', 'secret_status']
     ordering = ['name']
 
     fieldsets = (
         ('Client Info', {
-            'fields': ('name', 'shortname', 'nas_type', 'ip_address', 'secret')
+            # SECURITY: secret field removed from direct display
+            'fields': ('name', 'shortname', 'nas_type', 'ip_address', 'secret_status'),
+            'description': 'Le secret NAS n\'est jamais affiché pour des raisons de sécurité.'
+        }),
+        ('Modifier le secret', {
+            'fields': ('secret',),
+            'classes': ('collapse',),
         }),
         ('Additional Info', {
             'fields': ('description', 'is_active')
@@ -119,3 +146,10 @@ class RadiusClientAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def secret_status(self, obj):
+        """Indique si le secret NAS est configuré"""
+        if obj.secret:
+            return format_html('<span style="color: green;">✓ Configuré (non affiché)</span>')
+        return format_html('<span style="color: red;">✗ Non configuré</span>')
+    secret_status.short_description = 'Secret NAS'
