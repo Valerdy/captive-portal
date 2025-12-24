@@ -336,9 +336,10 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
         all_users = direct_users.count() + promotion_users.count()
 
-        # Statistiques d'utilisation
+        # Statistiques d'utilisation - utiliser Q() au lieu de list() pour éviter l'évaluation en mémoire
         usages = UserProfileUsage.objects.filter(
-            user__in=list(direct_users) + list(promotion_users),
+            Q(user__profile=profile) | Q(user__promotion__profile=profile, user__profile__isnull=True),
+            user__is_active=True,
             is_active=True
         )
 
@@ -1030,8 +1031,9 @@ class VoucherViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 # Verrouiller le voucher pour éviter les race conditions
+                # nowait=False permet d'attendre plutôt que d'échouer immédiatement
                 try:
-                    voucher = Voucher.objects.select_for_update(nowait=True).get(code=code)
+                    voucher = Voucher.objects.select_for_update(nowait=False).get(code=code)
                 except Voucher.DoesNotExist:
                     raise VoucherNotFoundError(
                         detail=f'Le code voucher "{code}" n\'existe pas.'
@@ -1067,16 +1069,31 @@ class VoucherViewSet(viewsets.ModelViewSet):
                         detail='Ce voucher a expiré.'
                     )
 
-                # Utiliser le voucher
+                # Vérifier qu'il reste des utilisations disponibles
+                if voucher.used_count >= voucher.max_devices:
+                    raise VoucherAlreadyUsedError(
+                        detail='Ce voucher a atteint sa limite d\'utilisation.'
+                    )
+
+                # Utiliser le voucher avec incrément atomique via F()
+                from django.db.models import F
                 voucher.used_by = request.user
                 voucher.used_at = now
-                voucher.used_count += 1
+
+                # Incrémenter de manière atomique et mettre à jour le statut
+                Voucher.objects.filter(pk=voucher.pk).update(
+                    used_count=F('used_count') + 1,
+                    used_by=request.user,
+                    used_at=now
+                )
+
+                # Recharger pour obtenir la nouvelle valeur
+                voucher.refresh_from_db()
 
                 # Mettre à jour le statut si limite atteinte
                 if voucher.used_count >= voucher.max_devices:
                     voucher.status = 'used'
-
-                voucher.save()
+                    voucher.save(update_fields=['status'])
 
                 return Response(format_api_success(
                     'Voucher utilisé avec succès.',
