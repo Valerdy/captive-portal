@@ -13,12 +13,12 @@ Usage:
     python manage.py check_radcheck_quotas --dry-run  # Mode test
     python manage.py check_radcheck_quotas --verbose  # Mode détaillé
 """
-from django.core.management.base import BaseCommand
-from django.utils import timezone
-from django.db import transaction
-from django.db.models import Sum, Q
 from core.models import User, UserDisconnectionLog
-from radius.models import RadCheck, RadAcct
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from django.db.models import Q, Sum
+from django.utils import timezone
+from radius.models import RadAcct, RadCheck
 
 
 class Command(BaseCommand):
@@ -66,7 +66,7 @@ class Command(BaseCommand):
             statut=True  # Actuellement actifs
         ).values_list('username', flat=True).distinct()
 
-        self.stdout.write(f"✓ {len(users_with_quota)} utilisateurs avec quota trouvés\n"))
+        self.stdout.write(f"✓ {len(users_with_quota)} utilisateurs avec quota trouvés\n")
 
         for username in users_with_quota:
             stats['total_checked'] += 1
