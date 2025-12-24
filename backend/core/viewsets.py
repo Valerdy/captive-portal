@@ -1,8 +1,11 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import APIException, NotFound, ValidationError as DRFValidationError
 from django.utils import timezone
-from django.db import models
+from django.db import models, transaction
+from django.core.exceptions import ObjectDoesNotExist
 from .models import (
     User, Device, Session, Voucher, BlockedSite, UserQuota, Promotion, Profile,
     UserProfileUsage, ProfileHistory, ProfileAlert, UserDisconnectionLog
@@ -20,11 +23,125 @@ from .decorators import rate_limit
 from radius.models import RadCheck
 
 
+# =============================================================================
+# PAGINATION CLASSES
+# =============================================================================
+
+class StandardResultsSetPagination(PageNumberPagination):
+    """Pagination standard pour les listes d'objets"""
+    page_size = 25
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+class LargeResultsSetPagination(PageNumberPagination):
+    """Pagination pour les grandes listes (users, statistics)"""
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+
+
+# =============================================================================
+# CUSTOM API EXCEPTIONS
+# =============================================================================
+
+class ResourceNotFoundError(APIException):
+    """Exception pour ressource non trouvée"""
+    status_code = 404
+    default_detail = 'La ressource demandée n\'existe pas.'
+    default_code = 'not_found'
+
+
+class ResourceAlreadyExistsError(APIException):
+    """Exception pour ressource déjà existante"""
+    status_code = 409
+    default_detail = 'Cette ressource existe déjà.'
+    default_code = 'already_exists'
+
+
+class RadiusActivationError(APIException):
+    """Exception pour erreurs d'activation RADIUS"""
+    status_code = 400
+    default_detail = 'Erreur lors de l\'activation RADIUS.'
+    default_code = 'radius_activation_error'
+
+
+class VoucherValidationError(APIException):
+    """Exception pour erreurs de validation de voucher"""
+    status_code = 400
+    default_detail = 'Le voucher est invalide.'
+    default_code = 'voucher_validation_error'
+
+
+class VoucherNotFoundError(APIException):
+    """Exception pour voucher non trouvé"""
+    status_code = 404
+    default_detail = 'Le code voucher n\'existe pas.'
+    default_code = 'voucher_not_found'
+
+
+class VoucherExpiredError(APIException):
+    """Exception pour voucher expiré"""
+    status_code = 410
+    default_detail = 'Ce voucher a expiré.'
+    default_code = 'voucher_expired'
+
+
+class VoucherAlreadyUsedError(APIException):
+    """Exception pour voucher déjà utilisé"""
+    status_code = 409
+    default_detail = 'Ce voucher a déjà été utilisé.'
+    default_code = 'voucher_already_used'
+
+
+class OperationNotAllowedError(APIException):
+    """Exception pour opération non autorisée"""
+    status_code = 403
+    default_detail = 'Cette opération n\'est pas autorisée.'
+    default_code = 'operation_not_allowed'
+
+
+class RaceConditionError(APIException):
+    """Exception pour race condition détectée"""
+    status_code = 409
+    default_detail = 'Une opération concurrente a été détectée. Veuillez réessayer.'
+    default_code = 'race_condition'
+
+
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+def format_api_error(code: str, message: str, details: dict = None) -> dict:
+    """Formate une réponse d'erreur API standardisée"""
+    response = {
+        'error': {
+            'code': code,
+            'message': message
+        }
+    }
+    if details:
+        response['error']['details'] = details
+    return response
+
+
+def format_api_success(message: str, data: dict = None) -> dict:
+    """Formate une réponse de succès API standardisée"""
+    response = {
+        'success': True,
+        'message': message
+    }
+    if data:
+        response['data'] = data
+    return response
+
+
 class ProfileViewSet(viewsets.ModelViewSet):
     """ViewSet for Profile model"""
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
     permission_classes = [IsAdminOrReadOnly]
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         """Filtre les profils actifs pour les non-admins"""
@@ -35,14 +152,22 @@ class ProfileViewSet(viewsets.ModelViewSet):
         # Regular users see only active profiles
         return Profile.objects.filter(is_active=True)
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], permission_classes=[IsAdmin])
     def users(self, request, pk=None):
-        """Récupère la liste des utilisateurs utilisant ce profil"""
+        """
+        Récupère la liste des utilisateurs utilisant ce profil.
+        Inclut la pagination et utilise select_related pour optimiser les requêtes.
+        """
         profile = self.get_object()
-        users = profile.users.filter(is_active=True)
+        # Utiliser select_related pour éviter les N+1 queries
+        users_queryset = profile.users.filter(is_active=True).select_related('promotion')
+
+        # Pagination manuelle
+        paginator = LargeResultsSetPagination()
+        paginated_users = paginator.paginate_queryset(users_queryset, request)
 
         users_data = []
-        for user in users:
+        for user in paginated_users:
             users_data.append({
                 'id': user.id,
                 'username': user.username,
@@ -54,31 +179,41 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 'is_radius_activated': user.is_radius_activated,
             })
 
-        return Response({
+        return paginator.get_paginated_response({
             'profile': {'id': profile.id, 'name': profile.name},
-            'users': users_data,
-            'total_count': len(users_data)
+            'users': users_data
         })
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], permission_classes=[IsAdmin])
     def promotions(self, request, pk=None):
-        """Récupère la liste des promotions utilisant ce profil"""
+        """
+        Récupère la liste des promotions utilisant ce profil.
+        Utilise prefetch_related pour optimiser le comptage des utilisateurs.
+        """
+        from django.db.models import Count
+
         profile = self.get_object()
-        promotions = profile.promotions.filter(is_active=True)
+        # Utiliser annotate pour éviter les N+1 queries sur users.count()
+        promotions = profile.promotions.filter(is_active=True).annotate(
+            user_count=Count('users', filter=models.Q(users__is_active=True))
+        )
+
+        # Pagination manuelle
+        paginator = StandardResultsSetPagination()
+        paginated_promotions = paginator.paginate_queryset(promotions, request)
 
         promotions_data = []
-        for promotion in promotions:
+        for promotion in paginated_promotions:
             promotions_data.append({
                 'id': promotion.id,
                 'name': promotion.name,
                 'is_active': promotion.is_active,
-                'user_count': promotion.users.count()
+                'user_count': promotion.user_count
             })
 
-        return Response({
+        return paginator.get_paginated_response({
             'profile': {'id': profile.id, 'name': profile.name},
-            'promotions': promotions_data,
-            'total_count': len(promotions_data)
+            'promotions': promotions_data
         })
 
     @action(detail=False, methods=['get'])
@@ -88,62 +223,72 @@ class ProfileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(active_profiles, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[IsAdmin])
     def statistics(self, request):
         """
         Statistiques globales sur tous les profils.
         Retourne des données agrégées pour le dashboard admin.
+
+        ADMIN ONLY - Contient des données sensibles sur l'utilisation.
+        Optimisé avec des requêtes agrégées pour éviter les N+1.
         """
         from django.db.models import Count, Sum, Avg, Q
 
-        profiles = Profile.objects.all()
+        # Utiliser des requêtes optimisées avec annotate
+        profiles = Profile.objects.annotate(
+            direct_users_count=Count(
+                'users',
+                filter=Q(users__is_active=True)
+            )
+        )
 
-        # Statistiques générales
-        total_profiles = profiles.count()
-        active_profiles = profiles.filter(is_active=True).count()
-        inactive_profiles = total_profiles - active_profiles
+        # Statistiques générales (requêtes agrégées, pas de boucle)
+        stats = Profile.objects.aggregate(
+            total_profiles=Count('id'),
+            active_profiles=Count('id', filter=Q(is_active=True)),
+            unlimited_profiles=Count('id', filter=Q(quota_type='unlimited')),
+            limited_profiles=Count('id', filter=Q(quota_type='limited'))
+        )
 
-        # Répartition par type de quota
-        unlimited_profiles = profiles.filter(quota_type='unlimited').count()
-        limited_profiles = profiles.filter(quota_type='limited').count()
+        total_profiles = stats['total_profiles']
+        active_profiles_count = stats['active_profiles']
+        inactive_profiles = total_profiles - active_profiles_count
 
-        # Statistiques sur l'utilisation des profils
+        # Pagination pour les profils avec statistiques
+        paginator = LargeResultsSetPagination()
+        paginated_profiles = paginator.paginate_queryset(profiles, request)
+
         profiles_with_stats = []
-        for profile in profiles:
-            # Utilisateurs directs
-            direct_users = profile.users.filter(is_active=True).count()
-
-            # Utilisateurs via promotions
+        for profile in paginated_profiles:
+            # Utilisateurs via promotions (requête optimisée)
             promotion_users = User.objects.filter(
                 promotion__profile=profile,
                 is_active=True,
-                profile__isnull=True  # Ne pas compter ceux qui ont un profil direct
+                profile__isnull=True
             ).count()
 
-            total_users = direct_users + promotion_users
+            total_users = profile.direct_users_count + promotion_users
 
-            # Consommation moyenne pour ce profil
-            usages = UserProfileUsage.objects.filter(
+            # Consommation moyenne pour ce profil (requête agrégée unique)
+            avg_usage = UserProfileUsage.objects.filter(
                 user__profile=profile,
                 is_active=True
-            )
-
-            avg_usage = usages.aggregate(
+            ).aggregate(
                 avg_today=Avg('used_today'),
                 avg_week=Avg('used_week'),
                 avg_month=Avg('used_month'),
-                avg_total=Avg('used_total')
+                avg_total=Avg('used_total'),
+                exceeded_count=Count('id', filter=Q(is_exceeded=True))
             )
 
-            # Nombre d'utilisateurs qui ont dépassé leur quota
-            exceeded_count = usages.filter(is_exceeded=True).count()
+            exceeded_count = avg_usage['exceeded_count'] or 0
 
             profiles_with_stats.append({
                 'profile_id': profile.id,
                 'profile_name': profile.name,
                 'quota_type': profile.quota_type,
                 'is_active': profile.is_active,
-                'direct_users': direct_users,
+                'direct_users': profile.direct_users_count,
                 'promotion_users': promotion_users,
                 'total_users': total_users,
                 'avg_usage_today_gb': round(avg_usage['avg_today'] / (1024**3), 2) if avg_usage['avg_today'] else 0,
@@ -154,22 +299,22 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 'exceeded_percent': round((exceeded_count / total_users * 100), 2) if total_users > 0 else 0
             })
 
-        # Trier par nombre d'utilisateurs (du plus utilisé au moins utilisé)
+        # Trier par nombre d'utilisateurs
         profiles_with_stats.sort(key=lambda x: x['total_users'], reverse=True)
 
-        # Top 5 profils les plus utilisés
+        # Top 5 profils
         top_profiles = profiles_with_stats[:5]
 
-        return Response({
+        return paginator.get_paginated_response({
             'summary': {
                 'total_profiles': total_profiles,
-                'active_profiles': active_profiles,
+                'active_profiles': active_profiles_count,
                 'inactive_profiles': inactive_profiles,
-                'unlimited_profiles': unlimited_profiles,
-                'limited_profiles': limited_profiles,
+                'unlimited_profiles': stats['unlimited_profiles'],
+                'limited_profiles': stats['limited_profiles'],
             },
             'top_profiles': top_profiles,
-            'all_profiles': profiles_with_stats
+            'profiles': profiles_with_stats
         })
 
     @action(detail=True, methods=['get'])
@@ -325,99 +470,159 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
     def deactivate_radius(self, request, pk=None):
-        """Désactive l'utilisateur dans FreeRADIUS (statut=0)"""
-        user = self.get_object()
+        """
+        Désactive l'utilisateur dans FreeRADIUS (statut=0).
+        Utilise select_for_update() pour éviter les race conditions.
+        """
         from radius.models import RadCheck
 
-        updated = RadCheck.objects.filter(username=user.username).update(statut=False)
-        return Response({
-            'status': 'disabled',
-            'updated': updated
-        })
+        try:
+            with transaction.atomic():
+                user = User.objects.select_for_update(nowait=True).get(pk=pk)
+
+                if not user.is_radius_activated:
+                    return Response(
+                        format_api_error(
+                            'not_activated',
+                            f'L\'utilisateur {user.username} n\'est pas encore activé dans RADIUS.'
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                updated = RadCheck.objects.filter(username=user.username).update(statut=False)
+
+                # Mettre à jour le statut local
+                user.is_radius_enabled = False
+                user.save(update_fields=['is_radius_enabled'])
+
+                return Response(format_api_success(
+                    f'Utilisateur {user.username} désactivé dans RADIUS.',
+                    {
+                        'username': user.username,
+                        'status': 'disabled',
+                        'radcheck_updated': updated
+                    }
+                ))
+
+        except User.DoesNotExist:
+            raise ResourceNotFoundError(detail=f'Utilisateur avec ID {pk} non trouvé.')
+        except transaction.DatabaseError:
+            raise RaceConditionError(
+                detail='L\'utilisateur est en cours de modification. Veuillez réessayer.'
+            )
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
     def activate_radius(self, request, pk=None):
-        """Active l'utilisateur dans FreeRADIUS avec les paramètres de son profil"""
-        user = self.get_object()
+        """
+        Active l'utilisateur dans FreeRADIUS avec les paramètres de son profil.
+        Utilise select_for_update() pour éviter les race conditions.
+        """
         from radius.models import RadCheck, RadReply, RadUserGroup
 
-        if not user.cleartext_password:
-            return Response({
-                'error': 'Mot de passe en clair indisponible pour cet utilisateur'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            with transaction.atomic():
+                # Verrouiller l'utilisateur pour éviter les race conditions
+                user = User.objects.select_for_update(nowait=True).get(pk=pk)
 
-        # Récupérer le profil effectif (individuel ou de promotion)
-        profile = user.get_effective_profile()
+                # Vérifier si déjà activé
+                if user.is_radius_activated and user.is_radius_enabled:
+                    return Response(
+                        format_api_error(
+                            'already_activated',
+                            f'L\'utilisateur {user.username} est déjà activé dans RADIUS.'
+                        ),
+                        status=status.HTTP_409_CONFLICT
+                    )
 
-        # 1. radcheck - Mot de passe en clair
-        RadCheck.objects.update_or_create(
-            username=user.username,
-            attribute='Cleartext-Password',
-            defaults={
-                'op': ':=',
-                'value': user.cleartext_password,
-                'statut': True
-            }
-        )
+                if not user.cleartext_password:
+                    raise RadiusActivationError(
+                        detail='Mot de passe en clair indisponible pour cet utilisateur. '
+                               'L\'utilisateur doit se réinscrire ou un admin doit réinitialiser son mot de passe.'
+                    )
 
-        # 2. radreply - Session timeout (du profil ou valeur par défaut)
-        session_timeout = profile.session_timeout if profile else (86400 if user.is_staff else 3600)
-        RadReply.objects.update_or_create(
-            username=user.username,
-            attribute='Session-Timeout',
-            defaults={'op': '=', 'value': str(session_timeout)}
-        )
+                # Récupérer le profil effectif (individuel ou de promotion)
+                profile = user.get_effective_profile()
 
-        # 3. radreply - Idle timeout (du profil)
-        if profile:
-            RadReply.objects.update_or_create(
-                username=user.username,
-                attribute='Idle-Timeout',
-                defaults={'op': '=', 'value': str(profile.idle_timeout)}
+                # 1. radcheck - Mot de passe en clair
+                RadCheck.objects.update_or_create(
+                    username=user.username,
+                    attribute='Cleartext-Password',
+                    defaults={
+                        'op': ':=',
+                        'value': user.cleartext_password,
+                        'statut': True
+                    }
+                )
+
+                # 2. radreply - Session timeout (du profil ou valeur par défaut)
+                session_timeout = profile.session_timeout if profile else (86400 if user.is_staff else 3600)
+                RadReply.objects.update_or_create(
+                    username=user.username,
+                    attribute='Session-Timeout',
+                    defaults={'op': '=', 'value': str(session_timeout)}
+                )
+
+                # 3. radreply - Idle timeout (du profil)
+                if profile:
+                    RadReply.objects.update_or_create(
+                        username=user.username,
+                        attribute='Idle-Timeout',
+                        defaults={'op': '=', 'value': str(profile.idle_timeout)}
+                    )
+
+                # 4. radreply - Limite de bande passante (du profil ou valeur par défaut)
+                if profile:
+                    # Validation des valeurs de bande passante
+                    upload_mbps = max(1, int(profile.bandwidth_upload))
+                    download_mbps = max(1, int(profile.bandwidth_download))
+                    bandwidth_value = f"{upload_mbps}M/{download_mbps}M"
+                else:
+                    bandwidth_value = '10M/10M'
+
+                RadReply.objects.update_or_create(
+                    username=user.username,
+                    attribute='Mikrotik-Rate-Limit',
+                    defaults={'op': '=', 'value': bandwidth_value}
+                )
+
+                # 5. radcheck - Quota de données (si le profil a un quota limité)
+                if profile and profile.quota_type == 'limited':
+                    RadCheck.objects.update_or_create(
+                        username=user.username,
+                        attribute='ChilliSpot-Max-Total-Octets',
+                        defaults={'op': ':=', 'value': str(profile.data_volume), 'statut': True}
+                    )
+
+                # 6. radusergroup - Groupe utilisateur
+                RadUserGroup.objects.update_or_create(
+                    username=user.username,
+                    groupname=user.role,
+                    defaults={'priority': 0}
+                )
+
+                # Mettre à jour les statuts
+                user.is_radius_activated = True
+                user.is_radius_enabled = True
+                user.save(update_fields=['is_radius_activated', 'is_radius_enabled'])
+
+                return Response(format_api_success(
+                    f'Utilisateur {user.username} activé avec succès dans RADIUS.',
+                    {
+                        'username': user.username,
+                        'status': 'enabled',
+                        'profile': profile.name if profile else 'Default',
+                        'bandwidth': bandwidth_value,
+                        'session_timeout': session_timeout,
+                        'quota_type': profile.quota_type if profile else 'unlimited'
+                    }
+                ))
+
+        except User.DoesNotExist:
+            raise ResourceNotFoundError(detail=f'Utilisateur avec ID {pk} non trouvé.')
+        except transaction.DatabaseError:
+            raise RaceConditionError(
+                detail='L\'utilisateur est en cours de modification par une autre opération. Veuillez réessayer.'
             )
-
-        # 4. radreply - Limite de bande passante (du profil ou valeur par défaut)
-        if profile:
-            # Les valeurs sont déjà en Mbps dans le modèle
-            upload_mbps = profile.bandwidth_upload
-            download_mbps = profile.bandwidth_download
-            bandwidth_value = f"{int(upload_mbps)}M/{int(download_mbps)}M"
-        else:
-            bandwidth_value = '10M/10M'
-
-        RadReply.objects.update_or_create(
-            username=user.username,
-            attribute='Mikrotik-Rate-Limit',
-            defaults={'op': '=', 'value': bandwidth_value}
-        )
-
-        # 5. radcheck - Quota de données (si le profil a un quota limité)
-        if profile and profile.quota_type == 'limited':
-            RadCheck.objects.update_or_create(
-                username=user.username,
-                attribute='ChilliSpot-Max-Total-Octets',
-                defaults={'op': ':=', 'value': str(profile.data_volume), 'statut': True}
-            )
-
-        # 7. radusergroup - Groupe utilisateur
-        RadUserGroup.objects.update_or_create(
-            username=user.username,
-            groupname=user.role,
-            defaults={'priority': 0}
-        )
-
-        # Mettre à jour les statuts
-        user.is_radius_activated = True
-        user.is_radius_enabled = True
-        user.save(update_fields=['is_radius_activated', 'is_radius_enabled'])
-
-        return Response({
-            'status': 'enabled',
-            'profile': profile.name if profile else 'Default',
-            'bandwidth': bandwidth_value,
-            'session_timeout': session_timeout,
-            'quota_type': profile.quota_type if profile else 'unlimited'
-        })
 
 
 class DeviceViewSet(viewsets.ModelViewSet):
@@ -541,72 +746,197 @@ class SessionViewSet(viewsets.ModelViewSet):
 
 
 class VoucherViewSet(viewsets.ModelViewSet):
-    """ViewSet for Voucher model"""
+    """
+    ViewSet for Voucher model.
+
+    Toutes les actions nécessitent une authentification.
+    - validate: Vérifie si un voucher est valide (authentifié)
+    - redeem: Utilise un voucher (authentifié)
+    - active: Liste les vouchers actifs (admin uniquement)
+    """
     queryset = Voucher.objects.all()
     serializer_class = VoucherSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
+        """
+        Permissions:
+        - validate/redeem: Utilisateur authentifié
+        - create/update/delete: Admin uniquement
+        - list/retrieve: Authentifié (filtré par utilisateur)
+        """
         if self.action in ['validate', 'redeem']:
-            return [permissions.AllowAny()]
+            # CORRECTION: Authentification requise pour éviter le brute-force
+            return [permissions.IsAuthenticated()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy', 'active']:
+            return [IsAdmin()]
         return super().get_permissions()
+
+    def get_queryset(self):
+        """Filtre les vouchers selon le rôle de l'utilisateur"""
+        user = self.request.user
+        if user.is_authenticated and (user.is_staff or user.is_superuser):
+            # Admins voient tous les vouchers
+            return Voucher.objects.all().select_related('used_by', 'created_by')
+        elif user.is_authenticated:
+            # Utilisateurs normaux voient seulement leurs vouchers utilisés
+            return Voucher.objects.filter(used_by=user).select_related('created_by')
+        return Voucher.objects.none()
 
     def perform_create(self, serializer):
         """Set created_by to current user"""
         serializer.save(created_by=self.request.user)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     @rate_limit(key_prefix='voucher_validate', rate='10/m', method='POST', block_duration=120)
     def validate(self, request):
-        """Validate a voucher code"""
-        serializer = VoucherValidationSerializer(data=request.data)
-        if serializer.is_valid():
-            code = serializer.validated_data['code']
-            voucher = Voucher.objects.get(code=code)
-            voucher_serializer = VoucherSerializer(voucher)
-            return Response({
-                'valid': True,
-                'voucher': voucher_serializer.data
-            })
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        """
+        Valide un code voucher.
 
-    @action(detail=False, methods=['post'])
+        Retourne les informations du voucher s'il est valide.
+        Gère proprement les erreurs de voucher non trouvé, expiré ou déjà utilisé.
+        """
+        serializer = VoucherValidationSerializer(data=request.data)
+        if not serializer.is_valid():
+            raise DRFValidationError(detail=serializer.errors)
+
+        code = serializer.validated_data['code']
+
+        try:
+            voucher = Voucher.objects.select_related('used_by', 'created_by').get(code=code)
+        except Voucher.DoesNotExist:
+            raise VoucherNotFoundError(
+                detail=f'Le code voucher "{code}" n\'existe pas.'
+            )
+
+        # Vérifier l'état du voucher
+        if voucher.status == 'expired':
+            raise VoucherExpiredError(
+                detail='Ce voucher a expiré et ne peut plus être utilisé.'
+            )
+
+        if voucher.status == 'used':
+            raise VoucherAlreadyUsedError(
+                detail='Ce voucher a atteint sa limite d\'utilisation.'
+            )
+
+        if voucher.status == 'revoked':
+            raise VoucherValidationError(
+                detail='Ce voucher a été révoqué par un administrateur.'
+            )
+
+        # Vérifier la validité temporelle
+        now = timezone.now()
+        if voucher.valid_from and now < voucher.valid_from:
+            raise VoucherValidationError(
+                detail=f'Ce voucher n\'est pas encore valide. '
+                       f'Il sera actif à partir du {voucher.valid_from.strftime("%d/%m/%Y %H:%M")}.'
+            )
+
+        if voucher.valid_until and now > voucher.valid_until:
+            # Mettre à jour le statut du voucher
+            voucher.status = 'expired'
+            voucher.save(update_fields=['status'])
+            raise VoucherExpiredError(
+                detail=f'Ce voucher a expiré le {voucher.valid_until.strftime("%d/%m/%Y %H:%M")}.'
+            )
+
+        voucher_serializer = VoucherSerializer(voucher)
+        return Response(format_api_success(
+            'Le voucher est valide.',
+            {
+                'valid': True,
+                'voucher': voucher_serializer.data,
+                'remaining_uses': voucher.max_devices - voucher.used_count
+            }
+        ))
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     @rate_limit(key_prefix='voucher_redeem', rate='5/h', method='POST', block_duration=300)
     def redeem(self, request):
-        """Redeem a voucher code"""
-        serializer = VoucherValidationSerializer(data=request.data)
-        if serializer.is_valid():
-            code = serializer.validated_data['code']
-            voucher = Voucher.objects.get(code=code)
+        """
+        Utilise (redemption) un code voucher.
 
-            # Check if user is authenticated
-            if request.user.is_authenticated:
+        L'utilisateur doit être authentifié.
+        Utilise une transaction atomique pour éviter les race conditions.
+        """
+        serializer = VoucherValidationSerializer(data=request.data)
+        if not serializer.is_valid():
+            raise DRFValidationError(detail=serializer.errors)
+
+        code = serializer.validated_data['code']
+
+        try:
+            with transaction.atomic():
+                # Verrouiller le voucher pour éviter les race conditions
+                try:
+                    voucher = Voucher.objects.select_for_update(nowait=True).get(code=code)
+                except Voucher.DoesNotExist:
+                    raise VoucherNotFoundError(
+                        detail=f'Le code voucher "{code}" n\'existe pas.'
+                    )
+
+                # Vérifications de validité
+                if voucher.status == 'expired':
+                    raise VoucherExpiredError(
+                        detail='Ce voucher a expiré et ne peut plus être utilisé.'
+                    )
+
+                if voucher.status == 'used':
+                    raise VoucherAlreadyUsedError(
+                        detail='Ce voucher a atteint sa limite d\'utilisation.'
+                    )
+
+                if voucher.status == 'revoked':
+                    raise VoucherValidationError(
+                        detail='Ce voucher a été révoqué par un administrateur.'
+                    )
+
+                # Vérifier la validité temporelle
+                now = timezone.now()
+                if voucher.valid_from and now < voucher.valid_from:
+                    raise VoucherValidationError(
+                        detail=f'Ce voucher n\'est pas encore valide.'
+                    )
+
+                if voucher.valid_until and now > voucher.valid_until:
+                    voucher.status = 'expired'
+                    voucher.save(update_fields=['status'])
+                    raise VoucherExpiredError(
+                        detail='Ce voucher a expiré.'
+                    )
+
+                # Utiliser le voucher
                 voucher.used_by = request.user
-                voucher.used_at = timezone.now()
+                voucher.used_at = now
                 voucher.used_count += 1
 
-                # Update voucher status if max devices reached
+                # Mettre à jour le statut si limite atteinte
                 if voucher.used_count >= voucher.max_devices:
                     voucher.status = 'used'
 
                 voucher.save()
 
-                return Response({
-                    'status': 'success',
-                    'message': 'Voucher redeemed successfully',
-                    'duration': voucher.duration
-                })
-            else:
-                return Response(
-                    {'error': 'Authentication required to redeem voucher'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(format_api_success(
+                    'Voucher utilisé avec succès.',
+                    {
+                        'code': voucher.code,
+                        'duration_seconds': voucher.duration,
+                        'duration_hours': round(voucher.duration / 3600, 2) if voucher.duration else None,
+                        'remaining_uses': max(0, voucher.max_devices - voucher.used_count),
+                        'status': voucher.status
+                    }
+                ))
 
-    @action(detail=False, methods=['get'])
+        except transaction.DatabaseError:
+            raise RaceConditionError(
+                detail='Le voucher est en cours d\'utilisation par une autre opération. Veuillez réessayer.'
+            )
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAdmin])
     def active(self, request):
-        """Get all active vouchers"""
-        vouchers = Voucher.objects.filter(status='active')
+        """Get all active vouchers (admin only)"""
+        vouchers = Voucher.objects.filter(status='active').select_related('used_by', 'created_by')
         serializer = self.get_serializer(vouchers, many=True)
         return Response(serializer.data)
 
@@ -637,22 +967,37 @@ class PromotionViewSet(viewsets.ModelViewSet):
     queryset = Promotion.objects.all()
     serializer_class = PromotionSerializer
     permission_classes = [IsAdmin]
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        """Optimise les requêtes avec select_related"""
+        return Promotion.objects.all().select_related('profile')
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
     def active(self, request):
         """Liste des promotions actives (accessible publiquement pour l'inscription)"""
-        active_promotions = Promotion.objects.filter(is_active=True)
+        active_promotions = Promotion.objects.filter(is_active=True).select_related('profile')
         serializer = self.get_serializer(active_promotions, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], permission_classes=[IsAdmin])
     def users(self, request, pk=None):
-        """Récupère la liste des utilisateurs d'une promotion avec leurs statuts RADIUS"""
+        """
+        Récupère la liste des utilisateurs d'une promotion avec leurs statuts RADIUS.
+        Inclut la pagination et optimise les requêtes avec select_related.
+        """
         promotion = self.get_object()
-        users = promotion.users.filter(is_active=True).select_related('promotion')
+        # Optimiser les requêtes avec select_related
+        users_queryset = promotion.users.filter(is_active=True).select_related(
+            'promotion', 'profile'
+        )
+
+        # Pagination
+        paginator = LargeResultsSetPagination()
+        paginated_users = paginator.paginate_queryset(users_queryset, request)
 
         users_data = []
-        for user in users:
+        for user in paginated_users:
             users_data.append({
                 'id': user.id,
                 'username': user.username,
@@ -667,30 +1012,38 @@ class PromotionViewSet(viewsets.ModelViewSet):
                 'can_access_radius': user.can_access_radius(),
             })
 
-        return Response({
+        return paginator.get_paginated_response({
             'promotion': {
                 'id': promotion.id,
                 'name': promotion.name,
                 'is_active': promotion.is_active
             },
-            'users': users_data,
-            'total_count': len(users_data)
+            'users': users_data
         })
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
     def deactivate(self, request, pk=None):
         """
         Désactive une promotion et SUPPRIME tous les utilisateurs de RADIUS.
         Les utilisateurs n'auront plus accès à Internet.
         Utilise une transaction atomique pour garantir la cohérence.
         """
-        from django.db import transaction
         from radius.models import RadReply, RadUserGroup
-
-        promotion = self.get_object()
 
         try:
             with transaction.atomic():
+                # Verrouiller la promotion pour éviter les race conditions
+                promotion = Promotion.objects.select_for_update(nowait=True).get(pk=pk)
+
+                if not promotion.is_active:
+                    return Response(
+                        format_api_error(
+                            'already_deactivated',
+                            f'La promotion "{promotion.name}" est déjà désactivée.'
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
                 # Désactiver la promotion
                 promotion.is_active = False
                 promotion.save(update_fields=['is_active'])
@@ -720,38 +1073,52 @@ class PromotionViewSet(viewsets.ModelViewSet):
 
                     except Exception as e:
                         failed_count += 1
-                        errors.append(f"{user.username}: {str(e)}")
+                        errors.append({'username': user.username, 'error': str(e)})
 
-                return Response({
-                    'status': 'success',
-                    'promotion': promotion.name,
-                    'is_active': promotion.is_active,
-                    'users_disabled': disabled_count,
-                    'users_failed': failed_count,
-                    'errors': errors if errors else None,
-                    'message': f'Promotion désactivée. {disabled_count} utilisateur(s) supprimé(s) de RADIUS.'
-                })
+                return Response(format_api_success(
+                    f'Promotion "{promotion.name}" désactivée. {disabled_count} utilisateur(s) supprimé(s) de RADIUS.',
+                    {
+                        'promotion': {
+                            'id': promotion.id,
+                            'name': promotion.name,
+                            'is_active': promotion.is_active
+                        },
+                        'users_disabled': disabled_count,
+                        'users_failed': failed_count,
+                        'errors': errors if errors else None
+                    }
+                ))
 
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': f'Erreur lors de la désactivation: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Promotion.DoesNotExist:
+            raise ResourceNotFoundError(detail=f'Promotion avec ID {pk} non trouvée.')
+        except transaction.DatabaseError:
+            raise RaceConditionError(
+                detail='La promotion est en cours de modification. Veuillez réessayer.'
+            )
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
     def activate(self, request, pk=None):
         """
         Active une promotion et CRÉE les entrées RADIUS pour TOUS les utilisateurs.
         Tous les utilisateurs auront accès à Internet.
         Utilise une transaction atomique pour garantir la cohérence.
         """
-        from django.db import transaction
         from radius.models import RadReply, RadUserGroup
-
-        promotion = self.get_object()
 
         try:
             with transaction.atomic():
+                # Verrouiller la promotion pour éviter les race conditions
+                promotion = Promotion.objects.select_for_update(nowait=True).get(pk=pk)
+
+                if promotion.is_active:
+                    return Response(
+                        format_api_error(
+                            'already_activated',
+                            f'La promotion "{promotion.name}" est déjà activée.'
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
                 # Activer la promotion
                 promotion.is_active = True
                 promotion.save(update_fields=['is_active'])
@@ -770,12 +1137,13 @@ class PromotionViewSet(viewsets.ModelViewSet):
                         # Vérifier que le mot de passe en clair est disponible
                         if not user.cleartext_password:
                             failed_count += 1
-                            errors.append(f"{user.username}: Mot de passe en clair non disponible")
+                            errors.append({
+                                'username': user.username,
+                                'error': 'Mot de passe en clair non disponible'
+                            })
                             continue
 
                         # CRÉER les entrées RADIUS avec les paramètres du profil
-
-                        # Récupérer le profil effectif (individuel ou de promotion)
                         profile = user.get_effective_profile()
 
                         # 1. radcheck - Mot de passe en clair
@@ -789,61 +1157,45 @@ class PromotionViewSet(viewsets.ModelViewSet):
                             }
                         )
 
-                        # 2. radreply - Session timeout (du profil ou valeur par défaut)
+                        # 2. radreply - Session timeout
                         session_timeout = profile.session_timeout if profile else (86400 if user.is_staff else 3600)
                         RadReply.objects.update_or_create(
                             username=user.username,
                             attribute='Session-Timeout',
-                            defaults={
-                                'op': '=',
-                                'value': str(session_timeout)
-                            }
+                            defaults={'op': '=', 'value': str(session_timeout)}
                         )
 
-                        # 3. radreply - Idle timeout (du profil ou valeur par défaut)
+                        # 3. radreply - Idle timeout
                         if profile:
                             RadReply.objects.update_or_create(
                                 username=user.username,
                                 attribute='Idle-Timeout',
-                                defaults={
-                                    'op': '=',
-                                    'value': str(profile.idle_timeout)
-                                }
+                                defaults={'op': '=', 'value': str(profile.idle_timeout)}
                             )
 
-                        # 4. radreply - Limite de bande passante (du profil ou valeur par défaut)
+                        # 4. radreply - Limite de bande passante
                         if profile:
-                            # Format Mikrotik: upload/download en Mbps (ex: "5M/10M")
-                            # Profil stocke déjà en Mbps
-                            upload_mbps = profile.bandwidth_upload
-                            download_mbps = profile.bandwidth_download
-                            bandwidth_value = f"{int(upload_mbps)}M/{int(download_mbps)}M"
+                            upload_mbps = max(1, int(profile.bandwidth_upload))
+                            download_mbps = max(1, int(profile.bandwidth_download))
+                            bandwidth_value = f"{upload_mbps}M/{download_mbps}M"
                         else:
-                            bandwidth_value = '10M/10M'  # Valeur par défaut
+                            bandwidth_value = '10M/10M'
 
                         RadReply.objects.update_or_create(
                             username=user.username,
                             attribute='Mikrotik-Rate-Limit',
-                            defaults={
-                                'op': '=',
-                                'value': bandwidth_value
-                            }
+                            defaults={'op': '=', 'value': bandwidth_value}
                         )
 
-                        # 5. radcheck - Quota de données (si le profil a un quota limité)
+                        # 5. radcheck - Quota de données
                         if profile and profile.quota_type == 'limited':
-                            # ChilliSpot-Max-Total-Octets pour quota total
                             RadCheck.objects.update_or_create(
                                 username=user.username,
                                 attribute='ChilliSpot-Max-Total-Octets',
-                                defaults={
-                                    'op': ':=',
-                                    'value': str(profile.data_volume),
-                                    'statut': True
-                                }
+                                defaults={'op': ':=', 'value': str(profile.data_volume), 'statut': True}
                             )
 
-                        # 7. radusergroup - Groupe utilisateur
+                        # 6. radusergroup - Groupe utilisateur
                         RadUserGroup.objects.update_or_create(
                             username=user.username,
                             groupname=user.role,
@@ -859,23 +1211,28 @@ class PromotionViewSet(viewsets.ModelViewSet):
 
                     except Exception as e:
                         failed_count += 1
-                        errors.append(f"{user.username}: {str(e)}")
+                        errors.append({'username': user.username, 'error': str(e)})
 
-                return Response({
-                    'status': 'success',
-                    'promotion': promotion.name,
-                    'is_active': promotion.is_active,
-                    'users_enabled': enabled_count,
-                    'users_failed': failed_count,
-                    'errors': errors if errors else None,
-                    'message': f'Promotion activée. {enabled_count} utilisateur(s) créé(s) dans RADIUS.'
-                })
+                return Response(format_api_success(
+                    f'Promotion "{promotion.name}" activée. {enabled_count} utilisateur(s) créé(s) dans RADIUS.',
+                    {
+                        'promotion': {
+                            'id': promotion.id,
+                            'name': promotion.name,
+                            'is_active': promotion.is_active
+                        },
+                        'users_enabled': enabled_count,
+                        'users_failed': failed_count,
+                        'errors': errors if errors else None
+                    }
+                ))
 
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': f'Erreur lors de l\'activation: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Promotion.DoesNotExist:
+            raise ResourceNotFoundError(detail=f'Promotion avec ID {pk} non trouvée.')
+        except transaction.DatabaseError:
+            raise RaceConditionError(
+                detail='La promotion est en cours de modification. Veuillez réessayer.'
+            )
 
 
 class UserQuotaViewSet(viewsets.ModelViewSet):
