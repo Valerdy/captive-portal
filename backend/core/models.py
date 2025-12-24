@@ -443,31 +443,172 @@ class Voucher(models.Model):
 
 
 class BlockedSite(models.Model):
-    """Blocked/Whitelisted sites management"""
+    """
+    Gestion des sites bloqués via DNS statique MikroTik.
+
+    Le blocage fonctionne en créant une entrée DNS statique sur le routeur MikroTik
+    qui redirige le domaine vers 0.0.0.0, rendant le site inaccessible.
+
+    Cette méthode fonctionne pour HTTP et HTTPS car le blocage se fait au niveau DNS.
+    """
+
     TYPE_CHOICES = [
         ('blacklist', 'Blacklist'),
         ('whitelist', 'Whitelist'),
     ]
 
-    url = models.CharField(max_length=255, unique=True, db_index=True, help_text='Domain or URL to block/allow')
+    SYNC_STATUS_CHOICES = [
+        ('pending', 'En attente'),
+        ('synced', 'Synchronisé'),
+        ('error', 'Erreur'),
+    ]
+
+    CATEGORY_CHOICES = [
+        ('social', 'Réseaux sociaux'),
+        ('streaming', 'Streaming vidéo'),
+        ('gaming', 'Jeux en ligne'),
+        ('adult', 'Contenu adulte'),
+        ('gambling', 'Jeux d\'argent'),
+        ('malware', 'Malware/Phishing'),
+        ('ads', 'Publicités'),
+        ('other', 'Autre'),
+    ]
+
+    # Domaine à bloquer (ex: facebook.com, *.tiktok.com)
+    domain = models.CharField(
+        max_length=255,
+        unique=True,
+        db_index=True,
+        help_text='Domaine à bloquer (ex: facebook.com). Utilisez le préfixe * pour les sous-domaines (*.example.com)'
+    )
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='blacklist')
-    reason = models.CharField(max_length=255, blank=True, null=True, help_text='Reason for blocking/allowing')
-    is_active = models.BooleanField(default=True)
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        default='other',
+        help_text='Catégorie du site pour le regroupement et les statistiques'
+    )
+    reason = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text='Raison du blocage (visible dans les logs)'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text='Désactiver pour suspendre temporairement le blocage sans supprimer l\'entrée'
+    )
+
+    # Extension future: blocage par profil ou promotion
+    profile = models.ForeignKey(
+        'Profile',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='blocked_sites',
+        help_text='Profil concerné (laisser vide pour bloquer globalement)'
+    )
+    promotion = models.ForeignKey(
+        'Promotion',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='blocked_sites',
+        help_text='Promotion concernée (laisser vide pour bloquer globalement)'
+    )
+
+    # Synchronisation MikroTik
+    mikrotik_id = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text='ID de l\'entrée DNS statique sur MikroTik (géré automatiquement)'
+    )
+    sync_status = models.CharField(
+        max_length=20,
+        choices=SYNC_STATUS_CHOICES,
+        default='pending',
+        help_text='État de la synchronisation avec MikroTik'
+    )
+    last_sync_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Date de la dernière synchronisation réussie'
+    )
+    last_sync_error = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Dernier message d\'erreur de synchronisation'
+    )
 
     # Metadata
-    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='blocked_sites')
+    added_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='blocked_sites'
+    )
     added_date = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'blocked_sites'
         ordering = ['-added_date']
+        verbose_name = 'Site bloqué'
+        verbose_name_plural = 'Sites bloqués'
         indexes = [
             models.Index(fields=['type', 'is_active']),
+            models.Index(fields=['sync_status']),
+            models.Index(fields=['category']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=~models.Q(profile__isnull=False, promotion__isnull=False),
+                name='blocked_site_profile_or_promotion_not_both'
+            )
         ]
 
     def __str__(self):
-        return f"{self.url} ({self.type})"
+        status = '✓' if self.sync_status == 'synced' else '⏳' if self.sync_status == 'pending' else '✗'
+        return f"{status} {self.domain} ({self.get_category_display()})"
+
+    @property
+    def is_global(self) -> bool:
+        """Vérifie si le blocage est global (pas de profil ni promotion)"""
+        return self.profile is None and self.promotion is None
+
+    @property
+    def needs_sync(self) -> bool:
+        """Vérifie si une synchronisation est nécessaire"""
+        return self.sync_status in ('pending', 'error')
+
+    def get_dns_name(self) -> str:
+        """
+        Retourne le nom DNS à utiliser pour l'entrée MikroTik.
+        Gère les wildcards (*.example.com -> regexp)
+        """
+        return self.domain.lstrip('*.')
+
+    def mark_synced(self, mikrotik_id: str = None) -> None:
+        """Marque l'entrée comme synchronisée"""
+        self.sync_status = 'synced'
+        self.last_sync_at = timezone.now()
+        self.last_sync_error = None
+        if mikrotik_id:
+            self.mikrotik_id = mikrotik_id
+        self.save(update_fields=['sync_status', 'last_sync_at', 'last_sync_error', 'mikrotik_id'])
+
+    def mark_error(self, error_message: str) -> None:
+        """Marque l'entrée comme en erreur"""
+        self.sync_status = 'error'
+        self.last_sync_error = str(error_message)[:1000]  # Limiter la taille
+        self.save(update_fields=['sync_status', 'last_sync_error'])
+
+    def mark_pending(self) -> None:
+        """Marque l'entrée comme en attente de sync"""
+        self.sync_status = 'pending'
+        self.mikrotik_id = None
+        self.save(update_fields=['sync_status', 'mikrotik_id'])
 
 
 class UserQuota(models.Model):
