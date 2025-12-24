@@ -32,6 +32,13 @@ function navigateTo(route: string) {
     <header class="dashboard-header">
       <div class="header-content">
         <div class="header-left">
+          <!-- Bouton Accueil -->
+          <router-link to="/" class="home-button" title="Retour à l'accueil">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 22V12h6v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </router-link>
           <div class="logo-section">
             <div class="logo-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -190,7 +197,40 @@ function navigateTo(route: string) {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1.5rem;
+}
+
+/* Bouton Accueil */
+.home-button {
+  width: 44px;
+  height: 44px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.2s;
+  color: #6B7280;
+}
+
+.home-button svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.2s;
+}
+
+.home-button:hover {
+  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
+  border-color: transparent;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.home-button:hover svg {
+  transform: scale(1.1);
 }
 
 .logo-section {
