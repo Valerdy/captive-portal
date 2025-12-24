@@ -167,27 +167,90 @@ class RadiusUserViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAdminUser]
 
     def list(self, request):
-        """List all RADIUS users"""
-        # Get unique usernames from radcheck
-        usernames = RadCheck.objects.values_list('username', flat=True).distinct()
+        """
+        List all RADIUS users.
+        Optimisé pour éviter les N+1 queries en utilisant des dictionnaires de lookup.
+        """
+        from rest_framework.pagination import PageNumberPagination
 
+        # Récupérer tous les usernames uniques
+        usernames = list(RadCheck.objects.values_list('username', flat=True).distinct())
+
+        # Pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 50
+        paginator.page_size_query_param = 'page_size'
+        paginator.max_page_size = 200
+
+        # Paginer les usernames
+        page_usernames = paginator.paginate_queryset(usernames, request)
+
+        if not page_usernames:
+            return paginator.get_paginated_response([])
+
+        # Créer des dictionnaires de lookup pour éviter les N+1 queries
+        # Une seule requête par table au lieu de N requêtes
+
+        # RadCheck passwords (filtrés par les usernames de la page)
+        password_checks = {
+            rc.username: rc for rc in
+            RadCheck.objects.filter(
+                username__in=page_usernames,
+                attribute='Cleartext-Password'
+            )
+        }
+
+        # Session timeouts
+        timeout_replies = {
+            rr.username: rr for rr in
+            RadReply.objects.filter(
+                username__in=page_usernames,
+                attribute='Session-Timeout'
+            )
+        }
+
+        # Bandwidth limits
+        bandwidth_replies = {
+            rr.username: rr for rr in
+            RadReply.objects.filter(
+                username__in=page_usernames,
+                attribute='Mikrotik-Rate-Limit'
+            )
+        }
+
+        # User groups
+        user_groups = {
+            rug.username: rug for rug in
+            RadUserGroup.objects.filter(username__in=page_usernames)
+        }
+
+        # Statuts des utilisateurs
+        statut_checks = {
+            rc.username: rc for rc in
+            RadCheck.objects.filter(
+                username__in=page_usernames,
+                attribute='Cleartext-Password'
+            )
+        }
+
+        # Construire la réponse en utilisant les dictionnaires
         users_data = []
-        for username in usernames:
-            # Get user data from various tables
-            check = RadCheck.objects.filter(username=username, attribute='Cleartext-Password').first()
-            timeout_reply = RadReply.objects.filter(username=username, attribute='Session-Timeout').first()
-            bandwidth_reply = RadReply.objects.filter(username=username, attribute='Mikrotik-Rate-Limit').first()
-            group = RadUserGroup.objects.filter(username=username).first()
+        for username in page_usernames:
+            timeout_reply = timeout_replies.get(username)
+            bandwidth_reply = bandwidth_replies.get(username)
+            group = user_groups.get(username)
+            statut_check = statut_checks.get(username)
 
             user_data = {
                 'username': username,
                 'groupname': group.groupname if group else 'user',
                 'session_timeout': int(timeout_reply.value) if timeout_reply else 3600,
-                'bandwidth_limit': bandwidth_reply.value if bandwidth_reply else ''
+                'bandwidth_limit': bandwidth_reply.value if bandwidth_reply else '',
+                'is_enabled': statut_check.statut if statut_check else False
             }
             users_data.append(user_data)
 
-        return Response(users_data)
+        return paginator.get_paginated_response(users_data)
 
     def create(self, request):
         """Create a new RADIUS user"""
@@ -268,23 +331,57 @@ class RadiusUserViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def by_group(self, request):
-        """Get all users in a specific group"""
+        """
+        Get all users in a specific group.
+        Optimisé pour éviter les N+1 queries.
+        """
+        from rest_framework.pagination import PageNumberPagination
+
         groupname = request.query_params.get('groupname', 'user')
-        usernames = RadUserGroup.objects.filter(groupname=groupname).values_list('username', flat=True)
+        usernames = list(RadUserGroup.objects.filter(groupname=groupname).values_list('username', flat=True))
+
+        # Pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 50
+        paginator.page_size_query_param = 'page_size'
+        paginator.max_page_size = 200
+
+        page_usernames = paginator.paginate_queryset(usernames, request)
+
+        if not page_usernames:
+            return paginator.get_paginated_response([])
+
+        # Lookup dictionnaires pour éviter N+1 queries
+        timeout_replies = {
+            rr.username: rr for rr in
+            RadReply.objects.filter(
+                username__in=page_usernames,
+                attribute='Session-Timeout'
+            )
+        }
+
+        statut_checks = {
+            rc.username: rc for rc in
+            RadCheck.objects.filter(
+                username__in=page_usernames,
+                attribute='Cleartext-Password'
+            )
+        }
 
         users_data = []
-        for username in usernames:
-            check = RadCheck.objects.filter(username=username, attribute='Cleartext-Password').first()
-            timeout_reply = RadReply.objects.filter(username=username, attribute='Session-Timeout').first()
+        for username in page_usernames:
+            timeout_reply = timeout_replies.get(username)
+            statut_check = statut_checks.get(username)
 
             user_data = {
                 'username': username,
                 'groupname': groupname,
-                'session_timeout': int(timeout_reply.value) if timeout_reply else 3600
+                'session_timeout': int(timeout_reply.value) if timeout_reply else 3600,
+                'is_enabled': statut_check.statut if statut_check else False
             }
             users_data.append(user_data)
 
-        return Response(users_data)
+        return paginator.get_paginated_response(users_data)
 
 
 class RadCheckViewSet(viewsets.ModelViewSet):
