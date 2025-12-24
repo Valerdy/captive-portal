@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib import messages
+from django.db import transaction
 from django.utils.html import format_html
 from django.utils import timezone
 from .models import (
@@ -22,13 +23,18 @@ class UserAdmin(BaseUserAdmin):
     ordering = ['-date_joined']
     autocomplete_fields = ['promotion', 'profile']
 
+    # Fix N+1 queries: prefetch FK relations for list view
+    list_select_related = ['promotion', 'profile']
+
     fieldsets = BaseUserAdmin.fieldsets + (
         ('Captive Portal Info', {
             'fields': ('promotion', 'profile', 'matricule', 'phone_number', 'mac_address', 'ip_address', 'is_voucher_user', 'voucher_code')
         }),
         ('RADIUS Status', {
-            'fields': ('is_radius_activated', 'is_radius_enabled', 'cleartext_password'),
-            'classes': ('collapse',)
+            # SECURITY: cleartext_password removed - never expose passwords in admin
+            'fields': ('is_radius_activated', 'is_radius_enabled', 'has_radius_password'),
+            'classes': ('collapse',),
+            'description': 'Le mot de passe RADIUS est stocké de manière sécurisée et n\'est pas affiché.'
         }),
     )
 
@@ -37,6 +43,15 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('promotion', 'profile', 'matricule', 'phone_number', 'mac_address', 'ip_address', 'is_voucher_user', 'voucher_code')
         }),
     )
+
+    readonly_fields = ['has_radius_password']
+
+    def has_radius_password(self, obj):
+        """Indique si l'utilisateur a un mot de passe RADIUS configuré"""
+        if obj.cleartext_password:
+            return format_html('<span style="color: green;">✓ Configuré</span>')
+        return format_html('<span style="color: red;">✗ Non configuré</span>')
+    has_radius_password.short_description = 'Mot de passe RADIUS'
 
 
 @admin.register(Promotion)
@@ -118,6 +133,9 @@ class DeviceAdmin(admin.ModelAdmin):
     readonly_fields = ['first_seen', 'last_seen']
     ordering = ['-last_seen']
 
+    # Fix N+1 queries
+    list_select_related = ['user']
+
 
 @admin.register(Session)
 class SessionAdmin(admin.ModelAdmin):
@@ -130,6 +148,9 @@ class SessionAdmin(admin.ModelAdmin):
     search_fields = ['session_id', 'user__username', 'ip_address', 'mac_address']
     readonly_fields = ['created_at', 'updated_at', 'start_time', 'is_expired', 'total_bytes']
     ordering = ['-start_time']
+
+    # Fix N+1 queries
+    list_select_related = ['user', 'device']
 
     fieldsets = (
         ('Session Info', {
@@ -335,13 +356,17 @@ class BlockedSiteAdmin(admin.ModelAdmin):
         'is_active', 'type', 'category', 'sync_status',
         'added_date', 'profile', 'promotion'
     ]
-    search_fields = ['domain', 'reason']
+    search_fields = ['domain', 'reason', 'profile__name', 'promotion__name']
     readonly_fields = [
         'mikrotik_id', 'sync_status', 'last_sync_at',
         'last_sync_error', 'added_date', 'updated_at'
     ]
     autocomplete_fields = ['added_by', 'profile', 'promotion']
     ordering = ['-added_date']
+
+    # Fix N+1 queries
+    list_select_related = ['profile', 'promotion', 'added_by']
+
     actions = [
         'sync_to_mikrotik', 'force_resync',
         'activate_selected', 'deactivate_selected'
@@ -435,22 +460,32 @@ class BlockedSiteAdmin(admin.ModelAdmin):
         La synchronisation est effectuée automatiquement après la sauvegarde.
         En cas d'erreur MikroTik, l'entrée est quand même sauvegardée avec
         le statut 'error' pour permettre une resynchronisation ultérieure.
+
+        Utilise une transaction atomique pour éviter les race conditions.
         """
         # Définir l'utilisateur qui ajoute si c'est une création
         if not change:
             obj.added_by = request.user
 
-        # Marquer comme pending si le domaine ou is_active a changé
-        if change:
-            old_obj = BlockedSite.objects.get(pk=obj.pk)
-            if old_obj.domain != obj.domain or old_obj.is_active != obj.is_active:
-                obj.sync_status = 'pending'
-                obj.mikrotik_id = None
+        # Utiliser une transaction atomique pour éviter les race conditions
+        with transaction.atomic():
+            # Marquer comme pending si le domaine ou is_active a changé
+            if change:
+                # Verrouiller la ligne pour éviter les modifications concurrentes
+                try:
+                    old_obj = BlockedSite.objects.select_for_update(nowait=False).get(pk=obj.pk)
+                    if old_obj.domain != obj.domain or old_obj.is_active != obj.is_active:
+                        obj.sync_status = 'pending'
+                        obj.mikrotik_id = None
+                except BlockedSite.DoesNotExist:
+                    # L'objet a été supprimé entre-temps
+                    messages.error(request, "L'entrée a été supprimée par un autre utilisateur.")
+                    return
 
-        # Sauvegarder d'abord
-        super().save_model(request, obj, form, change)
+            # Sauvegarder d'abord
+            super().save_model(request, obj, form, change)
 
-        # Tenter la synchronisation avec MikroTik
+        # Tenter la synchronisation avec MikroTik (hors transaction pour ne pas bloquer)
         self._sync_single_site(request, obj)
 
     def delete_model(self, request, obj):
