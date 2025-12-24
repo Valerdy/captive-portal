@@ -5,7 +5,7 @@ from .viewsets import (
     RadiusAccountingViewSet, RadiusClientViewSet,
     RadiusUserViewSet, RadCheckViewSet, RadReplyViewSet,
     RadUserGroupViewSet, RadGroupCheckViewSet, RadGroupReplyViewSet,
-    RadPostAuthViewSet
+    RadPostAuthViewSet, MikrotikIntegrationViewSet
 )
 
 router = DefaultRouter()
@@ -23,6 +23,9 @@ router.register(r'radusergroup', RadUserGroupViewSet, basename='radusergroup')
 router.register(r'radgroupcheck', RadGroupCheckViewSet, basename='radgroupcheck')
 router.register(r'radgroupreply', RadGroupReplyViewSet, basename='radgroupreply')
 router.register(r'radpostauth', RadPostAuthViewSet, basename='radpostauth')
+
+# MikroTik integration routes
+router.register(r'mikrotik', MikrotikIntegrationViewSet, basename='mikrotik')
 
 urlpatterns = [
     path('', include(router.urls)),

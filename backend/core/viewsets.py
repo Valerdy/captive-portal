@@ -409,6 +409,167 @@ class ProfileViewSet(viewsets.ModelViewSet):
             'distribution': ranges
         })
 
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def assign_to_user(self, request, pk=None):
+        """
+        Assigne ce profil à un utilisateur individuel.
+
+        POST /api/core/profiles/{id}/assign_to_user/
+        Body: {"user_id": 123}
+        """
+        from radius.services import ProfileAssignmentService
+
+        profile = self.get_object()
+        user_id = request.data.get('user_id')
+
+        if not user_id:
+            return Response(
+                format_api_error('missing_user_id', 'L\'ID utilisateur est requis.'),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            raise ResourceNotFoundError('Utilisateur non trouvé.')
+
+        result = ProfileAssignmentService.assign_profile_to_user(
+            user=user,
+            profile=profile,
+            assigned_by=request.user
+        )
+
+        if result['success']:
+            return Response(format_api_success(result['message']))
+        else:
+            return Response(
+                format_api_error('assignment_failed', result.get('error', 'Erreur inconnue')),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def assign_to_promotion(self, request, pk=None):
+        """
+        Assigne ce profil à une promotion et synchronise tous ses utilisateurs.
+
+        POST /api/core/profiles/{id}/assign_to_promotion/
+        Body: {"promotion_id": 123}
+        """
+        from radius.services import ProfileAssignmentService
+
+        profile = self.get_object()
+        promotion_id = request.data.get('promotion_id')
+
+        if not promotion_id:
+            return Response(
+                format_api_error('missing_promotion_id', 'L\'ID de promotion est requis.'),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            promotion = Promotion.objects.get(pk=promotion_id)
+        except Promotion.DoesNotExist:
+            raise ResourceNotFoundError('Promotion non trouvée.')
+
+        result = ProfileAssignmentService.assign_profile_to_promotion(
+            promotion=promotion,
+            profile=profile,
+            assigned_by=request.user
+        )
+
+        return Response(format_api_success(
+            result['message'],
+            data={
+                'synced_users': result.get('synced_users', 0),
+                'errors': result.get('errors', [])
+            }
+        ))
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def remove_from_user(self, request, pk=None):
+        """
+        Retire ce profil d'un utilisateur (il utilisera le profil de sa promotion).
+
+        POST /api/core/profiles/{id}/remove_from_user/
+        Body: {"user_id": 123}
+        """
+        from radius.services import ProfileAssignmentService
+
+        profile = self.get_object()
+        user_id = request.data.get('user_id')
+
+        if not user_id:
+            return Response(
+                format_api_error('missing_user_id', 'L\'ID utilisateur est requis.'),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            raise ResourceNotFoundError('Utilisateur non trouvé.')
+
+        if user.profile != profile:
+            return Response(
+                format_api_error('profile_mismatch', 'Cet utilisateur n\'a pas ce profil assigné.'),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        result = ProfileAssignmentService.remove_profile_from_user(
+            user=user,
+            removed_by=request.user
+        )
+
+        if result['success']:
+            return Response(format_api_success(result['message']))
+        else:
+            return Response(
+                format_api_error('removal_failed', result.get('error', 'Erreur inconnue')),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def sync_to_radius(self, request, pk=None):
+        """
+        Force la synchronisation de tous les utilisateurs de ce profil vers RADIUS.
+
+        POST /api/core/profiles/{id}/sync_to_radius/
+        """
+        from radius.services import ProfileRadiusService
+
+        profile = self.get_object()
+
+        # Récupérer tous les utilisateurs avec ce profil
+        direct_users = User.objects.filter(
+            profile=profile,
+            is_radius_activated=True
+        )
+        promotion_users = User.objects.filter(
+            promotion__profile=profile,
+            profile__isnull=True,
+            is_radius_activated=True
+        )
+
+        all_users = list(direct_users) + list(promotion_users)
+        synced = 0
+        errors = []
+
+        for user in all_users:
+            try:
+                ProfileRadiusService.sync_user_to_radius(user, profile)
+                synced += 1
+            except Exception as e:
+                errors.append({'user': user.username, 'error': str(e)})
+
+        return Response(format_api_success(
+            f'{synced} utilisateurs synchronisés vers RADIUS.',
+            data={
+                'total': len(all_users),
+                'synced': synced,
+                'errors': errors
+            }
+        ))
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """ViewSet for User model"""
