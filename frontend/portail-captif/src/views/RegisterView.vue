@@ -75,6 +75,14 @@ onMounted(() => {
 
 <template>
   <div class="register-page">
+    <!-- Bouton Accueil -->
+    <router-link to="/" class="home-button" title="Retour à l'accueil">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 22V12h6v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </router-link>
+
     <div class="register-container">
       <!-- Logo et Header -->
       <div class="header">
@@ -659,6 +667,54 @@ input::placeholder {
   .btn-primary {
     padding: 0.875rem;
     font-size: 1rem;
+  }
+}
+
+/* Bouton Accueil */
+.home-button {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  width: 50px;
+  height: 50px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.home-button svg {
+  width: 24px;
+  height: 24px;
+  color: #dc2626;
+  transition: transform 0.3s ease;
+}
+
+.home-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.home-button:hover svg {
+  transform: scale(1.1);
+}
+
+@media (max-width: 640px) {
+  .home-button {
+    top: 1rem;
+    left: 1rem;
+    width: 44px;
+    height: 44px;
+  }
+
+  .home-button svg {
+    width: 20px;
+    height: 20px;
   }
 }
 </style>
