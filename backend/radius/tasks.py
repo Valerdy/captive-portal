@@ -23,6 +23,7 @@ Exemple crontab:
 0 0 1 * * cd /path/to/project && python manage.py reset_monthly_quotas
 """
 
+from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 import logging

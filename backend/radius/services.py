@@ -26,7 +26,7 @@ class ProfileRadiusService:
     - Session-Timeout: Durée max de session en secondes
     - Idle-Timeout: Délai d'inactivité en secondes
     - Simultaneous-Use: Nombre de connexions simultanées
-    - ChilliSpot-Max-Total-Octets: Quota total en octets
+    - Max-Total-Octets: Quota total en octets (radcheck)
     """
 
     # Mapping des attributs de profil vers RADIUS
