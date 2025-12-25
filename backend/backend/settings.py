@@ -200,6 +200,13 @@ MIKROTIK_CONFIG = {
 MIKROTIK_AGENT_URL = env('MIKROTIK_AGENT_URL', default='http://localhost:3001')
 MIKROTIK_AGENT_TIMEOUT = env.int('MIKROTIK_AGENT_TIMEOUT', default=10)
 
+# Profile Sync Configuration
+# Enable/disable automatic profile synchronization to RADIUS and MikroTik
+PROFILE_AUTO_SYNC = env.bool('PROFILE_AUTO_SYNC', default=True)
+
+# Enable/disable MikroTik synchronization specifically
+MIKROTIK_SYNC_ENABLED = env.bool('MIKROTIK_SYNC_ENABLED', default=True)
+
 # RADIUS Configuration
 RADIUS_CONFIG = {
     'SERVER': env('RADIUS_SERVER', default='127.0.0.1'),
