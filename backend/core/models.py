@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from datetime import timedelta
 
@@ -41,14 +42,16 @@ class Profile(models.Model):
         help_text="Si désactivé, le profil ne peut pas être assigné"
     )
 
-    # Bande passante (en Mbps)
+    # Bande passante (en Mbps) - min 1 Mbps, max 1000 Mbps (1 Gbps)
     bandwidth_upload = models.IntegerField(
         default=5,
-        help_text="Bande passante upload en Mbps (ex: 5 = 5 Mbps)"
+        validators=[MinValueValidator(1), MaxValueValidator(1000)],
+        help_text="Bande passante upload en Mbps (1-1000 Mbps)"
     )
     bandwidth_download = models.IntegerField(
         default=10,
-        help_text="Bande passante download en Mbps (ex: 10 = 10 Mbps)"
+        validators=[MinValueValidator(1), MaxValueValidator(1000)],
+        help_text="Bande passante download en Mbps (1-1000 Mbps)"
     )
 
     # Quota de données
@@ -1041,12 +1044,14 @@ class ProfileAlert(models.Model):
     )
     threshold_percent = models.IntegerField(
         default=80,
-        help_text="Seuil en pourcentage pour déclencher l'alerte (ex: 80 = alerte à 80%)"
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Seuil en pourcentage pour déclencher l'alerte (0-100%)"
     )
     threshold_days = models.IntegerField(
         null=True,
         blank=True,
-        help_text="Nombre de jours avant expiration pour déclencher l'alerte (pour expiry alerts)"
+        validators=[MinValueValidator(1)],
+        help_text="Nombre de jours avant expiration pour déclencher l'alerte (min: 1 jour)"
     )
     notification_method = models.CharField(
         max_length=20,

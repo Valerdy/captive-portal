@@ -31,10 +31,9 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('promotion', 'profile', 'matricule', 'phone_number', 'mac_address', 'ip_address', 'is_voucher_user', 'voucher_code')
         }),
         ('RADIUS Status', {
-            # SECURITY: cleartext_password removed - never expose passwords in admin
-            'fields': ('is_radius_activated', 'is_radius_enabled', 'has_radius_password'),
+            # Note: cleartext_password nécessaire pour l'activation RADIUS (table radcheck)
+            'fields': ('is_radius_activated', 'is_radius_enabled', 'cleartext_password'),
             'classes': ('collapse',),
-            'description': 'Le mot de passe RADIUS est stocké de manière sécurisée et n\'est pas affiché.'
         }),
     )
 
@@ -43,15 +42,6 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('promotion', 'profile', 'matricule', 'phone_number', 'mac_address', 'ip_address', 'is_voucher_user', 'voucher_code')
         }),
     )
-
-    readonly_fields = ['has_radius_password']
-
-    def has_radius_password(self, obj):
-        """Indique si l'utilisateur a un mot de passe RADIUS configuré"""
-        if obj.cleartext_password:
-            return format_html('<span style="color: green;">✓ Configuré</span>')
-        return format_html('<span style="color: red;">✗ Non configuré</span>')
-    has_radius_password.short_description = 'Mot de passe RADIUS'
 
 
 @admin.register(Promotion)
