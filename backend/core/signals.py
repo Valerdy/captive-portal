@@ -288,18 +288,26 @@ def sync_profile_to_mikrotik(sender, instance, created, **kwargs):
     """
     Synchronise le profil vers MikroTik après création/modification.
     Met également à jour tous les utilisateurs utilisant ce profil.
+
+    Note: Ce signal ne lève jamais d'exception pour ne pas bloquer
+    la sauvegarde du profil dans Django.
     """
-    if is_syncing() or not get_sync_enabled():
-        return
-
-    if not getattr(settings, 'MIKROTIK_SYNC_ENABLED', True):
-        return
-
     try:
+        if is_syncing() or not get_sync_enabled():
+            return
+
+        if not getattr(settings, 'MIKROTIK_SYNC_ENABLED', True):
+            return
+
         set_syncing(True)
 
         from mikrotik.profile_service import MikrotikProfileSyncService
         mikrotik_service = MikrotikProfileSyncService()
+
+        # Vérifier si un routeur est configuré
+        if not mikrotik_service.router:
+            logger.debug(f"No MikroTik router configured - skipping profile sync")
+            return
 
         result = mikrotik_service.sync_profile(instance)
 
@@ -314,9 +322,12 @@ def sync_profile_to_mikrotik(sender, instance, created, **kwargs):
             logger.warning(f"Failed to sync profile '{instance.name}' to MikroTik: {result.get('error')}")
 
     except Exception as e:
-        logger.error(f"Error syncing profile '{instance.name}': {e}")
+        logger.error(f"Error syncing profile '{instance.name}': {e}", exc_info=True)
     finally:
-        set_syncing(False)
+        try:
+            set_syncing(False)
+        except Exception:
+            pass
 
 
 def sync_users_with_profile_change(profile, mikrotik_service):
@@ -354,29 +365,44 @@ def sync_users_with_profile_change(profile, mikrotik_service):
 def remove_profile_from_mikrotik(sender, instance, **kwargs):
     """
     Supprime le profil de MikroTik lors de la suppression.
+
+    Note: Ce signal ne doit JAMAIS lever d'exception pour éviter de bloquer
+    la suppression du profil dans Django. Toutes les erreurs sont loguées
+    mais n'empêchent pas la transaction.
     """
-    if is_syncing() or not get_sync_enabled():
-        return
-
-    if not getattr(settings, 'MIKROTIK_SYNC_ENABLED', True):
-        return
-
     try:
+        if is_syncing() or not get_sync_enabled():
+            return
+
+        if not getattr(settings, 'MIKROTIK_SYNC_ENABLED', True):
+            return
+
         set_syncing(True)
 
         from mikrotik.profile_service import MikrotikProfileSyncService
         mikrotik_service = MikrotikProfileSyncService()
+
+        # Vérifier si un routeur est configuré
+        if not mikrotik_service.router:
+            logger.debug(f"No MikroTik router configured - skipping profile deletion sync")
+            return
 
         profile_name = mikrotik_service._get_mikrotik_profile_name(instance)
         result = mikrotik_service.delete_hotspot_profile(profile_name)
 
         if result.get('success'):
             logger.info(f"Profile '{instance.name}' deleted from MikroTik")
+        else:
+            logger.warning(f"Failed to delete profile '{instance.name}' from MikroTik: {result.get('error')}")
 
     except Exception as e:
-        logger.error(f"Error deleting profile '{instance.name}' from MikroTik: {e}")
+        # Log l'erreur mais ne lève pas d'exception pour ne pas bloquer la suppression
+        logger.error(f"Error deleting profile '{instance.name}' from MikroTik: {e}", exc_info=True)
     finally:
-        set_syncing(False)
+        try:
+            set_syncing(False)
+        except Exception:
+            pass
 
 
 # =============================================================================
