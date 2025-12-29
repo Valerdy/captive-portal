@@ -12,19 +12,32 @@ from .models import (
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    """Admin interface for User model"""
+    """Admin interface for User model with RADIUS management actions"""
     list_display = [
         'username', 'email', 'first_name', 'last_name',
-        'promotion', 'profile', 'phone_number', 'mac_address',
-        'is_voucher_user', 'is_active'
+        'promotion', 'profile', 'radius_status_display',
+        'phone_number', 'is_active'
     ]
-    list_filter = ['is_active', 'is_staff', 'is_voucher_user', 'date_joined', 'promotion', 'profile']
-    search_fields = ['username', 'email', 'phone_number', 'mac_address', 'promotion__name', 'profile__name']
+    list_filter = [
+        'is_active', 'is_staff', 'is_voucher_user', 'is_radius_activated',
+        'is_radius_enabled', 'date_joined', 'promotion', 'profile'
+    ]
+    search_fields = [
+        'username', 'email', 'first_name', 'last_name',
+        'phone_number', 'mac_address', 'matricule',
+        'promotion__name', 'profile__name'
+    ]
     ordering = ['-date_joined']
     autocomplete_fields = ['promotion', 'profile']
 
     # Fix N+1 queries: prefetch FK relations for list view
     list_select_related = ['promotion', 'profile']
+
+    # Actions RADIUS pour gestion en masse
+    actions = [
+        'activate_radius', 'deactivate_radius',
+        'resync_radius', 'enable_radius', 'disable_radius'
+    ]
 
     fieldsets = BaseUserAdmin.fieldsets + (
         ('Captive Portal Info', {
@@ -43,14 +56,113 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
 
+    def radius_status_display(self, obj):
+        """Affiche le statut RADIUS avec indicateur visuel"""
+        if not obj.is_radius_activated:
+            return format_html('<span style="color: #888;">○ Non activé</span>')
+        elif obj.is_radius_enabled:
+            return format_html('<span style="color: green;">● Actif</span>')
+        else:
+            return format_html('<span style="color: orange;">◐ Désactivé</span>')
+    radius_status_display.short_description = 'RADIUS'
+    radius_status_display.admin_order_field = 'is_radius_enabled'
+
+    @admin.action(description="🔓 Activer RADIUS (première activation)")
+    def activate_radius(self, request, queryset):
+        """Active RADIUS pour les utilisateurs sélectionnés (première activation)"""
+        from radius.services import ProfileRadiusService
+
+        activated = 0
+        errors = []
+
+        for user in queryset.filter(is_radius_activated=False):
+            if not user.cleartext_password:
+                errors.append(f"{user.username}: mot de passe requis")
+                continue
+
+            profile = user.get_effective_profile()
+            if not profile:
+                errors.append(f"{user.username}: aucun profil")
+                continue
+
+            result = ProfileRadiusService.activate_user_radius(user, activated_by=request.user)
+            if result.get('success'):
+                activated += 1
+            else:
+                errors.append(f"{user.username}: {result.get('error')}")
+
+        if activated:
+            messages.success(request, f"{activated} utilisateur(s) activé(s) dans RADIUS")
+        if errors:
+            messages.warning(request, f"Erreurs: {'; '.join(errors[:5])}")
+
+    @admin.action(description="🔒 Désactiver RADIUS (supprime les entrées)")
+    def deactivate_radius(self, request, queryset):
+        """Désactive complètement RADIUS pour les utilisateurs sélectionnés"""
+        from radius.services import ProfileRadiusService
+
+        deactivated = 0
+        for user in queryset.filter(is_radius_activated=True):
+            result = ProfileRadiusService.deactivate_user_radius(
+                user, reason='admin_bulk', deactivated_by=request.user
+            )
+            if result.get('success'):
+                deactivated += 1
+
+        messages.success(request, f"{deactivated} utilisateur(s) désactivé(s) de RADIUS")
+
+    @admin.action(description="🔄 Resynchroniser RADIUS")
+    def resync_radius(self, request, queryset):
+        """Resynchronise les attributs RADIUS pour les utilisateurs sélectionnés"""
+        from radius.services import ProfileRadiusService
+
+        synced = 0
+        errors = []
+
+        for user in queryset.filter(is_radius_activated=True):
+            profile = user.get_effective_profile()
+            if not profile:
+                errors.append(f"{user.username}: aucun profil")
+                continue
+
+            try:
+                ProfileRadiusService.sync_user_to_radius(user, profile)
+                synced += 1
+            except Exception as e:
+                errors.append(f"{user.username}: {str(e)[:30]}")
+
+        if synced:
+            messages.success(request, f"{synced} utilisateur(s) resynchronisé(s)")
+        if errors:
+            messages.warning(request, f"Erreurs: {'; '.join(errors[:5])}")
+
+    @admin.action(description="✓ Activer accès (is_radius_enabled=True)")
+    def enable_radius(self, request, queryset):
+        """Active l'accès RADIUS sans resynchroniser"""
+        updated = queryset.filter(is_radius_activated=True).update(is_radius_enabled=True)
+        messages.success(request, f"{updated} utilisateur(s) activé(s)")
+
+    @admin.action(description="✗ Désactiver accès (is_radius_enabled=False)")
+    def disable_radius(self, request, queryset):
+        """Désactive temporairement l'accès RADIUS"""
+        updated = queryset.filter(is_radius_activated=True).update(is_radius_enabled=False)
+        messages.success(request, f"{updated} utilisateur(s) désactivé(s)")
+
 
 @admin.register(Promotion)
 class PromotionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'profile', 'is_active', 'created_at', 'updated_at']
+    list_display = ['name', 'profile', 'is_active', 'user_count_display', 'created_at', 'updated_at']
     list_filter = ['is_active', 'profile']
-    search_fields = ['name']
+    search_fields = ['name', 'description', 'profile__name']  # Fix #11: amélioration recherche
     ordering = ['name']
     autocomplete_fields = ['profile']
+    list_select_related = ['profile']
+
+    def user_count_display(self, obj):
+        """Affiche le nombre d'utilisateurs dans la promotion"""
+        count = obj.users.count()
+        return format_html('<span title="{} utilisateur(s)">{}</span>', count, count)
+    user_count_display.short_description = 'Utilisateurs'
 
 
 @admin.register(Profile)
@@ -75,7 +187,7 @@ class ProfileAdmin(admin.ModelAdmin):
         }),
         ('Bande passante', {
             'fields': ('bandwidth_upload', 'bandwidth_upload_mbps', 'bandwidth_download', 'bandwidth_download_mbps'),
-            'description': 'Bande passante en Kbps (1 Mbps = 1024 Kbps)'
+            'description': 'Bande passante en Mbps (ex: 10 = 10 Mbps). Format MikroTik: downloadM/uploadM'
         }),
         ('Quota de données', {
             'fields': ('quota_type', 'data_volume', 'data_volume_gb', 'validity_duration'),
@@ -357,9 +469,12 @@ class BlockedSiteAdmin(admin.ModelAdmin):
     # Fix N+1 queries
     list_select_related = ['profile', 'promotion', 'added_by']
 
+    # Actions groupées logiquement (#12):
+    # 1. Activation/Désactivation
+    # 2. Synchronisation MikroTik
     actions = [
-        'sync_to_mikrotik', 'force_resync',
-        'activate_selected', 'deactivate_selected'
+        'activate_selected', 'deactivate_selected',  # Groupe 1: État
+        'sync_to_mikrotik', 'force_resync',          # Groupe 2: Sync
     ]
 
     fieldsets = (
@@ -620,11 +735,25 @@ class BlockedSiteAdmin(admin.ModelAdmin):
         except Exception as e:
             messages.error(request, f"Erreur de connexion MikroTik: {e}")
 
-    @admin.action(description="🔃 Forcer la resynchronisation")
+    @admin.action(description="🔃 Forcer la resynchronisation (⚠️ supprime et recrée)")
     def force_resync(self, request, queryset):
         """
         Force la resynchronisation en supprimant et recréant les entrées.
+
+        Cette action est destructive: elle supprime d'abord l'entrée sur MikroTik
+        puis la recrée. Utile en cas de désynchronisation.
         """
+        count = queryset.count()
+
+        # Protection: avertir si trop d'éléments sélectionnés
+        if count > 50:
+            messages.warning(
+                request,
+                f"⚠️ {count} sites sélectionnés. Pour éviter les surcharges, "
+                f"veuillez sélectionner moins de 50 sites à la fois."
+            )
+            return
+
         try:
             from mikrotik.dns_service import MikrotikDNSBlockingService
             service = MikrotikDNSBlockingService()

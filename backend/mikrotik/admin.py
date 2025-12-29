@@ -1,6 +1,47 @@
 from django.contrib import admin
+from django.contrib.admin import SimpleListFilter
 from django.utils.html import format_html
+from django.utils import timezone
+from datetime import timedelta
 from .models import MikrotikRouter, MikrotikHotspotUser, MikrotikActiveConnection, MikrotikLog
+
+
+# =============================================================================
+# Filtre personnalisé pour les dates
+# =============================================================================
+
+class CreatedAtDateRangeFilter(SimpleListFilter):
+    """Filtre par plage de dates pour created_at"""
+    title = 'Période'
+    parameter_name = 'date_range'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('today', "Aujourd'hui"),
+            ('yesterday', 'Hier'),
+            ('week', 'Cette semaine'),
+            ('month', 'Ce mois'),
+        ]
+
+    def queryset(self, request, queryset):
+        now = timezone.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        if self.value() == 'today':
+            return queryset.filter(created_at__gte=today_start)
+        elif self.value() == 'yesterday':
+            yesterday_start = today_start - timedelta(days=1)
+            return queryset.filter(
+                created_at__gte=yesterday_start,
+                created_at__lt=today_start
+            )
+        elif self.value() == 'week':
+            week_start = today_start - timedelta(days=7)
+            return queryset.filter(created_at__gte=week_start)
+        elif self.value() == 'month':
+            month_start = today_start - timedelta(days=30)
+            return queryset.filter(created_at__gte=month_start)
+        return queryset
 
 
 @admin.register(MikrotikRouter)
@@ -114,12 +155,23 @@ class MikrotikActiveConnectionAdmin(admin.ModelAdmin):
 
 @admin.register(MikrotikLog)
 class MikrotikLogAdmin(admin.ModelAdmin):
-    """Admin interface for MikrotikLog model"""
-    list_display = ['router', 'level', 'operation', 'message', 'created_at']
-    list_filter = ['level', 'operation', 'router', 'created_at']
+    """Admin interface for MikrotikLog model with pagination"""
+    list_display = ['router', 'level_display', 'operation', 'message_truncated', 'created_at']
+    list_filter = ['level', 'operation', 'router', CreatedAtDateRangeFilter, 'created_at']
     search_fields = ['operation', 'message', 'router__name']
     readonly_fields = ['created_at']
     ordering = ['-created_at']
+
+    # Pagination améliorée pour éviter les problèmes de performance
+    list_per_page = 50
+    list_max_show_all = 200
+    show_full_result_count = False  # Évite COUNT(*) coûteux sur grandes tables
+
+    # Fix N+1 queries
+    list_select_related = ['router']
+
+    # Hiérarchie de dates pour navigation rapide
+    date_hierarchy = 'created_at'
 
     fieldsets = (
         ('Log Info', {
@@ -129,3 +181,29 @@ class MikrotikLogAdmin(admin.ModelAdmin):
             'fields': ('created_at',)
         }),
     )
+
+    def level_display(self, obj):
+        """Affiche le niveau avec indicateur visuel"""
+        colors = {
+            'info': '#17a2b8',
+            'warning': '#ffc107',
+            'error': '#dc3545',
+            'debug': '#6c757d',
+        }
+        color = colors.get(obj.level, '#6c757d')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color, obj.get_level_display()
+        )
+    level_display.short_description = 'Niveau'
+    level_display.admin_order_field = 'level'
+
+    def message_truncated(self, obj):
+        """Affiche le message tronqué avec tooltip"""
+        if len(obj.message) > 80:
+            return format_html(
+                '<span title="{}">{}&hellip;</span>',
+                obj.message, obj.message[:80]
+            )
+        return obj.message
+    message_truncated.short_description = 'Message'
