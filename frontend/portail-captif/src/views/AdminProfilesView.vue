@@ -184,9 +184,32 @@ async function handleAddProfile() {
   }
 }
 
-function handleEdit(profile: Profile) {
+// Variables pour l'édition avec assignation
+const editAssignPromotions = ref<number[]>([])
+const editAssignUsers = ref<number[]>([])
+const isLoadingAssignments = ref(false)
+
+async function handleEdit(profile: Profile) {
   selectedProfile.value = { ...profile }
+  editAssignPromotions.value = []
+  editAssignUsers.value = []
   showEditModal.value = true
+
+  // Charger les assignations actuelles
+  isLoadingAssignments.value = true
+  try {
+    const [usersData, promotionsData] = await Promise.all([
+      profileStore.getProfileUsers(profile.id),
+      profileStore.getProfilePromotions(profile.id)
+    ])
+    // Extraire les IDs des utilisateurs et promotions actuellement assignés
+    editAssignUsers.value = (usersData.users || []).map((u: any) => u.id)
+    editAssignPromotions.value = (promotionsData.promotions || []).map((p: any) => p.id)
+  } catch (error) {
+    console.error('Erreur lors du chargement des assignations:', error)
+  } finally {
+    isLoadingAssignments.value = false
+  }
 }
 
 function closeEditModal() {
@@ -209,7 +232,9 @@ async function handleUpdateProfile() {
       session_timeout: selectedProfile.value.session_timeout,
       idle_timeout: selectedProfile.value.idle_timeout,
       simultaneous_use: selectedProfile.value.simultaneous_use,
-      is_active: selectedProfile.value.is_active
+      is_active: selectedProfile.value.is_active,
+      assign_to_promotions: editAssignPromotions.value,
+      assign_to_users: editAssignUsers.value
     })
 
     notificationStore.success('Profil modifié avec succès')
@@ -704,6 +729,38 @@ function formatSeconds(seconds: number): string {
               <input v-model.number="selectedProfile.simultaneous_use" type="number" min="1" max="10" />
               <small class="help-text">Nombre de connexions simultanées autorisées</small>
             </div>
+          </div>
+
+          <div class="form-section">
+            <h4 class="section-title">Assigner ce profil à</h4>
+            <p class="section-description">Modifiez les promotions et/ou utilisateurs qui utilisent ce profil</p>
+
+            <div v-if="isLoadingAssignments" class="loading-assignments">
+              <LoadingSpinner />
+              <span>Chargement des assignations...</span>
+            </div>
+
+            <template v-else>
+              <div class="form-group">
+                <label>Promotions</label>
+                <select v-model="editAssignPromotions" multiple size="5">
+                  <option v-for="promo in promotions" :key="promo.id" :value="promo.id">
+                    {{ promo.name }} ({{ promo.user_count || 0 }} utilisateurs)
+                  </option>
+                </select>
+                <small class="form-help">Maintenez Ctrl/Cmd pour sélectionner plusieurs promotions</small>
+              </div>
+
+              <div class="form-group">
+                <label>Utilisateurs individuels</label>
+                <select v-model="editAssignUsers" multiple size="5">
+                  <option v-for="user in users" :key="user.id" :value="user.id">
+                    {{ user.first_name }} {{ user.last_name }} ({{ user.username }})
+                  </option>
+                </select>
+                <small class="form-help">Maintenez Ctrl/Cmd pour sélectionner plusieurs utilisateurs</small>
+              </div>
+            </template>
           </div>
 
           <div v-if="selectedProfile.users_count && selectedProfile.users_count > 0" class="info-note">
@@ -1454,6 +1511,24 @@ function formatSeconds(seconds: number): string {
   padding: 4rem 0;
   display: flex;
   justify-content: center;
+}
+
+.loading-assignments {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #F9FAFB;
+  border-radius: 8px;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+.form-help {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #6B7280;
 }
 
 /* Détails */
