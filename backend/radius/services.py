@@ -1068,3 +1068,474 @@ class MikrotikProfileService:
                 return max(1, int(rate_str) // (1024 * 1024))
             except ValueError:
                 return 1
+
+
+# ============================================================================
+# ARCHITECTURE RADIUS-BASED AVEC GROUPES
+# ============================================================================
+#
+# Cette section implémente l'architecture correcte où:
+# - Chaque Profile Django = un groupe FreeRADIUS
+# - Les attributs sont définis dans radgroupreply/radgroupcheck
+# - Les utilisateurs héritent du profil via radusergroup
+# - MikroTik applique automatiquement les paramètres via RADIUS
+#
+# Avantages:
+# - Modification d'un profil = tous les utilisateurs sont mis à jour
+# - Moins d'entrées dans la base de données
+# - Architecture standard FreeRADIUS
+# ============================================================================
+
+from .models import RadGroupReply, RadGroupCheck
+
+
+class RadiusProfileGroupService:
+    """
+    Service pour la synchronisation Profile Django → Groupe FreeRADIUS.
+
+    Architecture RADIUS-based:
+    - Chaque Profile = un groupe FreeRADIUS (groupname = "profile_{id}_{name}")
+    - Les paramètres du profil sont traduits en attributs RADIUS:
+        * radgroupreply: Mikrotik-Rate-Limit, Session-Timeout, Idle-Timeout, etc.
+        * radgroupcheck: Simultaneous-Use
+    - Les utilisateurs sont associés via radusergroup avec priorité:
+        * Profil direct (priority=5) > Profil promotion (priority=10)
+    """
+
+    # Préfixe pour les noms de groupe RADIUS
+    GROUP_PREFIX = "profile_"
+
+    # Priorités pour l'assignation des groupes
+    PRIORITY_DIRECT_PROFILE = 5
+    PRIORITY_PROMOTION_PROFILE = 10
+
+    @classmethod
+    def get_group_name(cls, profile: Profile) -> str:
+        """
+        Génère le nom du groupe RADIUS à partir du profil Django.
+        Format: profile_{id}_{normalized_name}
+        """
+        import unicodedata
+        import re
+
+        # Normaliser le nom: enlever accents, espaces → underscores, lowercase
+        normalized = unicodedata.normalize('NFKD', profile.name)
+        normalized = normalized.encode('ASCII', 'ignore').decode('ASCII')
+        normalized = re.sub(r'[^\w\s-]', '', normalized)
+        normalized = re.sub(r'[-\s]+', '_', normalized).lower().strip('_')
+
+        return f"{cls.GROUP_PREFIX}{profile.id}_{normalized}"
+
+    @classmethod
+    def profile_to_group_attributes(cls, profile: Profile) -> tuple:
+        """
+        Convertit un profil Django en attributs RADIUS pour groupe.
+
+        Returns:
+            Tuple (reply_attributes, check_attributes)
+            - reply_attributes: Pour radgroupreply (envoyés dans Access-Accept)
+            - check_attributes: Pour radgroupcheck (vérifications avant auth)
+        """
+        groupname = cls.get_group_name(profile)
+        reply_attrs = []
+        check_attrs = []
+
+        # =====================================================================
+        # REPLY ATTRIBUTES (radgroupreply)
+        # =====================================================================
+
+        # 1. Mikrotik-Rate-Limit: Bande passante
+        # Format MikroTik: "download/upload" (rx/tx du point de vue client)
+        rate_limit = f"{profile.bandwidth_download}M/{profile.bandwidth_upload}M"
+        reply_attrs.append({
+            'groupname': groupname,
+            'attribute': 'Mikrotik-Rate-Limit',
+            'op': ':=',
+            'value': rate_limit,
+            'priority': 1
+        })
+
+        # 2. WISPr Bandwidth (alternative/fallback pour compatibilité)
+        reply_attrs.append({
+            'groupname': groupname,
+            'attribute': 'WISPr-Bandwidth-Max-Up',
+            'op': '=',
+            'value': str(profile.bandwidth_upload * 1000000),  # bits/s
+            'priority': 2
+        })
+        reply_attrs.append({
+            'groupname': groupname,
+            'attribute': 'WISPr-Bandwidth-Max-Down',
+            'op': '=',
+            'value': str(profile.bandwidth_download * 1000000),  # bits/s
+            'priority': 3
+        })
+
+        # 3. Session-Timeout: Durée maximale de session
+        reply_attrs.append({
+            'groupname': groupname,
+            'attribute': 'Session-Timeout',
+            'op': ':=',
+            'value': str(profile.session_timeout),
+            'priority': 4
+        })
+
+        # 4. Idle-Timeout: Délai d'inactivité
+        reply_attrs.append({
+            'groupname': groupname,
+            'attribute': 'Idle-Timeout',
+            'op': ':=',
+            'value': str(profile.idle_timeout),
+            'priority': 5
+        })
+
+        # 5. Quota de données (si limité)
+        if profile.quota_type == 'limited' and profile.data_volume:
+            # Mikrotik-Total-Limit pour MikroTik natif
+            reply_attrs.append({
+                'groupname': groupname,
+                'attribute': 'Mikrotik-Total-Limit',
+                'op': ':=',
+                'value': str(profile.data_volume),
+                'priority': 6
+            })
+            # ChilliSpot-Max-Total-Octets pour compatibilité
+            reply_attrs.append({
+                'groupname': groupname,
+                'attribute': 'ChilliSpot-Max-Total-Octets',
+                'op': ':=',
+                'value': str(profile.data_volume),
+                'priority': 7
+            })
+
+        # =====================================================================
+        # CHECK ATTRIBUTES (radgroupcheck)
+        # =====================================================================
+
+        # 1. Simultaneous-Use: Nombre de connexions simultanées
+        check_attrs.append({
+            'groupname': groupname,
+            'attribute': 'Simultaneous-Use',
+            'op': ':=',
+            'value': str(profile.simultaneous_use)
+        })
+
+        return reply_attrs, check_attrs
+
+    @classmethod
+    @transaction.atomic
+    def sync_profile_to_radius_group(cls, profile: Profile) -> Dict[str, Any]:
+        """
+        Synchronise un profil Django vers un groupe FreeRADIUS.
+
+        Crée/met à jour:
+        - Les entrées radgroupreply avec les attributs Reply
+        - Les entrées radgroupcheck avec les attributs Check
+
+        Returns:
+            Dict avec le résultat de la synchronisation
+        """
+        if not profile.is_active:
+            logger.info(f"Profil '{profile.name}' est inactif, suppression du groupe RADIUS")
+            return cls.remove_profile_from_radius_group(profile)
+
+        groupname = cls.get_group_name(profile)
+        reply_attrs, check_attrs = cls.profile_to_group_attributes(profile)
+
+        # Supprimer les anciens attributs pour ce groupe
+        deleted_reply = RadGroupReply.objects.filter(groupname=groupname).delete()[0]
+        deleted_check = RadGroupCheck.objects.filter(groupname=groupname).delete()[0]
+
+        # Créer les nouveaux attributs Reply
+        created_reply = 0
+        for attr in reply_attrs:
+            RadGroupReply.objects.create(**attr)
+            created_reply += 1
+
+        # Créer les nouveaux attributs Check
+        created_check = 0
+        for attr in check_attrs:
+            RadGroupCheck.objects.create(**attr)
+            created_check += 1
+
+        logger.info(
+            f"✅ Profil '{profile.name}' synchronisé vers groupe RADIUS '{groupname}': "
+            f"{created_reply} reply attrs, {created_check} check attrs"
+        )
+
+        return {
+            'success': True,
+            'groupname': groupname,
+            'profile_id': profile.id,
+            'profile_name': profile.name,
+            'reply_attributes': created_reply,
+            'check_attributes': created_check,
+            'deleted_reply': deleted_reply,
+            'deleted_check': deleted_check
+        }
+
+    @classmethod
+    @transaction.atomic
+    def remove_profile_from_radius_group(cls, profile: Profile) -> Dict[str, Any]:
+        """
+        Supprime un profil des groupes RADIUS.
+
+        Attention: Les utilisateurs associés perdent leur groupe!
+        """
+        groupname = cls.get_group_name(profile)
+
+        # Compter les utilisateurs affectés
+        affected_users = list(
+            RadUserGroup.objects.filter(groupname=groupname)
+            .values_list('username', flat=True)
+        )
+
+        # Supprimer les attributs
+        deleted_reply = RadGroupReply.objects.filter(groupname=groupname).delete()[0]
+        deleted_check = RadGroupCheck.objects.filter(groupname=groupname).delete()[0]
+
+        # Supprimer les associations utilisateurs
+        deleted_usergroup = RadUserGroup.objects.filter(groupname=groupname).delete()[0]
+
+        logger.info(
+            f"🗑️ Profil '{profile.name}' supprimé de RADIUS groupe '{groupname}': "
+            f"{deleted_reply} reply, {deleted_check} check, {deleted_usergroup} users"
+        )
+
+        return {
+            'success': True,
+            'groupname': groupname,
+            'deleted_reply': deleted_reply,
+            'deleted_check': deleted_check,
+            'deleted_usergroup': deleted_usergroup,
+            'affected_users': affected_users
+        }
+
+    @classmethod
+    @transaction.atomic
+    def assign_user_to_profile_group(
+        cls,
+        username: str,
+        profile: Profile,
+        is_direct: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Assigne un utilisateur au groupe RADIUS du profil.
+
+        Args:
+            username: Nom d'utilisateur RADIUS
+            profile: Instance Profile Django
+            is_direct: True si profil direct, False si via promotion
+
+        Returns:
+            Dict avec le résultat de l'assignation
+        """
+        groupname = cls.get_group_name(profile)
+        priority = cls.PRIORITY_DIRECT_PROFILE if is_direct else cls.PRIORITY_PROMOTION_PROFILE
+
+        # Créer ou mettre à jour l'association
+        obj, created = RadUserGroup.objects.update_or_create(
+            username=username,
+            groupname=groupname,
+            defaults={'priority': priority}
+        )
+
+        action = "assigné à" if created else "mis à jour dans"
+        logger.info(f"👤 '{username}' {action} groupe '{groupname}' (priorité: {priority})")
+
+        return {
+            'success': True,
+            'username': username,
+            'groupname': groupname,
+            'priority': priority,
+            'created': created,
+            'source': 'direct' if is_direct else 'promotion'
+        }
+
+    @classmethod
+    @transaction.atomic
+    def remove_user_from_profile_groups(cls, username: str) -> Dict[str, Any]:
+        """
+        Retire un utilisateur de tous les groupes de profil.
+        Conserve les autres groupes système (admin, user, etc.)
+        """
+        deleted = RadUserGroup.objects.filter(
+            username=username,
+            groupname__startswith=cls.GROUP_PREFIX
+        ).delete()[0]
+
+        if deleted:
+            logger.info(f"👤 '{username}' retiré de {deleted} groupe(s) de profil")
+
+        return {
+            'success': True,
+            'username': username,
+            'deleted_groups': deleted
+        }
+
+    @classmethod
+    @transaction.atomic
+    def sync_user_profile_group(cls, user: User) -> Dict[str, Any]:
+        """
+        Synchronise le profil effectif d'un utilisateur vers son groupe RADIUS.
+
+        Logique:
+        1. Retire l'utilisateur des anciens groupes de profil
+        2. Assigne au nouveau groupe selon le profil effectif
+        3. Priorité: profil direct > profil promotion
+        """
+        username = user.username
+        profile = user.get_effective_profile()
+
+        # Retirer des anciens groupes de profil
+        cls.remove_user_from_profile_groups(username)
+
+        if not profile:
+            logger.info(f"ℹ️ '{username}' n'a pas de profil effectif")
+            return {
+                'success': True,
+                'username': username,
+                'profile': None,
+                'groupname': None,
+                'action': 'removed_from_all'
+            }
+
+        if not profile.is_active:
+            logger.warning(f"⚠️ Profil '{profile.name}' de '{username}' est inactif")
+            return {
+                'success': True,
+                'username': username,
+                'profile': profile.name,
+                'groupname': None,
+                'action': 'profile_inactive'
+            }
+
+        # Déterminer si profil direct ou via promotion
+        is_direct = user.profile is not None
+
+        result = cls.assign_user_to_profile_group(username, profile, is_direct)
+        result['profile'] = profile.name
+
+        return result
+
+    @classmethod
+    def sync_all_profiles_to_groups(cls) -> Dict[str, Any]:
+        """
+        Synchronise tous les profils actifs vers FreeRADIUS.
+        Utile pour la migration initiale.
+        """
+        profiles = Profile.objects.filter(is_active=True)
+        results = {
+            'total': profiles.count(),
+            'success': 0,
+            'errors': [],
+            'details': []
+        }
+
+        for profile in profiles:
+            try:
+                result = cls.sync_profile_to_radius_group(profile)
+                if result['success']:
+                    results['success'] += 1
+                results['details'].append(result)
+            except Exception as e:
+                error = f"Erreur sync profil '{profile.name}': {str(e)}"
+                logger.error(error)
+                results['errors'].append(error)
+
+        logger.info(
+            f"📊 Sync profils: {results['success']}/{results['total']}, "
+            f"{len(results['errors'])} erreurs"
+        )
+
+        return results
+
+    @classmethod
+    def sync_all_users_to_groups(cls) -> Dict[str, Any]:
+        """
+        Synchronise tous les utilisateurs RADIUS activés vers leurs groupes de profil.
+        """
+        users = User.objects.filter(
+            is_active=True,
+            is_radius_activated=True
+        ).select_related('profile', 'promotion', 'promotion__profile')
+
+        results = {
+            'total': users.count(),
+            'assigned': 0,
+            'no_profile': 0,
+            'errors': []
+        }
+
+        for user in users:
+            try:
+                result = cls.sync_user_profile_group(user)
+                if result.get('groupname'):
+                    results['assigned'] += 1
+                else:
+                    results['no_profile'] += 1
+            except Exception as e:
+                error = f"Erreur sync '{user.username}': {str(e)}"
+                logger.error(error)
+                results['errors'].append(error)
+
+        logger.info(
+            f"📊 Sync utilisateurs: {results['assigned']}/{results['total']} assignés, "
+            f"{results['no_profile']} sans profil, {len(results['errors'])} erreurs"
+        )
+
+        return results
+
+    @classmethod
+    def get_profile_group_info(cls, profile: Profile) -> Dict[str, Any]:
+        """
+        Récupère les informations du groupe RADIUS pour un profil.
+        """
+        groupname = cls.get_group_name(profile)
+
+        reply_attrs = list(
+            RadGroupReply.objects.filter(groupname=groupname)
+            .values('attribute', 'value', 'op', 'priority')
+            .order_by('priority')
+        )
+
+        check_attrs = list(
+            RadGroupCheck.objects.filter(groupname=groupname)
+            .values('attribute', 'value', 'op')
+        )
+
+        users = list(
+            RadUserGroup.objects.filter(groupname=groupname)
+            .values('username', 'priority')
+            .order_by('priority', 'username')
+        )
+
+        return {
+            'groupname': groupname,
+            'profile_id': profile.id,
+            'profile_name': profile.name,
+            'is_active': profile.is_active,
+            'reply_attributes': reply_attrs,
+            'check_attributes': check_attrs,
+            'users': users,
+            'user_count': len(users)
+        }
+
+    @classmethod
+    def get_user_profile_groups(cls, username: str) -> list:
+        """
+        Récupère les groupes de profil d'un utilisateur.
+        """
+        groups = list(
+            RadUserGroup.objects.filter(
+                username=username,
+                groupname__startswith=cls.GROUP_PREFIX
+            ).order_by('priority')
+            .values('groupname', 'priority')
+        )
+
+        return groups
+
+
+# Instance singleton pour utilisation globale
+radius_profile_group_service = RadiusProfileGroupService()
