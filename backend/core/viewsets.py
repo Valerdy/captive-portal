@@ -1469,6 +1469,33 @@ class PromotionViewSet(viewsets.ModelViewSet):
                 detail='La promotion est en cours de modification. Veuillez réessayer.'
             )
 
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def toggle_status(self, request, pk=None):
+        """
+        Bascule le statut actif/inactif d'une promotion.
+        Change simplement is_active sans affecter les utilisateurs RADIUS.
+        """
+        try:
+            promotion = self.get_object()
+            promotion.is_active = not promotion.is_active
+            promotion.save(update_fields=['is_active'])
+
+            status_text = 'activée' if promotion.is_active else 'désactivée'
+            return Response({
+                'success': True,
+                'message': f'Promotion "{promotion.name}" {status_text}.',
+                'promotion': {
+                    'id': promotion.id,
+                    'name': promotion.name,
+                    'is_active': promotion.is_active
+                }
+            })
+        except Exception as e:
+            return Response(
+                format_api_error('toggle_failed', f'Erreur: {str(e)}'),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class UserQuotaViewSet(viewsets.ModelViewSet):
     """ViewSet for UserQuota model"""

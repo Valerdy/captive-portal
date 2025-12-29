@@ -530,7 +530,7 @@ def activate_users_radius(request):
                     'email': user.email,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
-                    'promotion': user.promotion,
+                    'promotion': user.promotion.name if user.promotion else None,
                     'matricule': user.matricule,
                     'radius_password': radius_password,
                     'session_timeout': f'{session_timeout//3600}h',
