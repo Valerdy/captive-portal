@@ -150,38 +150,38 @@ class ProfileViewSet(viewsets.ModelViewSet):
         Vérifie si des utilisateurs ou promotions utilisent ce profil avant suppression.
         """
         import logging
+        import traceback
         logger = logging.getLogger(__name__)
 
-        profile = self.get_object()
-
-        # Vérifier si des utilisateurs utilisent ce profil directement
-        users_with_profile = profile.users.filter(is_active=True).count()
-        if users_with_profile > 0:
-            return Response(
-                format_api_error(
-                    'profile_in_use',
-                    f'Ce profil est utilisé par {users_with_profile} utilisateur(s) actif(s). '
-                    'Veuillez d\'abord réassigner ces utilisateurs à un autre profil.'
-                ),
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Vérifier si des promotions utilisent ce profil
-        promotions_with_profile = profile.promotions.filter(is_active=True).count()
-        if promotions_with_profile > 0:
-            return Response(
-                format_api_error(
-                    'profile_in_use',
-                    f'Ce profil est utilisé par {promotions_with_profile} promotion(s) active(s). '
-                    'Veuillez d\'abord réassigner ces promotions à un autre profil.'
-                ),
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        profile_name = profile.name
-        profile_id = profile.id
-
         try:
+            profile = self.get_object()
+            profile_name = profile.name
+            profile_id = profile.id
+
+            # Vérifier si des utilisateurs utilisent ce profil directement
+            users_with_profile = profile.users.filter(is_active=True).count()
+            if users_with_profile > 0:
+                return Response(
+                    format_api_error(
+                        'profile_in_use',
+                        f'Ce profil est utilisé par {users_with_profile} utilisateur(s) actif(s). '
+                        'Veuillez d\'abord réassigner ces utilisateurs à un autre profil.'
+                    ),
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Vérifier si des promotions utilisent ce profil
+            promotions_with_profile = profile.promotions.filter(is_active=True).count()
+            if promotions_with_profile > 0:
+                return Response(
+                    format_api_error(
+                        'profile_in_use',
+                        f'Ce profil est utilisé par {promotions_with_profile} promotion(s) active(s). '
+                        'Veuillez d\'abord réassigner ces promotions à un autre profil.'
+                    ),
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             # Supprimer le profil (les signaux gèrent la synchronisation MikroTik)
             self.perform_destroy(profile)
 
@@ -189,11 +189,13 @@ class ProfileViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         except Exception as e:
-            logger.error(f"Error deleting profile '{profile_name}': {e}")
+            error_msg = str(e)
+            error_traceback = traceback.format_exc()
+            logger.error(f"Error deleting profile: {error_msg}\n{error_traceback}")
             return Response(
                 format_api_error(
                     'deletion_failed',
-                    f'Erreur lors de la suppression du profil: {str(e)}'
+                    f'Erreur lors de la suppression du profil: {error_msg}'
                 ),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
