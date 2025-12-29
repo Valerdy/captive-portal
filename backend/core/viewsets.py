@@ -1219,7 +1219,6 @@ class PromotionViewSet(viewsets.ModelViewSet):
     def users(self, request, pk=None):
         """
         Récupère la liste des utilisateurs d'une promotion avec leurs statuts RADIUS.
-        Inclut la pagination et optimise les requêtes avec select_related.
         """
         promotion = self.get_object()
         # Optimiser les requêtes avec select_related
@@ -1227,12 +1226,8 @@ class PromotionViewSet(viewsets.ModelViewSet):
             'promotion', 'profile'
         )
 
-        # Pagination
-        paginator = LargeResultsSetPagination()
-        paginated_users = paginator.paginate_queryset(users_queryset, request)
-
         users_data = []
-        for user in paginated_users:
+        for user in users_queryset:
             users_data.append({
                 'id': user.id,
                 'username': user.username,
@@ -1247,13 +1242,14 @@ class PromotionViewSet(viewsets.ModelViewSet):
                 'can_access_radius': user.can_access_radius(),
             })
 
-        return paginator.get_paginated_response({
+        return Response({
             'promotion': {
                 'id': promotion.id,
                 'name': promotion.name,
                 'is_active': promotion.is_active
             },
-            'users': users_data
+            'users': users_data,
+            'count': len(users_data)
         })
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
