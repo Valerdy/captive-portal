@@ -348,10 +348,11 @@ class RadPostAuthAdmin(admin.ModelAdmin):
     Admin pour la table radpostauth de FreeRADIUS.
 
     Journal des authentifications (post-auth).
+    Note: La table standard radpostauth ne contient que username, pass, reply, authdate.
     """
-    list_display = ['username', 'reply', 'authdate', 'nasipaddress', 'calledstationid']
+    list_display = ['username', 'reply', 'authdate']
     list_filter = ['reply', AuthDateRangeFilter, 'authdate']
-    search_fields = ['username', 'nasipaddress', 'calledstationid', 'callingstationid']
+    search_fields = ['username']
     readonly_fields = ['authdate']
     ordering = ['-authdate']
     list_per_page = 50
@@ -360,12 +361,5 @@ class RadPostAuthAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Authentification', {
             'fields': ('username', 'pass_field', 'reply', 'authdate')
-        }),
-        ('Informations NAS', {
-            'fields': ('nasipaddress', 'nasportid', 'nasporttype')
-        }),
-        ('Identifiants Station', {
-            'fields': ('calledstationid', 'callingstationid'),
-            'description': 'Called = AP/NAS MAC, Calling = Client MAC'
         }),
     )
