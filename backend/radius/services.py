@@ -19,101 +19,140 @@ class ProfileRadiusService:
     """
     Service principal pour la synchronisation des profils vers FreeRADIUS.
 
-    Attributs RADIUS mappés:
-    - WISPr-Bandwidth-Max-Up: Bande passante upload en bps
-    - WISPr-Bandwidth-Max-Down: Bande passante download en bps
-    - Mikrotik-Rate-Limit: Format MikroTik pour bande passante (rx/tx)
+    Attributs RADIUS mappés vers radreply (envoyés dans Access-Accept):
+    - Mikrotik-Rate-Limit: Format MikroTik "downloadM/uploadM" (ex: "10M/5M")
     - Session-Timeout: Durée max de session en secondes
     - Idle-Timeout: Délai d'inactivité en secondes
-    - Simultaneous-Use: Nombre de connexions simultanées
-    - Max-Total-Octets: Quota total en octets (radcheck)
+    - ChilliSpot-Max-Total-Octets: Quota total en octets (pour compatibilité)
+    - Mikrotik-Total-Limit: Quota total en octets (attribut MikroTik natif)
+
+    Attributs RADIUS mappés vers radcheck (vérification avant auth):
+    - Cleartext-Password: Mot de passe en clair
+    - Simultaneous-Use: Nombre de connexions simultanées autorisées
     """
 
-    # Mapping des attributs de profil vers RADIUS
-    RADIUS_ATTRIBUTES = {
-        'bandwidth_upload': {
-            'attribute': 'WISPr-Bandwidth-Max-Up',
-            'op': '=',
-            'transform': lambda mbps: str(mbps * 1024 * 1024)  # Mbps -> bps
-        },
-        'bandwidth_download': {
-            'attribute': 'WISPr-Bandwidth-Max-Down',
-            'op': '=',
-            'transform': lambda mbps: str(mbps * 1024 * 1024)  # Mbps -> bps
-        },
-        'session_timeout': {
-            'attribute': 'Session-Timeout',
-            'op': '=',
-            'transform': lambda seconds: str(seconds)
-        },
-        'idle_timeout': {
-            'attribute': 'Idle-Timeout',
-            'op': '=',
-            'transform': lambda seconds: str(seconds)
-        },
-        'simultaneous_use': {
-            'attribute': 'Simultaneous-Use',
-            'op': ':=',
-            'transform': lambda count: str(count)
-        },
-    }
+    # Liste des attributs radreply à gérer (pour suppression avant mise à jour)
+    MANAGED_RADREPLY_ATTRIBUTES = [
+        'Mikrotik-Rate-Limit',
+        'Session-Timeout',
+        'Idle-Timeout',
+        'ChilliSpot-Max-Total-Octets',
+        'Mikrotik-Total-Limit',
+        'WISPr-Bandwidth-Max-Up',
+        'WISPr-Bandwidth-Max-Down',
+    ]
+
+    # Liste des attributs radcheck à gérer (sauf Cleartext-Password)
+    MANAGED_RADCHECK_ATTRIBUTES = [
+        'Simultaneous-Use',
+        'Max-Total-Octets',
+    ]
 
     @classmethod
     def get_mikrotik_rate_limit(cls, profile: Profile) -> str:
         """
-        Génère la valeur Mikrotik-Rate-Limit au format MikroTik.
-        Format: rx-rate[/tx-rate] où rx=download, tx=upload
-        Exemple: "10M/5M" pour 10 Mbps down / 5 Mbps up
+        Génère la valeur Mikrotik-Rate-Limit au format MikroTik Hotspot.
+
+        Format MikroTik: rx-rate/tx-rate
+        - rx = ce que l'utilisateur reçoit = download
+        - tx = ce que l'utilisateur envoie = upload
+
+        Exemple: "10M/5M" pour 10 Mbps download / 5 Mbps upload
         """
-        upload = profile.bandwidth_upload
         download = profile.bandwidth_download
+        upload = profile.bandwidth_upload
         return f"{download}M/{upload}M"
 
     @classmethod
     def get_radius_attributes_for_profile(cls, profile: Profile) -> List[Dict[str, str]]:
         """
         Génère tous les attributs RADIUS pour un profil donné.
+        Ces attributs sont écrits dans radreply et envoyés dans Access-Accept.
+
+        Attributs générés:
+        - Mikrotik-Rate-Limit: Bande passante au format MikroTik "downloadM/uploadM"
+        - Session-Timeout: Durée max de session en secondes
+        - Idle-Timeout: Délai d'inactivité en secondes
+        - ChilliSpot-Max-Total-Octets: Quota total (si limité)
+        - Mikrotik-Total-Limit: Quota total format MikroTik (si limité)
 
         Returns:
             Liste de dictionnaires {attribute, op, value}
         """
         attributes = []
 
-        # Attributs WISPr pour bande passante
-        attributes.append({
-            'attribute': 'WISPr-Bandwidth-Max-Up',
-            'op': '=',
-            'value': str(profile.bandwidth_upload * 1024 * 1024)  # Mbps -> bps
-        })
-        attributes.append({
-            'attribute': 'WISPr-Bandwidth-Max-Down',
-            'op': '=',
-            'value': str(profile.bandwidth_download * 1024 * 1024)  # Mbps -> bps
-        })
-
-        # Format MikroTik pour compatibilité Hotspot
+        # =====================================================================
+        # BANDE PASSANTE - Format MikroTik uniquement
+        # =====================================================================
+        # MikroTik Hotspot utilise Mikrotik-Rate-Limit pour appliquer la QoS
         attributes.append({
             'attribute': 'Mikrotik-Rate-Limit',
-            'op': '=',
+            'op': ':=',  # := pour écraser toute valeur existante
             'value': cls.get_mikrotik_rate_limit(profile)
         })
 
-        # Session-Timeout
+        # =====================================================================
+        # SESSION-TIMEOUT - Durée maximale de session
+        # =====================================================================
         attributes.append({
             'attribute': 'Session-Timeout',
-            'op': '=',
+            'op': ':=',
             'value': str(profile.session_timeout)
         })
 
-        # Idle-Timeout
+        # =====================================================================
+        # IDLE-TIMEOUT - Délai d'inactivité avant déconnexion
+        # =====================================================================
         attributes.append({
             'attribute': 'Idle-Timeout',
-            'op': '=',
+            'op': ':=',
             'value': str(profile.idle_timeout)
         })
 
-        # Simultaneous-Use (dans radcheck, pas radreply)
-        # Géré séparément car c'est un check, pas un reply
+        # =====================================================================
+        # QUOTA - Uniquement si le profil a un quota limité
+        # =====================================================================
+        if profile.quota_type == 'limited' and profile.data_volume > 0:
+            # ChilliSpot-Max-Total-Octets pour compatibilité avec différents NAS
+            attributes.append({
+                'attribute': 'ChilliSpot-Max-Total-Octets',
+                'op': ':=',
+                'value': str(profile.data_volume)
+            })
+
+            # Mikrotik-Total-Limit pour MikroTik natif
+            attributes.append({
+                'attribute': 'Mikrotik-Total-Limit',
+                'op': ':=',
+                'value': str(profile.data_volume)
+            })
+
+        return attributes
+
+    @classmethod
+    def get_radcheck_attributes_for_profile(cls, profile: Profile) -> List[Dict[str, str]]:
+        """
+        Génère les attributs radcheck pour un profil donné.
+        Ces attributs sont vérifiés AVANT l'authentification.
+
+        Attributs générés:
+        - Simultaneous-Use: Nombre de connexions simultanées autorisées
+
+        Note: Cleartext-Password est géré séparément car il dépend de l'utilisateur.
+
+        Returns:
+            Liste de dictionnaires {attribute, op, value}
+        """
+        attributes = []
+
+        # =====================================================================
+        # SIMULTANEOUS-USE - Limite de connexions simultanées
+        # =====================================================================
+        attributes.append({
+            'attribute': 'Simultaneous-Use',
+            'op': ':=',
+            'value': str(profile.simultaneous_use)
+        })
 
         return attributes
 
@@ -164,11 +203,19 @@ class ProfileRadiusService:
     def _update_radcheck(cls, user: User, profile: Profile) -> None:
         """
         Met à jour les entrées radcheck pour un utilisateur.
-        Gère: Cleartext-Password, statut, quota, Simultaneous-Use
+
+        Gère:
+        - Cleartext-Password: Mot de passe pour authentification
+        - Simultaneous-Use: Limite de connexions simultanées
+
+        Les attributs gérés (sauf Cleartext-Password) sont d'abord supprimés
+        puis recréés pour garantir la cohérence.
         """
         username = user.username
 
-        # Mettre à jour l'entrée principale du mot de passe
+        # =====================================================================
+        # 1. CLEARTEXT-PASSWORD - Authentification
+        # =====================================================================
         radcheck, created = RadCheck.objects.get_or_create(
             username=username,
             attribute='Cleartext-Password',
@@ -186,45 +233,59 @@ class ProfileRadiusService:
             radcheck.quota = profile.data_volume if profile.quota_type == 'limited' else None
             radcheck.save()
 
-        # Ajouter/Mettre à jour Simultaneous-Use
-        RadCheck.objects.update_or_create(
+        # =====================================================================
+        # 2. SUPPRIMER les anciens attributs gérés (sauf Cleartext-Password)
+        # =====================================================================
+        RadCheck.objects.filter(
             username=username,
-            attribute='Simultaneous-Use',
-            defaults={
-                'op': ':=',
-                'value': str(profile.simultaneous_use),
-                'statut': True
-            }
-        )
+            attribute__in=cls.MANAGED_RADCHECK_ATTRIBUTES
+        ).delete()
 
-        # Ajouter Max-Total-Octets si quota limité
-        if profile.quota_type == 'limited':
-            RadCheck.objects.update_or_create(
+        # =====================================================================
+        # 3. CRÉER les nouveaux attributs depuis le profil
+        # =====================================================================
+        radcheck_attributes = cls.get_radcheck_attributes_for_profile(profile)
+
+        for attr in radcheck_attributes:
+            RadCheck.objects.create(
                 username=username,
-                attribute='Max-Total-Octets',
-                defaults={
-                    'op': ':=',
-                    'value': str(profile.data_volume),
-                    'statut': True
-                }
+                attribute=attr['attribute'],
+                op=attr['op'],
+                value=attr['value'],
+                statut=True
             )
-        else:
-            # Supprimer l'attribut si quota illimité
-            RadCheck.objects.filter(
-                username=username,
-                attribute='Max-Total-Octets'
-            ).delete()
+
+        logger.debug(f"Updated radcheck for {username}: {len(radcheck_attributes)} profile attributes")
 
     @classmethod
     def _update_radreply(cls, username: str, profile: Profile) -> None:
         """
         Met à jour les entrées radreply pour un utilisateur.
-        """
-        # Supprimer les anciennes entrées
-        RadReply.objects.filter(username=username).delete()
 
-        # Créer les nouvelles entrées
+        Les attributs radreply sont envoyés dans Access-Accept et appliqués par le NAS.
+        Pour MikroTik, ces attributs contrôlent la QoS, les timeouts et les quotas.
+
+        Processus:
+        1. Supprimer TOUS les attributs gérés pour cet utilisateur
+        2. Créer les nouveaux attributs basés sur le profil
+
+        Cela garantit qu'aucun ancien attribut ne reste actif.
+        """
+        # =====================================================================
+        # 1. SUPPRIMER les anciens attributs gérés
+        # =====================================================================
+        # Supprime uniquement les attributs que nous gérons pour éviter
+        # d'effacer d'éventuels attributs personnalisés ajoutés manuellement
+        RadReply.objects.filter(
+            username=username,
+            attribute__in=cls.MANAGED_RADREPLY_ATTRIBUTES
+        ).delete()
+
+        # =====================================================================
+        # 2. CRÉER les nouveaux attributs depuis le profil
+        # =====================================================================
         attributes = cls.get_radius_attributes_for_profile(profile)
+
         for attr in attributes:
             RadReply.objects.create(
                 username=username,
@@ -232,6 +293,13 @@ class ProfileRadiusService:
                 op=attr['op'],
                 value=attr['value']
             )
+
+        logger.debug(
+            f"Updated radreply for {username}: "
+            f"Mikrotik-Rate-Limit={cls.get_mikrotik_rate_limit(profile)}, "
+            f"Session-Timeout={profile.session_timeout}, "
+            f"Idle-Timeout={profile.idle_timeout}"
+        )
 
     @classmethod
     def _update_radusergroup(cls, username: str, role: str) -> None:
@@ -247,6 +315,91 @@ class ProfileRadiusService:
             groupname=role,
             priority=1
         )
+
+    @classmethod
+    def get_user_radius_attributes(cls, username: str) -> Dict[str, Any]:
+        """
+        Récupère tous les attributs RADIUS d'un utilisateur pour inspection.
+
+        Utile pour le debugging et la vérification de la configuration.
+
+        Returns:
+            Dictionnaire avec les attributs radcheck, radreply et radusergroup
+        """
+        radcheck = list(RadCheck.objects.filter(
+            username=username
+        ).values('attribute', 'op', 'value', 'statut'))
+
+        radreply = list(RadReply.objects.filter(
+            username=username
+        ).values('attribute', 'op', 'value'))
+
+        radusergroup = list(RadUserGroup.objects.filter(
+            username=username
+        ).values('groupname', 'priority'))
+
+        return {
+            'username': username,
+            'radcheck': radcheck,
+            'radreply': radreply,
+            'radusergroup': radusergroup,
+            'summary': {
+                'has_password': any(r['attribute'] == 'Cleartext-Password' for r in radcheck),
+                'is_enabled': any(
+                    r['attribute'] == 'Cleartext-Password' and r['statut']
+                    for r in radcheck
+                ),
+                'simultaneous_use': next(
+                    (r['value'] for r in radcheck if r['attribute'] == 'Simultaneous-Use'),
+                    None
+                ),
+                'rate_limit': next(
+                    (r['value'] for r in radreply if r['attribute'] == 'Mikrotik-Rate-Limit'),
+                    None
+                ),
+                'session_timeout': next(
+                    (r['value'] for r in radreply if r['attribute'] == 'Session-Timeout'),
+                    None
+                ),
+                'quota': next(
+                    (r['value'] for r in radreply if r['attribute'] == 'ChilliSpot-Max-Total-Octets'),
+                    None
+                ),
+            }
+        }
+
+    @classmethod
+    @transaction.atomic
+    def remove_user_from_radius(cls, username: str) -> Dict[str, Any]:
+        """
+        Supprime complètement un utilisateur de RADIUS.
+
+        Supprime toutes les entrées dans radcheck, radreply et radusergroup.
+
+        Args:
+            username: Le nom d'utilisateur à supprimer
+
+        Returns:
+            Dictionnaire avec le nombre d'entrées supprimées
+        """
+        deleted_radcheck = RadCheck.objects.filter(username=username).delete()[0]
+        deleted_radreply = RadReply.objects.filter(username=username).delete()[0]
+        deleted_radusergroup = RadUserGroup.objects.filter(username=username).delete()[0]
+
+        logger.info(
+            f"Removed user {username} from RADIUS: "
+            f"{deleted_radcheck} radcheck, {deleted_radreply} radreply, "
+            f"{deleted_radusergroup} radusergroup entries"
+        )
+
+        return {
+            'success': True,
+            'deleted': {
+                'radcheck': deleted_radcheck,
+                'radreply': deleted_radreply,
+                'radusergroup': deleted_radusergroup
+            }
+        }
 
     @classmethod
     @transaction.atomic
