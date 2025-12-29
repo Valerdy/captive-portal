@@ -12,14 +12,22 @@ Ce module gère:
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.conf import settings
+from contextlib import contextmanager
+import threading
 import logging
 
 from .models import User, Profile, Promotion, ProfileHistory, UserProfileUsage
 
 logger = logging.getLogger(__name__)
 
-# Flag pour éviter les boucles de signals
-_syncing = False
+
+# =============================================================================
+# Thread-safe synchronization flag
+# =============================================================================
+# Utilise threading.local() pour éviter les race conditions en environnement
+# multi-thread (Gunicorn, uWSGI). Chaque thread a sa propre copie du flag.
+
+_sync_state = threading.local()
 
 
 def get_sync_enabled() -> bool:
@@ -28,14 +36,30 @@ def get_sync_enabled() -> bool:
 
 
 def set_syncing(value: bool):
-    """Active/désactive le flag de synchronisation."""
-    global _syncing
-    _syncing = value
+    """Active/désactive le flag de synchronisation (thread-safe)."""
+    _sync_state.syncing = value
 
 
 def is_syncing() -> bool:
-    """Vérifie si une synchronisation est en cours."""
-    return _syncing
+    """Vérifie si une synchronisation est en cours (thread-safe)."""
+    return getattr(_sync_state, 'syncing', False)
+
+
+@contextmanager
+def sync_context():
+    """
+    Context manager pour la synchronisation thread-safe.
+
+    Usage:
+        with sync_context():
+            # Code de synchronisation
+            pass
+    """
+    try:
+        set_syncing(True)
+        yield
+    finally:
+        set_syncing(False)
 
 
 # =============================================================================
