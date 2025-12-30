@@ -628,6 +628,356 @@ class ProfileViewSet(viewsets.ModelViewSet):
             }
         ))
 
+    # =========================================================================
+    # RADIUS Profile Group Sync Actions (Option C)
+    # =========================================================================
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def enable_radius(self, request, pk=None):
+        """
+        Active la synchronisation RADIUS pour ce profil.
+        Crée les entrées radgroupreply correspondantes.
+
+        POST /api/core/profiles/{id}/enable_radius/
+
+        Response:
+        {
+            "success": true,
+            "message": "Profil 'Étudiant' activé dans RADIUS",
+            "data": {
+                "groupname": "profile_1_etudiant",
+                "attributes": 4,
+                "synced_at": "2024-01-15T10:30:00Z"
+            }
+        }
+        """
+        profile = self.get_object()
+
+        if not profile.is_active:
+            return Response(
+                format_api_error(
+                    'profile_inactive',
+                    'Le profil doit être actif pour activer RADIUS.'
+                ),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if profile.is_radius_enabled and profile.is_synced_to_radius:
+            return Response(
+                format_api_error(
+                    'already_enabled',
+                    f'Le profil est déjà activé dans RADIUS (groupe: {profile.radius_group_name}).'
+                ),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Activer et synchroniser
+            profile.is_radius_enabled = True
+            profile.save()  # Déclenche le signal post_save
+
+            # Recharger pour obtenir les valeurs mises à jour
+            profile.refresh_from_db()
+
+            return Response(format_api_success(
+                f"Profil '{profile.name}' activé dans RADIUS.",
+                data={
+                    'groupname': profile.radius_group_name,
+                    'synced_at': profile.last_radius_sync.isoformat() if profile.last_radius_sync else None,
+                    'status': profile.radius_sync_status
+                }
+            ))
+
+        except Exception as e:
+            return Response(
+                format_api_error('sync_failed', f'Erreur de synchronisation: {str(e)}'),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def disable_radius(self, request, pk=None):
+        """
+        Désactive la synchronisation RADIUS pour ce profil.
+        Supprime les entrées radgroupreply correspondantes.
+
+        POST /api/core/profiles/{id}/disable_radius/
+
+        Response:
+        {
+            "success": true,
+            "message": "Profil 'Étudiant' désactivé de RADIUS",
+            "data": {
+                "removed_group": "profile_1_etudiant"
+            }
+        }
+        """
+        profile = self.get_object()
+
+        if not profile.is_radius_enabled:
+            return Response(
+                format_api_error(
+                    'already_disabled',
+                    'Le profil n\'est pas activé dans RADIUS.'
+                ),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        old_group = profile.radius_group_name
+
+        try:
+            # Désactiver (le signal supprimera de radgroupreply)
+            profile.is_radius_enabled = False
+            profile.save()
+
+            return Response(format_api_success(
+                f"Profil '{profile.name}' désactivé de RADIUS.",
+                data={
+                    'removed_group': old_group
+                }
+            ))
+
+        except Exception as e:
+            return Response(
+                format_api_error('disable_failed', f'Erreur: {str(e)}'),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def toggle_radius(self, request, pk=None):
+        """
+        Toggle la synchronisation RADIUS pour ce profil.
+
+        POST /api/core/profiles/{id}/toggle_radius/
+
+        Response:
+        {
+            "success": true,
+            "message": "RADIUS activé/désactivé pour le profil 'Étudiant'",
+            "data": {
+                "is_radius_enabled": true/false,
+                "radius_group_name": "profile_1_etudiant" | null,
+                "status": "Synchronisé (profile_1_etudiant)" | "Sync RADIUS désactivée"
+            }
+        }
+        """
+        profile = self.get_object()
+
+        if not profile.is_active:
+            return Response(
+                format_api_error(
+                    'profile_inactive',
+                    'Le profil doit être actif pour modifier le statut RADIUS.'
+                ),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Toggle
+            profile.is_radius_enabled = not profile.is_radius_enabled
+            profile.save()
+
+            # Recharger pour obtenir les valeurs mises à jour
+            profile.refresh_from_db()
+
+            action = 'activé' if profile.is_radius_enabled else 'désactivé'
+
+            return Response(format_api_success(
+                f"RADIUS {action} pour le profil '{profile.name}'.",
+                data={
+                    'is_radius_enabled': profile.is_radius_enabled,
+                    'radius_group_name': profile.radius_group_name,
+                    'last_radius_sync': profile.last_radius_sync.isoformat() if profile.last_radius_sync else None,
+                    'status': profile.radius_sync_status
+                }
+            ))
+
+        except Exception as e:
+            return Response(
+                format_api_error('toggle_failed', f'Erreur: {str(e)}'),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
+    def force_sync_radius(self, request, pk=None):
+        """
+        Force la resynchronisation du profil vers radgroupreply.
+        Utile après une modification manuelle de la base RADIUS.
+
+        POST /api/core/profiles/{id}/force_sync_radius/
+
+        Response:
+        {
+            "success": true,
+            "message": "Profil 'Étudiant' resynchronisé vers RADIUS",
+            "data": {
+                "groupname": "profile_1_etudiant",
+                "reply_attributes": 4,
+                "check_attributes": 0
+            }
+        }
+        """
+        profile = self.get_object()
+
+        if not profile.can_sync_to_radius():
+            return Response(
+                format_api_error(
+                    'cannot_sync',
+                    'Le profil doit être actif et RADIUS activé pour synchroniser.'
+                ),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            result = profile.sync_to_radius()
+
+            if result.get('success'):
+                return Response(format_api_success(
+                    f"Profil '{profile.name}' resynchronisé vers RADIUS.",
+                    data=result
+                ))
+            else:
+                return Response(
+                    format_api_error('sync_failed', result.get('error', 'Erreur inconnue')),
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        except Exception as e:
+            return Response(
+                format_api_error('sync_failed', f'Erreur: {str(e)}'),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAdmin])
+    def radius_status(self, request, pk=None):
+        """
+        Retourne le statut de synchronisation RADIUS du profil.
+
+        GET /api/core/profiles/{id}/radius_status/
+
+        Response:
+        {
+            "profile_id": 1,
+            "profile_name": "Étudiant",
+            "is_active": true,
+            "is_radius_enabled": true,
+            "is_synced": true,
+            "radius_group_name": "profile_1_etudiant",
+            "last_sync": "2024-01-15T10:30:00Z",
+            "status": "Synchronisé (profile_1_etudiant)",
+            "can_sync": true
+        }
+        """
+        profile = self.get_object()
+
+        return Response({
+            'profile_id': profile.id,
+            'profile_name': profile.name,
+            'is_active': profile.is_active,
+            'is_radius_enabled': profile.is_radius_enabled,
+            'is_synced': profile.is_synced_to_radius,
+            'radius_group_name': profile.radius_group_name,
+            'last_sync': profile.last_radius_sync.isoformat() if profile.last_radius_sync else None,
+            'status': profile.radius_sync_status,
+            'can_sync': profile.can_sync_to_radius()
+        })
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdmin])
+    def bulk_enable_radius(self, request):
+        """
+        Active RADIUS pour plusieurs profils en masse.
+
+        POST /api/core/profiles/bulk_enable_radius/
+        Body: {"profile_ids": [1, 2, 3]}
+
+        Response:
+        {
+            "success": true,
+            "message": "3 profils activés dans RADIUS",
+            "data": {
+                "enabled": 3,
+                "errors": []
+            }
+        }
+        """
+        profile_ids = request.data.get('profile_ids', [])
+
+        if not profile_ids:
+            return Response(
+                format_api_error('missing_ids', 'La liste des IDs de profils est requise.'),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        enabled = 0
+        errors = []
+
+        profiles = Profile.objects.filter(id__in=profile_ids, is_active=True)
+
+        for profile in profiles:
+            try:
+                if not profile.is_radius_enabled:
+                    profile.is_radius_enabled = True
+                    profile.save()
+                    enabled += 1
+            except Exception as e:
+                errors.append({'profile': profile.name, 'error': str(e)})
+
+        return Response(format_api_success(
+            f'{enabled} profil(s) activé(s) dans RADIUS.',
+            data={
+                'enabled': enabled,
+                'total': len(profile_ids),
+                'errors': errors
+            }
+        ))
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdmin])
+    def bulk_disable_radius(self, request):
+        """
+        Désactive RADIUS pour plusieurs profils en masse.
+
+        POST /api/core/profiles/bulk_disable_radius/
+        Body: {"profile_ids": [1, 2, 3]}
+
+        Response:
+        {
+            "success": true,
+            "message": "3 profils désactivés de RADIUS",
+            "data": {
+                "disabled": 3,
+                "errors": []
+            }
+        }
+        """
+        profile_ids = request.data.get('profile_ids', [])
+
+        if not profile_ids:
+            return Response(
+                format_api_error('missing_ids', 'La liste des IDs de profils est requise.'),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        disabled = 0
+        errors = []
+
+        profiles = Profile.objects.filter(id__in=profile_ids, is_radius_enabled=True)
+
+        for profile in profiles:
+            try:
+                profile.is_radius_enabled = False
+                profile.save()
+                disabled += 1
+            except Exception as e:
+                errors.append({'profile': profile.name, 'error': str(e)})
+
+        return Response(format_api_success(
+            f'{disabled} profil(s) désactivé(s) de RADIUS.',
+            data={
+                'disabled': disabled,
+                'total': len(profile_ids),
+                'errors': errors
+            }
+        ))
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """ViewSet for User model"""

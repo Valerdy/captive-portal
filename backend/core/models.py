@@ -42,6 +42,23 @@ class Profile(models.Model):
         help_text="Si désactivé, le profil ne peut pas être assigné"
     )
 
+    # Synchronisation RADIUS
+    is_radius_enabled = models.BooleanField(
+        default=False,
+        help_text="Si activé, le profil est synchronisé vers FreeRADIUS (radgroupreply)"
+    )
+    radius_group_name = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        help_text="Nom du groupe RADIUS (généré automatiquement)"
+    )
+    last_radius_sync = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Date de la dernière synchronisation vers RADIUS"
+    )
+
     # Bande passante (en Mbps) - min 1 Mbps, max 1000 Mbps (1 Gbps)
     bandwidth_upload = models.IntegerField(
         default=5,
@@ -163,6 +180,84 @@ class Profile(models.Model):
         if self.monthly_limit is None:
             return None
         return round(self.monthly_limit / (1024**3), 2)
+
+    # =========================================================================
+    # Méthodes RADIUS
+    # =========================================================================
+
+    def get_radius_group_name(self) -> str:
+        """
+        Génère le nom du groupe RADIUS pour ce profil.
+        Format: profile_{id}_{normalized_name}
+        """
+        import unicodedata
+        import re
+
+        normalized = unicodedata.normalize('NFKD', self.name)
+        normalized = normalized.encode('ASCII', 'ignore').decode('ASCII')
+        normalized = re.sub(r'[^\w\s-]', '', normalized)
+        normalized = re.sub(r'[-\s]+', '_', normalized).lower().strip('_')
+
+        return f"profile_{self.id}_{normalized}"
+
+    def can_sync_to_radius(self) -> bool:
+        """Vérifie si le profil peut être synchronisé vers RADIUS."""
+        return self.is_active and self.is_radius_enabled
+
+    def sync_to_radius(self) -> dict:
+        """
+        Synchronise ce profil vers FreeRADIUS.
+        Retourne le résultat de la synchronisation.
+        """
+        from radius.services import RadiusProfileGroupService
+        from django.utils import timezone
+
+        if not self.can_sync_to_radius():
+            return {
+                'success': False,
+                'error': 'Profil inactif ou RADIUS désactivé'
+            }
+
+        result = RadiusProfileGroupService.sync_profile_to_radius_group(self)
+
+        if result.get('success'):
+            # Mettre à jour les métadonnées
+            self.radius_group_name = result.get('groupname')
+            self.last_radius_sync = timezone.now()
+            self.save(update_fields=['radius_group_name', 'last_radius_sync'])
+
+        return result
+
+    def remove_from_radius(self) -> dict:
+        """
+        Supprime ce profil de FreeRADIUS.
+        """
+        from radius.services import RadiusProfileGroupService
+
+        result = RadiusProfileGroupService.remove_profile_from_radius_group(self)
+
+        if result.get('success'):
+            self.radius_group_name = None
+            self.last_radius_sync = None
+            self.save(update_fields=['radius_group_name', 'last_radius_sync'])
+
+        return result
+
+    @property
+    def is_synced_to_radius(self) -> bool:
+        """Vérifie si le profil est actuellement synchronisé dans RADIUS."""
+        return bool(self.radius_group_name and self.last_radius_sync)
+
+    @property
+    def radius_sync_status(self) -> str:
+        """Retourne le statut de synchronisation RADIUS lisible."""
+        if not self.is_active:
+            return "Profil désactivé"
+        if not self.is_radius_enabled:
+            return "Sync RADIUS désactivée"
+        if self.is_synced_to_radius:
+            return f"Synchronisé ({self.radius_group_name})"
+        return "En attente de synchronisation"
 
 
 class Promotion(models.Model):

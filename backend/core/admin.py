@@ -167,23 +167,44 @@ class PromotionAdmin(admin.ModelAdmin):
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    """Admin interface for Profile model"""
+    """Admin interface for Profile model with RADIUS synchronization actions"""
     list_display = [
         'name', 'quota_type', 'data_volume_display',
-        'bandwidth_display', 'validity_duration', 'is_active', 'created_at'
+        'bandwidth_display', 'validity_duration', 'is_active',
+        'radius_status_display', 'created_at'
     ]
-    list_filter = ['is_active', 'quota_type', 'validity_duration', 'created_at']
+    list_filter = [
+        'is_active', 'is_radius_enabled', 'quota_type',
+        'validity_duration', 'created_at'
+    ]
     search_fields = ['name', 'description']
     ordering = ['name']
     readonly_fields = [
         'created_at', 'updated_at',
         'data_volume_gb', 'bandwidth_upload_mbps', 'bandwidth_download_mbps',
-        'daily_limit_gb', 'weekly_limit_gb', 'monthly_limit_gb'
+        'daily_limit_gb', 'weekly_limit_gb', 'monthly_limit_gb',
+        'radius_group_name', 'last_radius_sync', 'radius_sync_status'
+    ]
+
+    # Actions RADIUS pour gestion en masse
+    actions = [
+        'enable_radius_sync', 'disable_radius_sync',
+        'force_sync_to_radius', 'remove_from_radius'
     ]
 
     fieldsets = (
         ('Informations de base', {
             'fields': ('name', 'description', 'is_active', 'created_by')
+        }),
+        ('Synchronisation RADIUS', {
+            'fields': (
+                'is_radius_enabled', 'radius_group_name',
+                'last_radius_sync', 'radius_sync_status'
+            ),
+            'description': (
+                'Contrôle la synchronisation vers FreeRADIUS (radgroupreply). '
+                'Activez "is_radius_enabled" pour synchroniser ce profil vers RADIUS.'
+            )
         }),
         ('Bande passante', {
             'fields': ('bandwidth_upload', 'bandwidth_upload_mbps', 'bandwidth_download', 'bandwidth_download_mbps'),
@@ -221,6 +242,143 @@ class ProfileAdmin(admin.ModelAdmin):
         """Affiche la bande passante en Mbps"""
         return f"↑{obj.bandwidth_upload_mbps} / ↓{obj.bandwidth_download_mbps} Mbps"
     bandwidth_display.short_description = 'Bande passante (UP/DOWN)'
+
+    def radius_status_display(self, obj):
+        """Affiche le statut de synchronisation RADIUS avec indicateur visuel"""
+        if not obj.is_active:
+            return format_html('<span style="color: #888;">○ Inactif</span>')
+        elif not obj.is_radius_enabled:
+            return format_html('<span style="color: #888;">○ RADIUS désactivé</span>')
+        elif obj.is_synced_to_radius:
+            return format_html(
+                '<span style="color: green;" title="Groupe: {}">● Synchronisé</span>',
+                obj.radius_group_name
+            )
+        else:
+            return format_html('<span style="color: orange;">◐ En attente</span>')
+    radius_status_display.short_description = 'RADIUS'
+    radius_status_display.admin_order_field = 'is_radius_enabled'
+
+    @admin.action(description="🔓 Activer sync RADIUS (is_radius_enabled=True)")
+    def enable_radius_sync(self, request, queryset):
+        """
+        Active la synchronisation RADIUS pour les profils sélectionnés.
+        Déclenche automatiquement la synchronisation via le signal post_save.
+        """
+        synced = 0
+        errors = []
+
+        for profile in queryset.filter(is_active=True):
+            try:
+                profile.is_radius_enabled = True
+                profile.save()  # Déclenche le signal post_save
+                synced += 1
+            except Exception as e:
+                errors.append(f"{profile.name}: {str(e)[:50]}")
+
+        if synced:
+            messages.success(
+                request,
+                f"✅ {synced} profil(s) activé(s) dans RADIUS"
+            )
+        if errors:
+            messages.warning(request, f"Erreurs: {'; '.join(errors[:3])}")
+
+        # Profils inactifs ignorés
+        inactive = queryset.filter(is_active=False).count()
+        if inactive:
+            messages.info(
+                request,
+                f"ℹ️ {inactive} profil(s) inactif(s) ignoré(s)"
+            )
+
+    @admin.action(description="🔒 Désactiver sync RADIUS (is_radius_enabled=False)")
+    def disable_radius_sync(self, request, queryset):
+        """
+        Désactive la synchronisation RADIUS pour les profils sélectionnés.
+        Supprime les entrées radgroupreply correspondantes.
+        """
+        disabled = 0
+        errors = []
+
+        for profile in queryset.filter(is_radius_enabled=True):
+            try:
+                profile.is_radius_enabled = False
+                profile.save()  # Déclenche le signal qui supprime de radgroupreply
+                disabled += 1
+            except Exception as e:
+                errors.append(f"{profile.name}: {str(e)[:50]}")
+
+        if disabled:
+            messages.success(
+                request,
+                f"🔒 {disabled} profil(s) désactivé(s) de RADIUS"
+            )
+        if errors:
+            messages.warning(request, f"Erreurs: {'; '.join(errors[:3])}")
+
+    @admin.action(description="🔄 Forcer synchronisation RADIUS")
+    def force_sync_to_radius(self, request, queryset):
+        """
+        Force la resynchronisation des profils sélectionnés vers RADIUS.
+        Utile après modification manuelle de la base radgroupreply.
+        """
+        synced = 0
+        errors = []
+
+        for profile in queryset.filter(is_active=True, is_radius_enabled=True):
+            try:
+                result = profile.sync_to_radius()
+                if result.get('success'):
+                    synced += 1
+                else:
+                    errors.append(f"{profile.name}: {result.get('error')}")
+            except Exception as e:
+                errors.append(f"{profile.name}: {str(e)[:50]}")
+
+        if synced:
+            messages.success(
+                request,
+                f"🔄 {synced} profil(s) resynchronisé(s) vers RADIUS"
+            )
+        if errors:
+            messages.warning(request, f"Erreurs: {'; '.join(errors[:3])}")
+
+        # Profils non éligibles
+        not_eligible = queryset.exclude(is_active=True, is_radius_enabled=True).count()
+        if not_eligible:
+            messages.info(
+                request,
+                f"ℹ️ {not_eligible} profil(s) ignoré(s) (inactif ou RADIUS désactivé)"
+            )
+
+    @admin.action(description="🗑️ Supprimer de RADIUS (conserve le profil Django)")
+    def remove_from_radius(self, request, queryset):
+        """
+        Supprime les entrées radgroupreply des profils sélectionnés.
+        Ne supprime pas le profil Django, seulement les données RADIUS.
+        """
+        removed = 0
+        errors = []
+
+        # Filter profiles that are synced (have radius_group_name set)
+        for profile in queryset.filter(radius_group_name__isnull=False):
+            try:
+                result = profile.remove_from_radius()
+                if result.get('success'):
+                    removed += 1
+                else:
+                    errors.append(f"{profile.name}: {result.get('error')}")
+            except Exception as e:
+                errors.append(f"{profile.name}: {str(e)[:50]}")
+
+        if removed:
+            messages.success(
+                request,
+                f"🗑️ {removed} profil(s) supprimé(s) de RADIUS"
+            )
+        if errors:
+            messages.warning(request, f"Erreurs: {'; '.join(errors[:3])}")
 
 
 @admin.register(Device)

@@ -310,12 +310,16 @@ def remove_user_from_radius_and_mikrotik(sender, instance, **kwargs):
 @receiver(post_save, sender=Profile)
 def sync_profile_to_radius_group(sender, instance, created, **kwargs):
     """
-    Synchronise le profil vers un groupe FreeRADIUS après création/modification.
+    Synchronise le profil vers FreeRADIUS selon l'Option C (contrôle manuel).
 
-    Architecture RADIUS-based:
-    - Chaque Profile = un groupe FreeRADIUS (profile_{id}_{name})
-    - Les attributs sont écrits dans radgroupreply/radgroupcheck
-    - Les utilisateurs héritent via radusergroup
+    Logique:
+    - is_active=True ET is_radius_enabled=True → Sync vers radgroupreply
+    - is_active=False OU is_radius_enabled=False → Supprimer de radgroupreply
+
+    La synchronisation est déclenchée:
+    - Automatiquement si is_radius_enabled passe à True
+    - Automatiquement si le profil est modifié ET déjà synchronisé
+    - Manuellement via le bouton "Activer dans RADIUS"
 
     Note: Ce signal ne lève jamais d'exception pour ne pas bloquer
     la sauvegarde du profil dans Django.
@@ -326,26 +330,49 @@ def sync_profile_to_radius_group(sender, instance, created, **kwargs):
 
         set_syncing(True)
 
-        # =====================================================================
-        # Synchronisation RADIUS (OBLIGATOIRE)
-        # =====================================================================
         from radius.services import RadiusProfileGroupService
+        from django.utils import timezone
 
-        result = RadiusProfileGroupService.sync_profile_to_radius_group(instance)
+        # =====================================================================
+        # OPTION C: Sync contrôlée par is_radius_enabled
+        # =====================================================================
 
-        if result.get('success'):
-            action = 'créé' if created else 'mis à jour'
-            logger.info(
-                f"✅ Profil '{instance.name}' {action} dans RADIUS groupe "
-                f"'{result.get('groupname')}': {result.get('reply_attributes')} attrs"
-            )
-        else:
-            logger.warning(f"Échec sync profil '{instance.name}' vers RADIUS")
+        if instance.can_sync_to_radius():
+            # Profil actif ET RADIUS activé → Synchroniser
+            result = RadiusProfileGroupService.sync_profile_to_radius_group(instance)
+
+            if result.get('success'):
+                action = 'créé' if created else 'mis à jour'
+                logger.info(
+                    f"✅ Profil '{instance.name}' {action} dans RADIUS groupe "
+                    f"'{result.get('groupname')}': {result.get('reply_attributes')} attrs"
+                )
+
+                # Mettre à jour les métadonnées (sans déclencher le signal)
+                Profile.objects.filter(pk=instance.pk).update(
+                    radius_group_name=result.get('groupname'),
+                    last_radius_sync=timezone.now()
+                )
+            else:
+                logger.warning(f"Échec sync profil '{instance.name}' vers RADIUS")
+
+        elif instance.is_synced_to_radius:
+            # Était synchronisé mais ne devrait plus l'être → Supprimer
+            result = RadiusProfileGroupService.remove_profile_from_radius_group(instance)
+
+            if result.get('success'):
+                logger.info(f"🗑️ Profil '{instance.name}' supprimé de RADIUS")
+
+                # Nettoyer les métadonnées
+                Profile.objects.filter(pk=instance.pk).update(
+                    radius_group_name=None,
+                    last_radius_sync=None
+                )
 
         # =====================================================================
         # Synchronisation MikroTik (OPTIONNELLE)
         # =====================================================================
-        if getattr(settings, 'MIKROTIK_SYNC_ENABLED', True):
+        if instance.can_sync_to_radius() and getattr(settings, 'MIKROTIK_SYNC_ENABLED', True):
             try:
                 from mikrotik.profile_service import MikrotikProfileSyncService
                 mikrotik_service = MikrotikProfileSyncService()
