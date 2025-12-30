@@ -1135,6 +1135,9 @@ class RadiusProfileGroupService:
             Tuple (reply_attributes, check_attributes)
             - reply_attributes: Pour radgroupreply (envoyés dans Access-Accept)
             - check_attributes: Pour radgroupcheck (vérifications avant auth)
+
+        Note: La colonne 'priority' est optionnelle dans radgroupreply.
+        Le schéma FreeRADIUS standard n'inclut pas cette colonne.
         """
         groupname = cls.get_group_name(profile)
         reply_attrs = []
@@ -1142,6 +1145,8 @@ class RadiusProfileGroupService:
 
         # =====================================================================
         # REPLY ATTRIBUTES (radgroupreply)
+        # Note: On n'utilise PAS le champ 'priority' car il n'existe pas
+        # dans le schéma FreeRADIUS standard
         # =====================================================================
 
         # 1. Mikrotik-Rate-Limit: Bande passante
@@ -1151,8 +1156,7 @@ class RadiusProfileGroupService:
             'groupname': groupname,
             'attribute': 'Mikrotik-Rate-Limit',
             'op': ':=',
-            'value': rate_limit,
-            'priority': 1
+            'value': rate_limit
         })
 
         # 2. WISPr Bandwidth (alternative/fallback pour compatibilité)
@@ -1160,15 +1164,13 @@ class RadiusProfileGroupService:
             'groupname': groupname,
             'attribute': 'WISPr-Bandwidth-Max-Up',
             'op': '=',
-            'value': str(profile.bandwidth_upload * 1000000),  # bits/s
-            'priority': 2
+            'value': str(profile.bandwidth_upload * 1000000)  # bits/s
         })
         reply_attrs.append({
             'groupname': groupname,
             'attribute': 'WISPr-Bandwidth-Max-Down',
             'op': '=',
-            'value': str(profile.bandwidth_download * 1000000),  # bits/s
-            'priority': 3
+            'value': str(profile.bandwidth_download * 1000000)  # bits/s
         })
 
         # 3. Session-Timeout: Durée maximale de session
@@ -1176,8 +1178,7 @@ class RadiusProfileGroupService:
             'groupname': groupname,
             'attribute': 'Session-Timeout',
             'op': ':=',
-            'value': str(profile.session_timeout),
-            'priority': 4
+            'value': str(profile.session_timeout)
         })
 
         # 4. Idle-Timeout: Délai d'inactivité
@@ -1185,8 +1186,7 @@ class RadiusProfileGroupService:
             'groupname': groupname,
             'attribute': 'Idle-Timeout',
             'op': ':=',
-            'value': str(profile.idle_timeout),
-            'priority': 5
+            'value': str(profile.idle_timeout)
         })
 
         # 5. Quota de données (si limité)
@@ -1196,16 +1196,14 @@ class RadiusProfileGroupService:
                 'groupname': groupname,
                 'attribute': 'Mikrotik-Total-Limit',
                 'op': ':=',
-                'value': str(profile.data_volume),
-                'priority': 6
+                'value': str(profile.data_volume)
             })
             # ChilliSpot-Max-Total-Octets pour compatibilité
             reply_attrs.append({
                 'groupname': groupname,
                 'attribute': 'ChilliSpot-Max-Total-Octets',
                 'op': ':=',
-                'value': str(profile.data_volume),
-                'priority': 7
+                'value': str(profile.data_volume)
             })
 
         # =====================================================================
@@ -1495,8 +1493,8 @@ class RadiusProfileGroupService:
 
         reply_attrs = list(
             RadGroupReply.objects.filter(groupname=groupname)
-            .values('attribute', 'value', 'op', 'priority')
-            .order_by('priority')
+            .values('attribute', 'value', 'op')
+            .order_by('attribute')
         )
 
         check_attrs = list(
