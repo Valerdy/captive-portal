@@ -230,11 +230,9 @@ class RadGroupCheck(models.Model):
     value = models.CharField(max_length=253)
 
     class Meta:
+        managed = False  # Table gérée par FreeRADIUS, pas par Django
         db_table = 'radgroupcheck'
         ordering = ['groupname']
-        indexes = [
-            models.Index(fields=['groupname', 'attribute']),
-        ]
 
     def __str__(self):
         return f"{self.groupname} - {self.attribute}"
@@ -244,16 +242,19 @@ class RadGroupReply(models.Model):
     """
     FreeRADIUS radgroupreply table - Group-level reply attributes
     Contains attributes returned to NAS for group members
+
+    Note: Le schéma FreeRADIUS standard n'inclut PAS de colonne 'priority'.
+    Ce modèle est compatible avec le schéma standard (sans priority).
     """
     groupname = models.CharField(max_length=64, db_index=True)
     attribute = models.CharField(max_length=64)
     op = models.CharField(max_length=2, default='=')
     value = models.CharField(max_length=253)
-    priority = models.IntegerField(default=0)
 
     class Meta:
+        managed = False  # Table gérée par FreeRADIUS, pas par Django
         db_table = 'radgroupreply'
-        ordering = ['groupname', 'priority']
+        ordering = ['groupname']
         indexes = [
             models.Index(fields=['groupname', 'attribute']),
         ]

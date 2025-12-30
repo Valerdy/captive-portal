@@ -37,7 +37,7 @@ def verify_radius_config():
     print(f"Groupes configurés: {groups.count()}")
 
     for g in groups:
-        attrs = RadGroupReply.objects.filter(groupname=g['groupname']).order_by('priority')
+        attrs = RadGroupReply.objects.filter(groupname=g['groupname']).order_by('attribute')
         print(f"\n  {g['groupname']}:")
         for attr in attrs:
             print(f"    {attr.attribute} {attr.op} {attr.value}")
