@@ -438,6 +438,7 @@ def activate_users_radius(request):
                     "id": 1,
                     "username": "jdupont",
                     "email": "jdupont@example.com",
+                    "radius_password": "kT@9pL#mXq$1RvZ",
                     "message": "Utilisateur activé dans RADIUS"
                 },
                 ...
@@ -535,7 +536,6 @@ def activate_users_radius(request):
                 user.save()
 
                 # Ajouter aux utilisateurs activés avec succès
-                # Note: radius_password n'est PAS inclus dans la réponse pour des raisons de sécurité
                 activated_users.append({
                     'id': user.id,
                     'username': user.username,
@@ -544,6 +544,7 @@ def activate_users_radius(request):
                     'last_name': user.last_name,
                     'promotion': user.promotion.name if user.promotion else None,
                     'matricule': user.matricule,
+                    'radius_password': radius_password,
                     'session_timeout': f'{session_timeout//3600}h',
                     'bandwidth_limit': '10M/10M',
                     'message': 'Utilisateur activé dans RADIUS avec succès'
