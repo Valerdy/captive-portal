@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.admin import SimpleListFilter
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Count
 from django.http import HttpResponse
 from django.utils.html import format_html
 from django.utils import timezone
@@ -516,11 +517,17 @@ class PromotionAdmin(DateFormatterMixin, ExportCsvMixin, admin.ModelAdmin):
     def get_export_fields(self):
         return ['name', 'is_active', 'created_at', 'updated_at']
 
+    def get_queryset(self, request):
+        """Optimize queryset with user count annotation to avoid N+1 queries"""
+        qs = super().get_queryset(request)
+        return qs.annotate(_user_count=Count('users'))
+
     def user_count_display(self, obj):
-        """Affiche le nombre d'utilisateurs dans la promotion"""
-        count = obj.users.count()
+        """Affiche le nombre d'utilisateurs dans la promotion (optimisé)"""
+        count = getattr(obj, '_user_count', obj.users.count())
         return format_html('<span title="{} utilisateur(s)">{}</span>', count, count)
     user_count_display.short_description = 'Utilisateurs'
+    user_count_display.admin_order_field = '_user_count'
 
     def created_at_display(self, obj):
         return self.format_datetime(obj.created_at)
