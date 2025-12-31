@@ -317,21 +317,44 @@ class User(AbstractUser):
         help_text="Profil RADIUS individuel (si non défini, utilise le profil de la promotion)"
     )
 
-    # RADIUS Status Management
-    # Deux états séparés pour gérer le cycle de vie RADIUS:
-    # 1. is_radius_activated: Indique si l'utilisateur a été provisionné dans RADIUS (une seule fois)
-    #    - False: Utilisateur jamais créé dans radcheck/radreply/radusergroup
-    #    - True: Utilisateur créé dans les tables RADIUS (action irréversible par admin)
-    # 2. is_radius_enabled: Contrôle l'accès actuel de l'utilisateur (toggle on/off)
-    #    - True: L'utilisateur PEUT se connecter au WiFi (statut=1 dans radcheck)
-    #    - False: L'utilisateur NE PEUT PAS se connecter (statut=0 dans radcheck)
+    # ==========================================================================
+    # RADIUS Status Management (Fix #24: Documentation clarifiée)
+    # ==========================================================================
+    # Deux états DISTINCTS pour gérer le cycle de vie RADIUS:
+    #
+    # 1. is_radius_activated (alias: "Provisionné dans RADIUS")
+    #    - PERMANENT: Indique si l'utilisateur a été créé dans les tables RADIUS
+    #    - False → Jamais créé dans radcheck/radreply/radusergroup
+    #    - True  → Utilisateur créé dans les tables RADIUS (action irréversible)
+    #    - Ne peut passer de True à False que par suppression complète
+    #
+    # 2. is_radius_enabled (alias: "Accès WiFi actif")
+    #    - TEMPORAIRE: Contrôle si l'accès WiFi est actuellement autorisé
+    #    - True  → Peut se connecter au WiFi (statut=1 dans radcheck)
+    #    - False → NE peut PAS se connecter (statut=0 dans radcheck)
+    #    - Toggle on/off par admin à volonté
+    #
+    # Combinaisons possibles:
+    # - activated=False, enabled=True  → En attente d'activation (inscription)
+    # - activated=True,  enabled=True  → Accès WiFi actif ✓
+    # - activated=True,  enabled=False → Accès WiFi suspendu (quota, admin, etc.)
+    # - activated=False, enabled=False → Jamais activé, accès désactivé
+    # ==========================================================================
     is_radius_activated = models.BooleanField(
         default=False,
-        help_text="Indique si l'utilisateur a été créé dans RADIUS (provisionné une fois par admin)"
+        verbose_name="Provisionné RADIUS",
+        help_text=(
+            "PERMANENT: Indique si l'utilisateur a été créé dans RADIUS "
+            "(radcheck/radreply/radusergroup). Passe à True lors de la première activation."
+        )
     )
     is_radius_enabled = models.BooleanField(
         default=True,
-        help_text="Contrôle si l'utilisateur peut actuellement accéder au WiFi (toggle on/off)"
+        verbose_name="Accès WiFi actif",
+        help_text=(
+            "TEMPORAIRE: Contrôle si l'utilisateur peut accéder au WiFi. "
+            "Toggle on/off par admin. Modifie statut dans radcheck."
+        )
     )
 
     # ATTENTION SÉCURITÉ: Mot de passe en clair pour RADIUS
@@ -1298,5 +1321,350 @@ class UserDisconnectionLog(models.Model):
         self.reconnected_at = timezone.now()
         if admin_user:
             self.reconnected_by = admin_user
+        self.save()
+
+
+# =============================================================================
+# Audit et Suivi de Synchronisation (Fixes #7, #10, #12)
+# =============================================================================
+
+class AdminAuditLog(models.Model):
+    """
+    Journalisation des actions administrateur critiques.
+    Fix #10: Traçabilité complète WHO, WHEN, WHAT.
+    """
+    ACTION_TYPES = [
+        # User RADIUS actions
+        ('user_radius_activate', 'Activation RADIUS utilisateur'),
+        ('user_radius_deactivate', 'Désactivation RADIUS utilisateur'),
+        ('user_radius_reactivate', 'Réactivation RADIUS utilisateur'),
+        ('user_radius_sync', 'Synchronisation RADIUS utilisateur'),
+        # Profile actions
+        ('profile_radius_enable', 'Activation RADIUS profil'),
+        ('profile_radius_disable', 'Désactivation RADIUS profil'),
+        ('profile_radius_sync', 'Synchronisation RADIUS profil'),
+        ('profile_create', 'Création profil'),
+        ('profile_update', 'Modification profil'),
+        ('profile_delete', 'Suppression profil'),
+        # Promotion actions
+        ('promotion_activate', 'Activation promotion'),
+        ('promotion_deactivate', 'Désactivation promotion'),
+        # Bulk actions
+        ('bulk_radius_enable', 'Activation RADIUS en masse'),
+        ('bulk_radius_disable', 'Désactivation RADIUS en masse'),
+        ('bulk_user_activate', 'Activation utilisateurs en masse'),
+        ('bulk_user_deactivate', 'Désactivation utilisateurs en masse'),
+        # Other
+        ('voucher_create', 'Création voucher'),
+        ('voucher_revoke', 'Révocation voucher'),
+        ('blocked_site_add', 'Ajout site bloqué'),
+        ('blocked_site_remove', 'Suppression site bloqué'),
+    ]
+
+    SEVERITY_LEVELS = [
+        ('info', 'Information'),
+        ('warning', 'Avertissement'),
+        ('critical', 'Critique'),
+    ]
+
+    # Qui a fait l'action
+    admin_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='audit_logs',
+        help_text="Administrateur ayant effectué l'action"
+    )
+    admin_username = models.CharField(
+        max_length=150,
+        help_text="Username de l'admin (conservé si user supprimé)"
+    )
+    admin_ip = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text="Adresse IP de l'administrateur"
+    )
+
+    # Quoi
+    action_type = models.CharField(
+        max_length=50,
+        choices=ACTION_TYPES,
+        db_index=True,
+        help_text="Type d'action effectuée"
+    )
+    severity = models.CharField(
+        max_length=20,
+        choices=SEVERITY_LEVELS,
+        default='info',
+        help_text="Niveau de sévérité"
+    )
+
+    # Sur quoi (polymorphique)
+    target_model = models.CharField(
+        max_length=50,
+        help_text="Modèle cible (User, Profile, Promotion, etc.)"
+    )
+    target_id = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="ID de l'objet cible"
+    )
+    target_repr = models.CharField(
+        max_length=255,
+        help_text="Représentation textuelle de la cible"
+    )
+
+    # Détails
+    details = models.JSONField(
+        default=dict,
+        help_text="Détails de l'action (paramètres, résultats)"
+    )
+    success = models.BooleanField(
+        default=True,
+        help_text="L'action a-t-elle réussi?"
+    )
+    error_message = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Message d'erreur si échec"
+    )
+
+    # Quand
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True
+    )
+
+    class Meta:
+        db_table = 'admin_audit_logs'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['action_type', 'created_at']),
+            models.Index(fields=['admin_user', 'created_at']),
+            models.Index(fields=['target_model', 'target_id']),
+        ]
+        verbose_name = "Log d'audit admin"
+        verbose_name_plural = "Logs d'audit admin"
+
+    def __str__(self):
+        return f"{self.admin_username} - {self.get_action_type_display()} - {self.target_repr}"
+
+    @classmethod
+    def log_action(cls, admin_user, action_type, target, details=None,
+                   success=True, error_message=None, request=None, severity='info'):
+        """
+        Crée une entrée de log d'audit.
+
+        Args:
+            admin_user: L'utilisateur admin effectuant l'action
+            action_type: Type d'action (doit être dans ACTION_TYPES)
+            target: L'objet cible (User, Profile, etc.) ou tuple (model_name, id, repr)
+            details: Dict avec les détails supplémentaires
+            success: L'action a-t-elle réussi?
+            error_message: Message d'erreur si échec
+            request: La requête HTTP pour extraire l'IP
+            severity: Niveau de sévérité (info, warning, critical)
+        """
+        # Gérer le cas où target est un tuple
+        if isinstance(target, tuple):
+            target_model, target_id, target_repr = target
+        else:
+            target_model = target.__class__.__name__
+            target_id = getattr(target, 'pk', None) or getattr(target, 'id', None)
+            target_repr = str(target)[:255]
+
+        # Extraire l'IP de la requête
+        admin_ip = None
+        if request:
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                admin_ip = x_forwarded_for.split(',')[0].strip()
+            else:
+                admin_ip = request.META.get('REMOTE_ADDR')
+
+        return cls.objects.create(
+            admin_user=admin_user,
+            admin_username=admin_user.username if admin_user else 'system',
+            admin_ip=admin_ip,
+            action_type=action_type,
+            severity=severity,
+            target_model=target_model,
+            target_id=target_id,
+            target_repr=target_repr,
+            details=details or {},
+            success=success,
+            error_message=error_message
+        )
+
+
+class SyncFailureLog(models.Model):
+    """
+    Journal des échecs de synchronisation entre Django, RADIUS et MikroTik.
+    Fix #7 et #12: Traçabilité des erreurs de sync pour retry et alertes.
+    """
+    SYNC_TYPES = [
+        ('radius_user', 'Utilisateur → RADIUS'),
+        ('radius_profile', 'Profil → RADIUS Group'),
+        ('radius_group', 'Utilisateur → RADIUS Group'),
+        ('mikrotik_user', 'Utilisateur → MikroTik'),
+        ('mikrotik_profile', 'Profil → MikroTik'),
+        ('mikrotik_dns', 'Site bloqué → MikroTik DNS'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'En attente de retry'),
+        ('retrying', 'Retry en cours'),
+        ('resolved', 'Résolu'),
+        ('failed', 'Échec définitif'),
+        ('ignored', 'Ignoré'),
+    ]
+
+    # Type de synchronisation
+    sync_type = models.CharField(
+        max_length=30,
+        choices=SYNC_TYPES,
+        db_index=True
+    )
+
+    # Objet source (polymorphique)
+    source_model = models.CharField(max_length=50)
+    source_id = models.IntegerField()
+    source_repr = models.CharField(max_length=255)
+
+    # Détails de l'erreur
+    error_message = models.TextField(
+        help_text="Message d'erreur détaillé"
+    )
+    error_traceback = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Traceback Python complet"
+    )
+
+    # Contexte
+    context = models.JSONField(
+        default=dict,
+        help_text="Contexte de l'opération (paramètres, état)"
+    )
+
+    # Gestion des retries
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        db_index=True
+    )
+    retry_count = models.IntegerField(
+        default=0,
+        help_text="Nombre de tentatives de retry"
+    )
+    max_retries = models.IntegerField(
+        default=3,
+        help_text="Nombre maximum de retries"
+    )
+    next_retry_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Date/heure du prochain retry"
+    )
+    resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Date/heure de résolution"
+    )
+    resolved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='resolved_sync_failures',
+        help_text="Admin ayant résolu l'échec"
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'sync_failure_logs'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['sync_type', 'status']),
+            models.Index(fields=['source_model', 'source_id']),
+            models.Index(fields=['status', 'next_retry_at']),
+        ]
+        verbose_name = "Échec de synchronisation"
+        verbose_name_plural = "Échecs de synchronisation"
+
+    def __str__(self):
+        return f"{self.get_sync_type_display()} - {self.source_repr} ({self.get_status_display()})"
+
+    @classmethod
+    def log_failure(cls, sync_type, source, error, context=None, traceback_str=None):
+        """
+        Enregistre un échec de synchronisation.
+
+        Args:
+            sync_type: Type de sync (doit être dans SYNC_TYPES)
+            source: L'objet source (User, Profile, etc.)
+            error: L'exception ou message d'erreur
+            context: Dict avec le contexte de l'opération
+            traceback_str: Traceback formaté
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+
+        source_model = source.__class__.__name__
+        source_id = getattr(source, 'pk', None) or getattr(source, 'id', None)
+        source_repr = str(source)[:255]
+
+        error_message = str(error) if error else 'Unknown error'
+
+        # Calculer le prochain retry (backoff exponentiel: 2min, 8min, 32min)
+        next_retry = timezone.now() + timedelta(minutes=2)
+
+        return cls.objects.create(
+            sync_type=sync_type,
+            source_model=source_model,
+            source_id=source_id,
+            source_repr=source_repr,
+            error_message=error_message,
+            error_traceback=traceback_str,
+            context=context or {},
+            next_retry_at=next_retry
+        )
+
+    def schedule_retry(self):
+        """Programme un nouveau retry avec backoff exponentiel."""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        if self.retry_count >= self.max_retries:
+            self.status = 'failed'
+            self.save()
+            return False
+
+        # Backoff exponentiel: 2^(retry+1) minutes
+        delay_minutes = 2 ** (self.retry_count + 1)
+        self.retry_count += 1
+        self.next_retry_at = timezone.now() + timedelta(minutes=delay_minutes)
+        self.status = 'pending'
+        self.save()
+        return True
+
+    def mark_resolved(self, admin_user=None):
+        """Marque l'échec comme résolu."""
+        from django.utils import timezone
+        self.status = 'resolved'
+        self.resolved_at = timezone.now()
+        self.resolved_by = admin_user
+        self.save()
+
+    def mark_ignored(self, admin_user=None):
+        """Marque l'échec comme ignoré (ne plus retenter)."""
+        from django.utils import timezone
+        self.status = 'ignored'
+        self.resolved_at = timezone.now()
+        self.resolved_by = admin_user
         self.save()
 

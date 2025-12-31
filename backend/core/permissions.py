@@ -1,7 +1,19 @@
 """
-Custom permissions for role-based access control
+Permissions unifiées pour Admin et API.
+
+Fix #15: Unification des vérifications de permissions entre Django Admin et API.
+
+Ce module fournit des classes de permissions réutilisables pour garantir
+un modèle de sécurité cohérent entre:
+- Django Admin (admin.py)
+- API REST (viewsets.py)
+- Signals et services internes
 """
 from rest_framework import permissions
+from functools import wraps
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class IsAdmin(permissions.BasePermission):
@@ -95,3 +107,168 @@ class CanCreateUsers(permissions.BasePermission):
                 (request.user.is_staff or request.user.is_superuser)
             )
         return True
+
+
+# =============================================================================
+# Permissions RADIUS (Fix #15)
+# =============================================================================
+
+class CanManageRadius(permissions.BasePermission):
+    """
+    Permission: Peut gérer les opérations RADIUS.
+
+    Vérifie que l'utilisateur a les droits de gestion RADIUS:
+    - Activation/désactivation utilisateurs
+    - Synchronisation profils
+    - Modification des groupes RADIUS
+    """
+    message = "Permission de gestion RADIUS requise."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+
+        # Superuser a tous les droits
+        if user.is_superuser:
+            return True
+
+        # Staff avec permission explicite
+        if user.is_staff:
+            return True
+
+        return False
+
+
+class IsSuperuser(permissions.BasePermission):
+    """
+    Permission: L'utilisateur doit être superuser.
+
+    Usage pour actions critiques (suppression en masse, etc.):
+        permission_classes = [IsSuperuser]
+    """
+    message = "Accès réservé aux super-administrateurs."
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user and
+            request.user.is_authenticated and
+            request.user.is_superuser
+        )
+
+
+# =============================================================================
+# Fonctions de vérification pour Django Admin (Fix #15)
+# =============================================================================
+
+def check_admin_permission(user, action, obj=None):
+    """
+    Vérifie si un utilisateur admin a la permission pour une action.
+
+    Args:
+        user: L'utilisateur Django
+        action: L'action demandée ('view', 'add', 'change', 'delete')
+        obj: L'objet cible (optionnel, pour permissions par objet)
+
+    Returns:
+        bool: True si la permission est accordée
+    """
+    if not user or not user.is_authenticated:
+        return False
+
+    # Superuser a tous les droits
+    if user.is_superuser:
+        return True
+
+    # Staff a les droits de base
+    if user.is_staff:
+        return True
+
+    return False
+
+
+def check_radius_permission(user, action, target_user=None):
+    """
+    Vérifie si un utilisateur admin peut effectuer une action RADIUS.
+
+    Args:
+        user: L'utilisateur admin effectuant l'action
+        action: L'action RADIUS ('activate', 'deactivate', 'sync', 'view')
+        target_user: L'utilisateur cible de l'action (optionnel)
+
+    Returns:
+        bool: True si la permission est accordée
+    """
+    if not user or not user.is_authenticated:
+        return False
+
+    if user.is_superuser:
+        return True
+
+    if user.is_staff:
+        return True
+
+    return False
+
+
+# =============================================================================
+# Décorateurs pour les actions admin (Fix #15)
+# =============================================================================
+
+def require_radius_permission(action='manage'):
+    """
+    Décorateur pour les actions admin nécessitant des permissions RADIUS.
+
+    Usage:
+        @require_radius_permission('activate')
+        def activate_radius(self, request, queryset):
+            ...
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(modeladmin, request, queryset=None, *args, **kwargs):
+            if not check_radius_permission(request.user, action):
+                from django.contrib import messages
+                messages.error(request, f"Permission RADIUS '{action}' requise.")
+                return None
+            return func(modeladmin, request, queryset, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def require_superuser(func):
+    """
+    Décorateur pour les actions nécessitant superuser.
+
+    Usage:
+        @require_superuser
+        def dangerous_action(self, request, queryset):
+            ...
+    """
+    @wraps(func)
+    def wrapper(modeladmin, request, queryset=None, *args, **kwargs):
+        if not request.user.is_superuser:
+            from django.contrib import messages
+            messages.error(request, "Cette action nécessite les droits super-administrateur.")
+            return None
+        return func(modeladmin, request, queryset, *args, **kwargs)
+    return wrapper
+
+
+# =============================================================================
+# Export
+# =============================================================================
+
+__all__ = [
+    'IsAdmin',
+    'IsAdminOrReadOnly',
+    'IsOwnerOrAdmin',
+    'IsAuthenticatedUser',
+    'CanCreateUsers',
+    'CanManageRadius',
+    'IsSuperuser',
+    'check_admin_permission',
+    'check_radius_permission',
+    'require_radius_permission',
+    'require_superuser',
+]
