@@ -4,14 +4,38 @@ from django.conf import settings
 
 class RadiusServer(models.Model):
     """RADIUS Server configuration"""
-    name = models.CharField(max_length=255)
-    host = models.CharField(max_length=255)
-    auth_port = models.IntegerField(default=1812)
-    acct_port = models.IntegerField(default=1813)
-    secret = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
-    timeout = models.IntegerField(default=5, help_text='Timeout in seconds')
-    retries = models.IntegerField(default=3)
+    name = models.CharField(
+        max_length=255,
+        help_text="Nom unique du serveur RADIUS (ex: FreeRADIUS-Principal)"
+    )
+    host = models.CharField(
+        max_length=255,
+        help_text="Adresse IP ou hostname du serveur RADIUS"
+    )
+    auth_port = models.IntegerField(
+        default=1812,
+        help_text="Port d'authentification RADIUS (1812 par défaut)"
+    )
+    acct_port = models.IntegerField(
+        default=1813,
+        help_text="Port d'accounting RADIUS (1813 par défaut)"
+    )
+    secret = models.CharField(
+        max_length=255,
+        help_text="Secret partagé RADIUS (stocké de manière sécurisée)"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Activer/désactiver ce serveur RADIUS"
+    )
+    timeout = models.IntegerField(
+        default=5,
+        help_text="Délai d'attente en secondes avant timeout"
+    )
+    retries = models.IntegerField(
+        default=3,
+        help_text="Nombre de tentatives en cas d'échec"
+    )
 
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
