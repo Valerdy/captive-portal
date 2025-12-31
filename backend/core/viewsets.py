@@ -926,20 +926,26 @@ class ProfileViewSet(viewsets.ModelViewSet):
         }
         """
         from .models import AdminAuditLog
+        from .security import BulkOperationValidator
 
-        profile_ids = request.data.get('profile_ids', [])
+        # Fix #9: Validation stricte des entrées bulk
+        validated, validation_errors = BulkOperationValidator.validate_bulk_request(
+            request.data,
+            id_field='profile_ids',
+            max_size=100
+        )
+
+        if validation_errors:
+            return Response(
+                format_api_error('validation_error', 'Données invalides', {'errors': validation_errors}),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        profile_ids = validated['profile_ids']
 
         if not profile_ids:
             return Response(
                 format_api_error('missing_ids', 'La liste des IDs de profils est requise.'),
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Fix #29: Limite de sécurité pour éviter DoS
-        MAX_BULK_SIZE = 100
-        if len(profile_ids) > MAX_BULK_SIZE:
-            return Response(
-                format_api_error('too_many_ids', f'Maximum {MAX_BULK_SIZE} profils par opération.'),
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -953,7 +959,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
         profiles = Profile.objects.filter(id__in=profile_ids)
         found_ids = set(profiles.values_list('id', flat=True))
 
-        # Marquer les IDs non trouvés
+        # Marquer les IDs non trouvés (Fix #9: IDs déjà validés comme entiers)
         for pid in profile_ids:
             if pid not in found_ids:
                 results.append({
@@ -1055,20 +1061,26 @@ class ProfileViewSet(viewsets.ModelViewSet):
         }
         """
         from .models import AdminAuditLog
+        from .security import BulkOperationValidator
 
-        profile_ids = request.data.get('profile_ids', [])
+        # Fix #9: Validation stricte des entrées bulk
+        validated, validation_errors = BulkOperationValidator.validate_bulk_request(
+            request.data,
+            id_field='profile_ids',
+            max_size=100
+        )
+
+        if validation_errors:
+            return Response(
+                format_api_error('validation_error', 'Données invalides', {'errors': validation_errors}),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        profile_ids = validated['profile_ids']
 
         if not profile_ids:
             return Response(
                 format_api_error('missing_ids', 'La liste des IDs de profils est requise.'),
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Fix #29: Limite de sécurité
-        MAX_BULK_SIZE = 100
-        if len(profile_ids) > MAX_BULK_SIZE:
-            return Response(
-                format_api_error('too_many_ids', f'Maximum {MAX_BULK_SIZE} profils par opération.'),
                 status=status.HTTP_400_BAD_REQUEST
             )
 

@@ -1,16 +1,80 @@
 """
 Utility functions for Mikrotik Agent API integration
+
+Fix #13: Connection pooling avec requests.Session
+Fix #18: Timeouts configurables sur tous les appels
 """
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from django.conf import settings
 from typing import Dict, Any, Optional
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
 
 
+# =============================================================================
+# FIX #13: Connection Pooling avec Singleton Pattern
+# =============================================================================
+# Utilise un pool de connexions partagé pour réutiliser les connexions TCP
+
+class ConnectionPoolManager:
+    """
+    Gestionnaire de pool de connexions singleton.
+
+    Maintient une session requests partagée avec:
+    - Connection pooling (réutilisation des connexions TCP)
+    - Retry automatique sur erreurs transitoires
+    - Timeouts configurables
+    """
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._initialize()
+        return cls._instance
+
+    def _initialize(self):
+        """Initialise la session avec connection pooling."""
+        self.session = requests.Session()
+
+        # Configuration du retry avec backoff exponentiel
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=["HEAD", "GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        )
+
+        # Adapter avec pool de connexions
+        adapter = HTTPAdapter(
+            pool_connections=10,  # Nombre de pools de connexions
+            pool_maxsize=20,      # Taille max de chaque pool
+            max_retries=retry_strategy
+        )
+
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+
+        logger.info("MikroTik connection pool initialized")
+
+    def get_session(self) -> requests.Session:
+        """Retourne la session partagée."""
+        return self.session
+
+
 class MikrotikAgentClient:
     """Client for communicating with the Mikrotik Agent API"""
+
+    # Fix #18: Timeouts par défaut (connect, read)
+    DEFAULT_CONNECT_TIMEOUT = 5   # Timeout de connexion
+    DEFAULT_READ_TIMEOUT = 30     # Timeout de lecture
 
     def __init__(self, agent_url: Optional[str] = None):
         """
@@ -24,39 +88,59 @@ class MikrotikAgentClient:
             'MIKROTIK_AGENT_URL',
             'http://localhost:3001'
         )
+        # Fix #18: Timeout configurable via settings
         self.timeout = getattr(settings, 'MIKROTIK_AGENT_TIMEOUT', 10)
+
+        # Fix #13: Utiliser le pool de connexions partagé
+        self._pool_manager = ConnectionPoolManager()
+        self._session = self._pool_manager.get_session()
 
     def _make_request(
         self,
         method: str,
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None
+        data: Optional[Dict[str, Any]] = None,
+        timeout: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Make HTTP request to Mikrotik Agent
+
+        Fix #13: Utilise la session poolée pour réutiliser les connexions
+        Fix #18: Timeout explicite sur chaque requête
 
         Args:
             method: HTTP method (GET, POST, PUT, DELETE)
             endpoint: API endpoint path
             data: Request payload for POST/PUT requests
+            timeout: Override timeout for this request
 
         Returns:
             Response data as dictionary
 
         Raises:
             requests.exceptions.RequestException: If request fails
+            requests.exceptions.Timeout: If request times out
         """
         url = f"{self.agent_url}{endpoint}"
 
+        # Fix #18: Timeout tuple (connect_timeout, read_timeout)
+        request_timeout = timeout or self.timeout
+        if isinstance(request_timeout, (int, float)):
+            request_timeout = (self.DEFAULT_CONNECT_TIMEOUT, request_timeout)
+
         try:
-            response = requests.request(
+            # Fix #13: Utiliser la session poolée au lieu de requests.request
+            response = self._session.request(
                 method=method,
                 url=url,
                 json=data,
-                timeout=self.timeout
+                timeout=request_timeout
             )
             response.raise_for_status()
             return response.json()
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Mikrotik Agent request TIMEOUT: {method} {url} - {str(e)}")
+            raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Mikrotik Agent request failed: {method} {url} - {str(e)}")
             raise

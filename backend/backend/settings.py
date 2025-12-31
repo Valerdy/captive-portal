@@ -75,6 +75,10 @@ MIDDLEWARE = [
     'core.middleware.JWTCookieMiddleware',  # JWT Cookie Authentication
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Fix #2: Rate limiting pour login admin
+    'core.security.AdminLoginRateLimitMiddleware',
+    # Fix #3: Protection des données sensibles dans les URLs
+    'core.security.SensitiveDataProtectionMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -100,13 +104,20 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# =============================================================================
+# FIX #6: Credentials externalisés - Pas de mots de passe hardcodés
+# =============================================================================
+# En production: toutes les credentials doivent être définies via variables d'environnement
+# En développement: utiliser un fichier .env local (non commité)
+
 DATABASES = {
     'default': {
         'ENGINE': env('DB_ENGINE', default='django.db.backends.mysql'),
         'NAME': env('DB_NAME', default='radius'),
         'USER': env('DB_USER', default='root'),
-        'PASSWORD': env('DB_PASSWORD', default='MotDePasseSecurise123!'),
-        'HOST': env('DB_HOST', default='10.242.52.100'),
+        # Fix #6: Pas de mot de passe par défaut - doit être défini via .env
+        'PASSWORD': env('DB_PASSWORD'),  # REQUIRED - no default
+        'HOST': env('DB_HOST', default='localhost'),
         'PORT': env('DB_PORT', default='3306'),
     }
 }
@@ -208,9 +219,10 @@ PROFILE_AUTO_SYNC = env.bool('PROFILE_AUTO_SYNC', default=True)
 MIKROTIK_SYNC_ENABLED = env.bool('MIKROTIK_SYNC_ENABLED', default=True)
 
 # RADIUS Configuration
+# Fix #6: Secret RADIUS externalisé
 RADIUS_CONFIG = {
     'SERVER': env('RADIUS_SERVER', default='127.0.0.1'),
-    'SECRET': env('RADIUS_SECRET', default='testing123'),
+    'SECRET': env('RADIUS_SECRET'),  # REQUIRED - no default for security
     'AUTH_PORT': env.int('RADIUS_AUTH_PORT', default=1812),
     'ACCT_PORT': env.int('RADIUS_ACCT_PORT', default=1813),
 }

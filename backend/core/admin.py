@@ -4,15 +4,33 @@ from django.contrib import messages
 from django.db import transaction
 from django.utils.html import format_html
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_protect
+from django.utils.decorators import method_decorator
 from .models import (
     User, Device, Session, Voucher, Promotion, Profile,
     UserProfileUsage, ProfileHistory, ProfileAlert, BlockedSite
 )
+from .security import csrf_protect_admin_action
+
+
+# =============================================================================
+# FIX #16: Pagination Configuration for Admin Lists
+# =============================================================================
+# Django defaults to 100 items per page. For large tables, we configure
+# appropriate limits to prevent timeout and memory issues.
+
+ADMIN_LIST_PER_PAGE = 50  # Default for most models
+ADMIN_LIST_PER_PAGE_LARGE = 25  # For models with heavy relations
 
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """Admin interface for User model with RADIUS management actions"""
+
+    # Fix #16: Pagination explicite pour éviter timeout sur grandes listes
+    list_per_page = ADMIN_LIST_PER_PAGE
+    list_max_show_all = 200  # Limite pour "Show all"
+
     list_display = [
         'username', 'email', 'first_name', 'last_name',
         'promotion', 'profile', 'radius_status_display',
@@ -68,6 +86,7 @@ class UserAdmin(BaseUserAdmin):
     radius_status_display.admin_order_field = 'is_radius_enabled'
 
     @admin.action(description="🔓 Activer RADIUS (première activation)")
+    @csrf_protect_admin_action
     def activate_radius(self, request, queryset):
         """Active RADIUS pour les utilisateurs sélectionnés (première activation)"""
         from radius.services import ProfileRadiusService
@@ -97,6 +116,7 @@ class UserAdmin(BaseUserAdmin):
             messages.warning(request, f"Erreurs: {'; '.join(errors[:5])}")
 
     @admin.action(description="🔒 Désactiver RADIUS (supprime les entrées)")
+    @csrf_protect_admin_action
     def deactivate_radius(self, request, queryset):
         """Désactive complètement RADIUS pour les utilisateurs sélectionnés"""
         from radius.services import ProfileRadiusService
@@ -112,6 +132,7 @@ class UserAdmin(BaseUserAdmin):
         messages.success(request, f"{deactivated} utilisateur(s) désactivé(s) de RADIUS")
 
     @admin.action(description="🔄 Resynchroniser RADIUS")
+    @csrf_protect_admin_action
     def resync_radius(self, request, queryset):
         """Resynchronise les attributs RADIUS pour les utilisateurs sélectionnés"""
         from radius.services import ProfileRadiusService
@@ -151,6 +172,10 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Promotion)
 class PromotionAdmin(admin.ModelAdmin):
+    # Fix #16: Pagination
+    list_per_page = ADMIN_LIST_PER_PAGE
+    list_max_show_all = 200
+
     list_display = ['name', 'profile', 'is_active', 'user_count_display', 'created_at', 'updated_at']
     list_filter = ['is_active', 'profile']
     search_fields = ['name', 'description', 'profile__name']  # Fix #11: amélioration recherche
@@ -168,6 +193,11 @@ class PromotionAdmin(admin.ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     """Admin interface for Profile model with RADIUS synchronization actions"""
+
+    # Fix #16: Pagination
+    list_per_page = ADMIN_LIST_PER_PAGE
+    list_max_show_all = 200
+
     list_display = [
         'name', 'quota_type', 'data_volume_display',
         'bandwidth_display', 'validity_duration', 'is_active',
@@ -384,6 +414,10 @@ class ProfileAdmin(admin.ModelAdmin):
 @admin.register(Device)
 class DeviceAdmin(admin.ModelAdmin):
     """Admin interface for Device model"""
+    # Fix #16: Pagination
+    list_per_page = ADMIN_LIST_PER_PAGE
+    list_max_show_all = 200
+
     list_display = [
         'mac_address', 'user', 'ip_address', 'device_type',
         'is_active', 'first_seen', 'last_seen'
@@ -400,6 +434,10 @@ class DeviceAdmin(admin.ModelAdmin):
 @admin.register(Session)
 class SessionAdmin(admin.ModelAdmin):
     """Admin interface for Session model"""
+    # Fix #16: Pagination - Sessions can be very large
+    list_per_page = ADMIN_LIST_PER_PAGE_LARGE
+    list_max_show_all = 100
+
     list_display = [
         'session_id', 'user', 'ip_address', 'mac_address',
         'status', 'start_time', 'total_bytes'
@@ -432,6 +470,10 @@ class SessionAdmin(admin.ModelAdmin):
 @admin.register(Voucher)
 class VoucherAdmin(admin.ModelAdmin):
     """Admin interface for Voucher model"""
+    # Fix #16: Pagination
+    list_per_page = ADMIN_LIST_PER_PAGE
+    list_max_show_all = 200
+
     list_display = [
         'code', 'status', 'duration', 'max_devices', 'used_count',
         'valid_from', 'valid_until', 'created_by', 'is_valid'

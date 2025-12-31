@@ -93,13 +93,15 @@ def register(request):
                     counter += 1
                 print(f"ℹ️  Email collision detected - using '{email}' instead")
 
-        # Valider le mot de passe avec les validateurs Django
-        try:
-            validate_password(password)
-        except Exception as e:
+        # Fix #8: Valider le mot de passe avec validation renforcée
+        from .security import EnhancedPasswordValidator
+
+        password_errors = EnhancedPasswordValidator.validate(password)
+        if password_errors:
             return Response({
                 'error': 'Mot de passe invalide',
-                'detail': str(e)
+                'detail': password_errors,
+                'requirements': EnhancedPasswordValidator.get_requirements()
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # Résoudre la promotion : priorise promotion_id, sinon crée/recupère par nom
@@ -324,10 +326,17 @@ def change_password(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Check password strength (minimum 8 characters)
-    if len(new_password) < 8:
+    # Fix #8: Validation de complexité de mot de passe renforcée
+    from .security import EnhancedPasswordValidator
+
+    password_errors = EnhancedPasswordValidator.validate(new_password, request.user)
+    if password_errors:
         return Response(
-            {'error': 'Password must be at least 8 characters long'},
+            {
+                'error': 'Le mot de passe ne respecte pas les exigences de sécurité',
+                'details': password_errors,
+                'requirements': EnhancedPasswordValidator.get_requirements()
+            },
             status=status.HTTP_400_BAD_REQUEST
         )
 
