@@ -21,6 +21,10 @@ class ProfileSerializer(serializers.ModelSerializer):
     users_count = serializers.SerializerMethodField()
     promotions_count = serializers.SerializerMethodField()
 
+    # Champs RADIUS (lecture seule sauf is_radius_enabled)
+    is_synced_to_radius = serializers.BooleanField(read_only=True)
+    radius_sync_status = serializers.CharField(read_only=True)
+
     # Champs pour assigner ce profil à des promotions/utilisateurs
     assign_to_promotions = serializers.ListField(
         child=serializers.IntegerField(),
@@ -48,13 +52,19 @@ class ProfileSerializer(serializers.ModelSerializer):
             'simultaneous_use', 'created_by', 'created_by_username',
             'created_at', 'updated_at',
             'users_count', 'promotions_count',
-            'assign_to_promotions', 'assign_to_users'
+            'assign_to_promotions', 'assign_to_users',
+            # Champs RADIUS
+            'is_radius_enabled', 'radius_group_name', 'last_radius_sync',
+            'is_synced_to_radius', 'radius_sync_status'
         ]
         read_only_fields = [
             'id', 'created_at', 'updated_at', 'created_by_username',
             'data_volume_gb', 'bandwidth_upload_mbps', 'bandwidth_download_mbps',
             'daily_limit_gb', 'weekly_limit_gb', 'monthly_limit_gb',
-            'users_count', 'promotions_count'
+            'users_count', 'promotions_count',
+            # RADIUS read-only fields
+            'radius_group_name', 'last_radius_sync',
+            'is_synced_to_radius', 'radius_sync_status'
         ]
 
     def get_users_count(self, obj):
