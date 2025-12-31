@@ -4,14 +4,39 @@ from django.conf import settings
 
 class MikrotikRouter(models.Model):
     """Mikrotik Router configuration"""
-    name = models.CharField(max_length=255)
-    host = models.CharField(max_length=255)
-    port = models.IntegerField(default=8728)
-    username = models.CharField(max_length=255)
-    password = models.CharField(max_length=255)
-    use_ssl = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    description = models.TextField(blank=True, null=True)
+    name = models.CharField(
+        max_length=255,
+        help_text="Nom unique du routeur (ex: Router-Principal)"
+    )
+    host = models.CharField(
+        max_length=255,
+        help_text="Adresse IP ou hostname du routeur MikroTik"
+    )
+    port = models.IntegerField(
+        default=8728,
+        help_text="Port API MikroTik (8728 par défaut, 8729 pour SSL)"
+    )
+    username = models.CharField(
+        max_length=255,
+        help_text="Nom d'utilisateur pour l'API MikroTik"
+    )
+    password = models.CharField(
+        max_length=255,
+        help_text="Mot de passe API (stocké de manière sécurisée)"
+    )
+    use_ssl = models.BooleanField(
+        default=False,
+        help_text="Utiliser SSL/TLS pour la connexion API"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Activer/désactiver ce routeur pour la synchronisation"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Description optionnelle du routeur"
+    )
 
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)

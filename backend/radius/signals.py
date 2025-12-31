@@ -1,11 +1,13 @@
 """
 Signals for automatic synchronization between Django Users and FreeRADIUS
 """
+import logging
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from .models import RadCheck, RadReply, RadUserGroup
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
@@ -22,7 +24,7 @@ def sync_user_to_radius(sender, instance, created, **kwargs):
     """
     # Skip new user creation - handled by register endpoint
     if created:
-        print(f"ℹ️  User '{instance.username}' created - RADIUS entry handled by register endpoint")
+        logger.debug("User '%s' created - RADIUS entry handled by register endpoint", instance.username)
         return
 
     # Handle user deactivation
@@ -31,15 +33,15 @@ def sync_user_to_radius(sender, instance, created, **kwargs):
         # This preserves user configuration and allows re-activation
         updated_count = RadCheck.objects.filter(username=instance.username).update(statut=False)
         if updated_count > 0:
-            print(f"🚫 User '{instance.username}' deactivated - RADIUS access disabled (statut=False)")
+            logger.info("User '%s' deactivated - RADIUS access disabled", instance.username)
         else:
-            print(f"ℹ️  User '{instance.username}' deactivated - no RADIUS entry to disable")
+            logger.debug("User '%s' deactivated - no RADIUS entry to disable", instance.username)
         return
 
     # If user is re-activated, ensure RADIUS entry is enabled
     if instance.is_active and instance.is_radius_activated:
         RadCheck.objects.filter(username=instance.username).update(statut=True)
-        print(f"✅ User '{instance.username}' reactivated - RADIUS access enabled (statut=True)")
+        logger.info("User '%s' reactivated - RADIUS access enabled", instance.username)
 
     # Only update role-based settings (not password - it's already hashed)
     # Determine session timeout based on user role
@@ -67,7 +69,7 @@ def sync_user_to_radius(sender, instance, created, **kwargs):
         defaults={'priority': 0}
     )
 
-    print(f"🔄 User '{instance.username}' settings updated in RADIUS (group: '{groupname}')")
+    logger.debug("User '%s' settings updated in RADIUS (group: '%s')", instance.username, groupname)
 
 
 @receiver(post_delete, sender=User)
@@ -78,7 +80,7 @@ def remove_user_from_radius(sender, instance, **kwargs):
     RadCheck.objects.filter(username=instance.username).delete()
     RadReply.objects.filter(username=instance.username).delete()
     RadUserGroup.objects.filter(username=instance.username).delete()
-    print(f"🗑️  User '{instance.username}' removed from RADIUS")
+    logger.info("User '%s' removed from RADIUS", instance.username)
 
 
 def sync_all_users_to_radius():
@@ -89,9 +91,7 @@ def sync_all_users_to_radius():
     User = get_user_model()
     users = User.objects.filter(is_active=True)
 
-    print("=" * 70)
-    print("SYNCING ALL USERS TO FREERADIUS")
-    print("=" * 70)
+    logger.info("Starting sync of all users to FreeRADIUS")
 
     synced_count = 0
     for user in users:
@@ -99,5 +99,4 @@ def sync_all_users_to_radius():
         sync_user_to_radius(User, user, created=False, raw=False, using='default', update_fields=None)
         synced_count += 1
 
-    print(f"\n✅ Synced {synced_count} users to FreeRADIUS")
-    print("=" * 70)
+    logger.info("Synced %d users to FreeRADIUS", synced_count)

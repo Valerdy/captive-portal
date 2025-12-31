@@ -380,6 +380,10 @@ class User(AbstractUser):
     class Meta:
         db_table = 'users'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_radius_activated', 'is_radius_enabled']),
+            models.Index(fields=['promotion', 'is_active']),
+        ]
 
     def __str__(self):
         return f"{self.username} ({self.email})"

@@ -1,3 +1,4 @@
+import logging
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -8,6 +9,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from django.db import transaction
 from datetime import timedelta
+
+logger = logging.getLogger(__name__)
 from .serializers import UserSerializer
 from .models import Session, Device, User, Promotion
 from .permissions import IsAdmin
@@ -72,7 +75,7 @@ def register(request):
                 while User.objects.filter(username=username).exists():
                     username = f"{original_username}{counter}"
                     counter += 1
-                print(f"ℹ️  Username collision detected for '{original_username}' - using '{username}' instead")
+                logger.debug("Username collision detected for '%s' - using '%s' instead", original_username, username)
         else:
             # Si l'utilisateur a fourni un username, vérifier qu'il est unique
             if User.objects.filter(username=username).exists():
@@ -91,7 +94,7 @@ def register(request):
                 while User.objects.filter(email=email).exists():
                     email = f"{base_email}{counter}@student.ucac-icam.com"
                     counter += 1
-                print(f"ℹ️  Email collision detected - using '{email}' instead")
+                logger.debug("Email collision detected - using '%s' instead", email)
 
         # Fix #8: Valider le mot de passe avec validation renforcée
         from .security import EnhancedPasswordValidator
@@ -435,7 +438,6 @@ def activate_users_radius(request):
                     "id": 1,
                     "username": "jdupont",
                     "email": "jdupont@example.com",
-                    "radius_password": "kT@9pL#mXq$1RvZ",
                     "message": "Utilisateur activé dans RADIUS"
                 },
                 ...
@@ -533,6 +535,7 @@ def activate_users_radius(request):
                 user.save()
 
                 # Ajouter aux utilisateurs activés avec succès
+                # Note: radius_password n'est PAS inclus dans la réponse pour des raisons de sécurité
                 activated_users.append({
                     'id': user.id,
                     'username': user.username,
@@ -541,7 +544,6 @@ def activate_users_radius(request):
                     'last_name': user.last_name,
                     'promotion': user.promotion.name if user.promotion else None,
                     'matricule': user.matricule,
-                    'radius_password': radius_password,
                     'session_timeout': f'{session_timeout//3600}h',
                     'bandwidth_limit': '10M/10M',
                     'message': 'Utilisateur activé dans RADIUS avec succès'
