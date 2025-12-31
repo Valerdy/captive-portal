@@ -287,19 +287,15 @@ class ProfileViewSet(viewsets.ModelViewSet):
         Retourne des données agrégées pour le dashboard admin.
 
         ADMIN ONLY - Contient des données sensibles sur l'utilisation.
-        Optimisé avec des requêtes agrégées pour éviter les N+1.
+
+        Fix #11: Optimisé avec requêtes agrégées pré-calculées pour éviter N+1.
+        - Pré-calcul des utilisateurs via promotion en une seule requête
+        - Pré-calcul des statistiques d'usage par profil
         """
-        from django.db.models import Count, Sum, Avg, Q
+        from django.db.models import Count, Sum, Avg, Q, Subquery, OuterRef, IntegerField
+        from django.db.models.functions import Coalesce
 
-        # Utiliser des requêtes optimisées avec annotate
-        profiles = Profile.objects.annotate(
-            direct_users_count=Count(
-                'users',
-                filter=Q(users__is_active=True)
-            )
-        )
-
-        # Statistiques générales (requêtes agrégées, pas de boucle)
+        # === REQUÊTE 1: Statistiques générales (1 requête) ===
         stats = Profile.objects.aggregate(
             total_profiles=Count('id'),
             active_profiles=Count('id', filter=Q(is_active=True)),
@@ -311,34 +307,56 @@ class ProfileViewSet(viewsets.ModelViewSet):
         active_profiles_count = stats['active_profiles']
         inactive_profiles = total_profiles - active_profiles_count
 
-        # Pagination pour les profils avec statistiques
+        # === FIX #11: Pré-calcul des utilisateurs via promotion (1 requête) ===
+        promotion_users_subquery = User.objects.filter(
+            promotion__profile=OuterRef('pk'),
+            is_active=True,
+            profile__isnull=True
+        ).values('promotion__profile').annotate(
+            cnt=Count('id')
+        ).values('cnt')
+
+        # === REQUÊTE 2: Profils avec annotations pré-calculées (1 requête) ===
+        profiles = Profile.objects.annotate(
+            direct_users_count=Count(
+                'users',
+                filter=Q(users__is_active=True)
+            ),
+            promotion_users_count=Coalesce(
+                Subquery(promotion_users_subquery, output_field=IntegerField()),
+                0
+            )
+        ).order_by('-direct_users_count')
+
+        # === FIX #11: Pré-calcul des stats d'usage par profil (1 requête) ===
+        usage_stats_by_profile = {}
+        usage_aggregates = UserProfileUsage.objects.filter(
+            is_active=True,
+            user__profile__isnull=False
+        ).values('user__profile_id').annotate(
+            avg_today=Avg('used_today'),
+            avg_week=Avg('used_week'),
+            avg_month=Avg('used_month'),
+            avg_total=Avg('used_total'),
+            exceeded_count=Count('id', filter=Q(is_exceeded=True))
+        )
+
+        for agg in usage_aggregates:
+            usage_stats_by_profile[agg['user__profile_id']] = agg
+
+        # Pagination
         paginator = LargeResultsSetPagination()
         paginated_profiles = paginator.paginate_queryset(profiles, request)
 
+        # === Construction des résultats (pas de requête supplémentaire) ===
         profiles_with_stats = []
         for profile in paginated_profiles:
-            # Utilisateurs via promotions (requête optimisée)
-            promotion_users = User.objects.filter(
-                promotion__profile=profile,
-                is_active=True,
-                profile__isnull=True
-            ).count()
+            total_users = profile.direct_users_count + profile.promotion_users_count
 
-            total_users = profile.direct_users_count + promotion_users
+            # Récupérer les stats pré-calculées
+            usage = usage_stats_by_profile.get(profile.id, {})
 
-            # Consommation moyenne pour ce profil (requête agrégée unique)
-            avg_usage = UserProfileUsage.objects.filter(
-                user__profile=profile,
-                is_active=True
-            ).aggregate(
-                avg_today=Avg('used_today'),
-                avg_week=Avg('used_week'),
-                avg_month=Avg('used_month'),
-                avg_total=Avg('used_total'),
-                exceeded_count=Count('id', filter=Q(is_exceeded=True))
-            )
-
-            exceeded_count = avg_usage['exceeded_count'] or 0
+            exceeded_count = usage.get('exceeded_count', 0) or 0
 
             profiles_with_stats.append({
                 'profile_id': profile.id,
@@ -346,20 +364,17 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 'quota_type': profile.quota_type,
                 'is_active': profile.is_active,
                 'direct_users': profile.direct_users_count,
-                'promotion_users': promotion_users,
+                'promotion_users': profile.promotion_users_count,
                 'total_users': total_users,
-                'avg_usage_today_gb': round(avg_usage['avg_today'] / (1024**3), 2) if avg_usage['avg_today'] else 0,
-                'avg_usage_week_gb': round(avg_usage['avg_week'] / (1024**3), 2) if avg_usage['avg_week'] else 0,
-                'avg_usage_month_gb': round(avg_usage['avg_month'] / (1024**3), 2) if avg_usage['avg_month'] else 0,
-                'avg_usage_total_gb': round(avg_usage['avg_total'] / (1024**3), 2) if avg_usage['avg_total'] else 0,
+                'avg_usage_today_gb': round(usage.get('avg_today', 0) / (1024**3), 2) if usage.get('avg_today') else 0,
+                'avg_usage_week_gb': round(usage.get('avg_week', 0) / (1024**3), 2) if usage.get('avg_week') else 0,
+                'avg_usage_month_gb': round(usage.get('avg_month', 0) / (1024**3), 2) if usage.get('avg_month') else 0,
+                'avg_usage_total_gb': round(usage.get('avg_total', 0) / (1024**3), 2) if usage.get('avg_total') else 0,
                 'exceeded_count': exceeded_count,
                 'exceeded_percent': round((exceeded_count / total_users * 100), 2) if total_users > 0 else 0
             })
 
-        # Trier par nombre d'utilisateurs
-        profiles_with_stats.sort(key=lambda x: x['total_users'], reverse=True)
-
-        # Top 5 profils
+        # Top 5 profils (déjà triés par la requête)
         top_profiles = profiles_with_stats[:5]
 
         return paginator.get_paginated_response({
@@ -889,16 +904,29 @@ class ProfileViewSet(viewsets.ModelViewSet):
         POST /api/core/profiles/bulk_enable_radius/
         Body: {"profile_ids": [1, 2, 3]}
 
+        Fix #29: Suivi détaillé de progression avec résultats par profil.
+        Fix #10: Journalisation d'audit.
+
         Response:
         {
             "success": true,
             "message": "3 profils activés dans RADIUS",
             "data": {
                 "enabled": 3,
+                "skipped": 1,
+                "failed": 0,
+                "total": 4,
+                "results": [
+                    {"id": 1, "name": "Étudiant", "status": "enabled", "groupname": "profile_1_etudiant"},
+                    {"id": 2, "name": "Premium", "status": "skipped", "reason": "already_enabled"},
+                    {"id": 3, "name": "Inactif", "status": "skipped", "reason": "profile_inactive"}
+                ],
                 "errors": []
             }
         }
         """
+        from .models import AdminAuditLog
+
         profile_ids = request.data.get('profile_ids', [])
 
         if not profile_ids:
@@ -907,26 +935,98 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        enabled = 0
-        errors = []
+        # Fix #29: Limite de sécurité pour éviter DoS
+        MAX_BULK_SIZE = 100
+        if len(profile_ids) > MAX_BULK_SIZE:
+            return Response(
+                format_api_error('too_many_ids', f'Maximum {MAX_BULK_SIZE} profils par opération.'),
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        profiles = Profile.objects.filter(id__in=profile_ids, is_active=True)
+        # Fix #29: Résultats détaillés par profil
+        results = []
+        enabled = 0
+        skipped = 0
+        failed = 0
+
+        # Récupérer tous les profils demandés
+        profiles = Profile.objects.filter(id__in=profile_ids)
+        found_ids = set(profiles.values_list('id', flat=True))
+
+        # Marquer les IDs non trouvés
+        for pid in profile_ids:
+            if pid not in found_ids:
+                results.append({
+                    'id': pid,
+                    'name': None,
+                    'status': 'failed',
+                    'reason': 'not_found'
+                })
+                failed += 1
 
         for profile in profiles:
             try:
-                if not profile.is_radius_enabled:
+                if not profile.is_active:
+                    results.append({
+                        'id': profile.id,
+                        'name': profile.name,
+                        'status': 'skipped',
+                        'reason': 'profile_inactive'
+                    })
+                    skipped += 1
+                elif profile.is_radius_enabled:
+                    results.append({
+                        'id': profile.id,
+                        'name': profile.name,
+                        'status': 'skipped',
+                        'reason': 'already_enabled',
+                        'groupname': profile.radius_group_name
+                    })
+                    skipped += 1
+                else:
                     profile.is_radius_enabled = True
                     profile.save()
+                    profile.refresh_from_db()
+                    results.append({
+                        'id': profile.id,
+                        'name': profile.name,
+                        'status': 'enabled',
+                        'groupname': profile.radius_group_name
+                    })
                     enabled += 1
+
             except Exception as e:
-                errors.append({'profile': profile.name, 'error': str(e)})
+                results.append({
+                    'id': profile.id,
+                    'name': profile.name,
+                    'status': 'failed',
+                    'reason': str(e)[:100]
+                })
+                failed += 1
+
+        # Fix #10: Audit logging
+        AdminAuditLog.log_action(
+            admin_user=request.user,
+            action_type='bulk_radius_enable',
+            target=('Profile', None, f'{enabled} profils activés'),
+            details={
+                'profile_ids': profile_ids,
+                'enabled': enabled,
+                'skipped': skipped,
+                'failed': failed
+            },
+            success=failed == 0,
+            request=request
+        )
 
         return Response(format_api_success(
             f'{enabled} profil(s) activé(s) dans RADIUS.',
             data={
                 'enabled': enabled,
+                'skipped': skipped,
+                'failed': failed,
                 'total': len(profile_ids),
-                'errors': errors
+                'results': results
             }
         ))
 
@@ -938,16 +1038,24 @@ class ProfileViewSet(viewsets.ModelViewSet):
         POST /api/core/profiles/bulk_disable_radius/
         Body: {"profile_ids": [1, 2, 3]}
 
+        Fix #29: Suivi détaillé de progression avec résultats par profil.
+        Fix #10: Journalisation d'audit.
+
         Response:
         {
             "success": true,
             "message": "3 profils désactivés de RADIUS",
             "data": {
                 "disabled": 3,
-                "errors": []
+                "skipped": 1,
+                "failed": 0,
+                "total": 4,
+                "results": [...]
             }
         }
         """
+        from .models import AdminAuditLog
+
         profile_ids = request.data.get('profile_ids', [])
 
         if not profile_ids:
@@ -956,25 +1064,87 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        disabled = 0
-        errors = []
+        # Fix #29: Limite de sécurité
+        MAX_BULK_SIZE = 100
+        if len(profile_ids) > MAX_BULK_SIZE:
+            return Response(
+                format_api_error('too_many_ids', f'Maximum {MAX_BULK_SIZE} profils par opération.'),
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        profiles = Profile.objects.filter(id__in=profile_ids, is_radius_enabled=True)
+        # Fix #29: Résultats détaillés
+        results = []
+        disabled = 0
+        skipped = 0
+        failed = 0
+
+        profiles = Profile.objects.filter(id__in=profile_ids)
+        found_ids = set(profiles.values_list('id', flat=True))
+
+        for pid in profile_ids:
+            if pid not in found_ids:
+                results.append({
+                    'id': pid,
+                    'name': None,
+                    'status': 'failed',
+                    'reason': 'not_found'
+                })
+                failed += 1
 
         for profile in profiles:
             try:
-                profile.is_radius_enabled = False
-                profile.save()
-                disabled += 1
+                if not profile.is_radius_enabled:
+                    results.append({
+                        'id': profile.id,
+                        'name': profile.name,
+                        'status': 'skipped',
+                        'reason': 'already_disabled'
+                    })
+                    skipped += 1
+                else:
+                    old_groupname = profile.radius_group_name
+                    profile.is_radius_enabled = False
+                    profile.save()
+                    results.append({
+                        'id': profile.id,
+                        'name': profile.name,
+                        'status': 'disabled',
+                        'removed_group': old_groupname
+                    })
+                    disabled += 1
+
             except Exception as e:
-                errors.append({'profile': profile.name, 'error': str(e)})
+                results.append({
+                    'id': profile.id,
+                    'name': profile.name,
+                    'status': 'failed',
+                    'reason': str(e)[:100]
+                })
+                failed += 1
+
+        # Fix #10: Audit logging
+        AdminAuditLog.log_action(
+            admin_user=request.user,
+            action_type='bulk_radius_disable',
+            target=('Profile', None, f'{disabled} profils désactivés'),
+            details={
+                'profile_ids': profile_ids,
+                'disabled': disabled,
+                'skipped': skipped,
+                'failed': failed
+            },
+            success=failed == 0,
+            request=request
+        )
 
         return Response(format_api_success(
             f'{disabled} profil(s) désactivé(s) de RADIUS.',
             data={
                 'disabled': disabled,
+                'skipped': skipped,
+                'failed': failed,
                 'total': len(profile_ids),
-                'errors': errors
+                'results': results
             }
         ))
 
