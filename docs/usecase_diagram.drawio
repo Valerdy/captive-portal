@@ -1,0 +1,489 @@
+<mxfile host="app.diagrams.net" modified="2026-01-01T12:00:00.000Z" agent="Claude Code" version="21.0.0" type="device">
+  <diagram name="Use Cases - Portail Captif" id="usecase-diagram">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Titre Principal -->
+        <mxCell id="title" value="&lt;b&gt;Diagramme de Cas d'Utilisation - Portail Captif WiFi&lt;/b&gt;&lt;br&gt;Système de gestion d'accès Internet avec authentification RADIUS et intégration MikroTik" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="800" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== SYSTEM BOUNDARY ========== -->
+        <mxCell id="system-boundary" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="100" width="1000" height="1050" as="geometry"/>
+        </mxCell>
+        <mxCell id="system-label" value="&lt;b&gt;Système: Portail Captif&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="700" y="105" width="200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== ACTEURS HUMAINS ========== -->
+
+        <!-- Acteur: Administrateur -->
+        <mxCell id="admin-actor" value="" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="60" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="admin-label" value="&lt;b&gt;Administrateur&lt;/b&gt;&lt;br&gt;(Staff Django)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="405" width="120" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Acteur: Utilisateur -->
+        <mxCell id="user-actor" value="" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="700" width="60" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="user-label" value="&lt;b&gt;Utilisateur&lt;/b&gt;&lt;br&gt;(Client WiFi)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="55" y="805" width="110" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== ACTEURS SYSTÈME ========== -->
+
+        <!-- Acteur: MikroTik -->
+        <mxCell id="mikrotik-actor" value="" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="250" width="100" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="mikrotik-inner" value="&lt;b&gt;MikroTik&lt;/b&gt;&lt;br&gt;RouterOS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="270" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="mikrotik-label" value="&lt;b&gt;NAS / Hotspot&lt;/b&gt;&lt;br&gt;(Network Access Server)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="335" width="140" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Acteur: FreeRADIUS -->
+        <mxCell id="radius-actor" value="" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="500" width="100" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="radius-inner" value="&lt;b&gt;FreeRADIUS&lt;/b&gt;&lt;br&gt;Server" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="520" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="radius-label" value="&lt;b&gt;AAA Server&lt;/b&gt;&lt;br&gt;(Authentication)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="585" width="140" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Acteur: PostgreSQL -->
+        <mxCell id="db-actor" value="" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="720" width="80" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="db-label" value="&lt;b&gt;PostgreSQL&lt;/b&gt;&lt;br&gt;(Base de données)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1405" y="805" width="130" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== CAS D'UTILISATION - GESTION UTILISATEURS ========== -->
+        <mxCell id="group1-label" value="&lt;b&gt;Gestion des Utilisateurs&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#dae8fc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="145" width="180" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-create-user" value="Créer un utilisateur" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="170" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-modify-user" value="Modifier un utilisateur" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="230" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-delete-user" value="Supprimer un utilisateur" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="290" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-activate-radius" value="Activer compte RADIUS" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="350" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-import-users" value="Importer utilisateurs&lt;br&gt;(CSV/Excel)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="410" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== CAS D'UTILISATION - GESTION PROFILS ========== -->
+        <mxCell id="group2-label" value="&lt;b&gt;Gestion des Profils&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="145" width="150" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-create-profile" value="Créer un profil" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="540" y="170" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-config-bandwidth" value="Configurer bande&lt;br&gt;passante" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="540" y="230" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-config-quota" value="Définir quotas&lt;br&gt;(jour/semaine/mois)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="540" y="290" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-config-timeout" value="Configurer timeouts&lt;br&gt;session/idle" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="540" y="350" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== CAS D'UTILISATION - BLOCAGE SITES ========== -->
+        <mxCell id="group3-label" value="&lt;b&gt;Blocage de Sites&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="145" width="140" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-block-site" value="Bloquer un site&lt;br&gt;(domaine)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="740" y="170" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-block-category" value="Bloquer par catégorie&lt;br&gt;(social, streaming...)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="740" y="230" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-block-profile" value="Blocage par profil" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="740" y="290" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-block-promo" value="Blocage par promotion" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="740" y="350" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-block-global" value="Blocage global" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="740" y="410" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== CAS D'UTILISATION - PROMOTIONS ========== -->
+        <mxCell id="group4-label" value="&lt;b&gt;Gestion Promotions&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#fff2cc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="960" y="145" width="150" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-create-promo" value="Créer une promotion" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="940" y="170" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-assign-profile" value="Assigner profil à&lt;br&gt;promotion" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="940" y="230" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-manage-members" value="Gérer les membres" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="940" y="290" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== CAS D'UTILISATION - VOUCHERS ========== -->
+        <mxCell id="group5-label" value="&lt;b&gt;Gestion Vouchers&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#e1d5e7;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="145" width="140" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-generate-voucher" value="Générer vouchers" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="170" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-print-voucher" value="Imprimer vouchers" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="230" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-voucher-stats" value="Statistiques&lt;br&gt;utilisation" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="290" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== CAS D'UTILISATION - MONITORING ========== -->
+        <mxCell id="group6-label" value="&lt;b&gt;Monitoring &amp; Rapports&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#ffe6cc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="480" width="160" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-view-sessions" value="Voir sessions actives" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="430" y="510" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-view-stats" value="Consulter statistiques&lt;br&gt;(bande passante, quotas)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="430" y="570" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-audit-log" value="Consulter logs d'audit" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="430" y="630" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-disconnect-user" value="Déconnecter utilisateur" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="430" y="690" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== CAS D'UTILISATION - UTILISATEUR ========== -->
+        <mxCell id="group7-label" value="&lt;b&gt;Actions Utilisateur&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="780" width="150" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-login" value="Se connecter au portail" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="810" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-use-voucher" value="Utiliser un voucher" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="870" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-view-quota" value="Consulter son quota" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="930" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-change-password" value="Changer mot de passe" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="990" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-logout" value="Se déconnecter" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="1050" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== CAS D'UTILISATION - SYSTÈME RADIUS ========== -->
+        <mxCell id="group8-label" value="&lt;b&gt;Authentification RADIUS&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#e1d5e7;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="780" width="180" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-auth-user" value="Authentifier utilisateur&lt;br&gt;(Access-Request)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="680" y="810" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-return-attrs" value="Retourner attributs&lt;br&gt;(Session-Timeout, Rate)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="680" y="870" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-accounting" value="Comptabilité session&lt;br&gt;(Start/Interim/Stop)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="680" y="930" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-coa" value="Change of Authorization&lt;br&gt;(CoA/Disconnect)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="680" y="990" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== CAS D'UTILISATION - MIKROTIK ========== -->
+        <mxCell id="group9-label" value="&lt;b&gt;Contrôle MikroTik&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#fff2cc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="970" y="780" width="150" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-redirect-portal" value="Rediriger vers portail&lt;br&gt;captif" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="960" y="810" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-apply-queue" value="Appliquer queue&lt;br&gt;(rate-limit)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="960" y="870" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-dns-block" value="Bloquer via DNS&lt;br&gt;statique" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="960" y="930" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-track-session" value="Suivre session/trafic" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="960" y="990" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== SYNCHRONISATION ========== -->
+        <mxCell id="uc-sync-radius" value="Synchroniser vers&lt;br&gt;RADIUS" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="620" y="510" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-sync-mikrotik" value="Synchroniser vers&lt;br&gt;MikroTik" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="800" y="510" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uc-retry-sync" value="Retry synchronisation&lt;br&gt;(échecs)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="710" y="580" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== ASSOCIATIONS ADMIN ========== -->
+        <mxCell id="link-admin-1" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1" source="admin-actor" target="uc-create-user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-2" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1" source="admin-actor" target="uc-modify-user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-3" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1" source="admin-actor" target="uc-delete-user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-4" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1" source="admin-actor" target="uc-activate-radius">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-5" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#6c8ebf;" edge="1" parent="1" source="admin-actor" target="uc-import-users">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-6" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#82b366;" edge="1" parent="1" source="admin-actor" target="uc-create-profile">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-7" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#82b366;" edge="1" parent="1" source="admin-actor" target="uc-config-bandwidth">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-8" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#b85450;" edge="1" parent="1" source="admin-actor" target="uc-block-site">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-9" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#d6b656;" edge="1" parent="1" source="admin-actor" target="uc-create-promo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-10" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#9673a6;" edge="1" parent="1" source="admin-actor" target="uc-generate-voucher">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-11" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#d79b00;" edge="1" parent="1" source="admin-actor" target="uc-view-sessions">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-12" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#d79b00;" edge="1" parent="1" source="admin-actor" target="uc-view-stats">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-admin-13" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#d79b00;" edge="1" parent="1" source="admin-actor" target="uc-disconnect-user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== ASSOCIATIONS USER ========== -->
+        <mxCell id="link-user-1" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#82b366;" edge="1" parent="1" source="user-actor" target="uc-login">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-user-2" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#82b366;" edge="1" parent="1" source="user-actor" target="uc-use-voucher">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-user-3" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#82b366;" edge="1" parent="1" source="user-actor" target="uc-view-quota">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-user-4" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#82b366;" edge="1" parent="1" source="user-actor" target="uc-change-password">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-user-5" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#82b366;" edge="1" parent="1" source="user-actor" target="uc-logout">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== ASSOCIATIONS MIKROTIK ========== -->
+        <mxCell id="link-mikrotik-1" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#d6b656;" edge="1" parent="1" source="mikrotik-actor" target="uc-redirect-portal">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-mikrotik-2" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#d6b656;" edge="1" parent="1" source="mikrotik-actor" target="uc-apply-queue">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-mikrotik-3" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#d6b656;" edge="1" parent="1" source="mikrotik-actor" target="uc-dns-block">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-mikrotik-4" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#d6b656;" edge="1" parent="1" source="mikrotik-actor" target="uc-track-session">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-mikrotik-sync" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1" source="mikrotik-actor" target="uc-sync-mikrotik">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== ASSOCIATIONS RADIUS ========== -->
+        <mxCell id="link-radius-1" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#9673a6;" edge="1" parent="1" source="radius-actor" target="uc-auth-user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-radius-2" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#9673a6;" edge="1" parent="1" source="radius-actor" target="uc-return-attrs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-radius-3" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#9673a6;" edge="1" parent="1" source="radius-actor" target="uc-accounting">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-radius-4" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#9673a6;" edge="1" parent="1" source="radius-actor" target="uc-coa">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-radius-sync" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1" source="radius-actor" target="uc-sync-radius">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== ASSOCIATIONS DB ========== -->
+        <mxCell id="link-db-1" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#b85450;" edge="1" parent="1" source="db-actor" target="uc-auth-user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-db-2" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#b85450;" edge="1" parent="1" source="db-actor" target="uc-return-attrs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="link-db-3" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#b85450;" edge="1" parent="1" source="db-actor" target="uc-accounting">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== RELATIONS INCLUDE/EXTEND ========== -->
+        <!-- Include: activate-radius includes sync-radius -->
+        <mxCell id="include-1" value="" style="endArrow=open;html=1;strokeWidth=1;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="uc-activate-radius" target="uc-sync-radius">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="include-1-label" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="480" y="450" width="80" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Include: create-profile includes sync-radius -->
+        <mxCell id="include-2" value="" style="endArrow=open;html=1;strokeWidth=1;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="uc-create-profile" target="uc-sync-radius">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="include-2-label" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="590" y="420" width="80" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Include: block-site includes sync-mikrotik -->
+        <mxCell id="include-3" value="" style="endArrow=open;html=1;strokeWidth=1;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="uc-block-site" target="uc-sync-mikrotik">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="include-3-label" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="800" y="370" width="80" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Include: login includes auth -->
+        <mxCell id="include-4" value="" style="endArrow=open;html=1;strokeWidth=1;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="uc-login" target="uc-auth-user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="include-4-label" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="500" y="800" width="80" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Extend: retry-sync extends sync-radius -->
+        <mxCell id="extend-1" value="" style="endArrow=open;html=1;strokeWidth=1;dashed=1;strokeColor=#b85450;" edge="1" parent="1" source="uc-retry-sync" target="uc-sync-radius">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="extend-1-label" value="&amp;lt;&amp;lt;extend&amp;gt;&amp;gt;&lt;br&gt;[on failure]" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="620" y="570" width="70" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ========== LÉGENDE ========== -->
+        <mxCell id="legend-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#333333;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="920" width="240" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-title" value="&lt;b&gt;LÉGENDE&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="110" y="925" width="100" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Légende - Acteur humain -->
+        <mxCell id="legend-human" value="" style="shape=umlActor;html=1;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="55" y="950" width="20" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-human-label" value="Acteur humain" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="955" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Légende - Acteur système -->
+        <mxCell id="legend-system" value="" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="985" width="30" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-system-label" value="Acteur système" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="985" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Légende - Cas d'utilisation -->
+        <mxCell id="legend-uc" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="45" y="1015" width="40" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-uc-label" value="Cas d'utilisation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="1015" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Légende - Association -->
+        <mxCell id="legend-assoc" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="50" y="1060" as="sourcePoint"/>
+            <mxPoint x="80" y="1060" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-assoc-label" value="Association" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="1050" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Légende - Include -->
+        <mxCell id="legend-include" value="" style="endArrow=open;html=1;strokeWidth=1;dashed=1;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="50" y="1090" as="sourcePoint"/>
+            <mxPoint x="80" y="1090" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-include-label" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="1080" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Légende - Extend -->
+        <mxCell id="legend-extend" value="" style="endArrow=open;html=1;strokeWidth=1;dashed=1;strokeColor=#b85450;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="50" y="1120" as="sourcePoint"/>
+            <mxPoint x="80" y="1120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-extend-label" value="&amp;lt;&amp;lt;extend&amp;gt;&amp;gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="1110" width="100" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
