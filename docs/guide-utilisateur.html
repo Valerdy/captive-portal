@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide Utilisateur - Portail Captif WiFi</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #64748b;
+            --success-color: #22c55e;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #06b6d4;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Navigation */
+        nav {
+            background: var(--card-bg);
+            padding: 1rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 100px;
+            z-index: 999;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        nav a {
+            color: var(--primary-color);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Main Content */
+        main {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        /* Sections */
+        section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        section h2 {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        section h3 {
+            color: var(--text-color);
+            font-size: 1.3rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        section h4 {
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+            margin: 1rem 0 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        /* Cards Grid */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .card {
+            background: var(--bg-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card h4 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .card.success { border-left-color: var(--success-color); }
+        .card.success h4 { color: var(--success-color); }
+
+        .card.warning { border-left-color: var(--warning-color); }
+        .card.warning h4 { color: var(--warning-color); }
+
+        .card.danger { border-left-color: var(--danger-color); }
+        .card.danger h4 { color: var(--danger-color); }
+
+        .card.info { border-left-color: var(--info-color); }
+        .card.info h4 { color: var(--info-color); }
+
+        /* Lists */
+        ul, ol {
+            margin: 1rem 0 1rem 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: var(--bg-color);
+        }
+
+        tr:hover {
+            background: #e0e7ff;
+        }
+
+        /* Code Blocks */
+        code {
+            background: #1e293b;
+            color: #22d3ee;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .alert-info {
+            background: #e0f2fe;
+            border-left: 4px solid var(--info-color);
+            color: #0369a1;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            border-left: 4px solid var(--success-color);
+            color: #166534;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            border-left: 4px solid var(--warning-color);
+            color: #92400e;
+        }
+
+        .alert-danger {
+            background: #fee2e2;
+            border-left: 4px solid var(--danger-color);
+            color: #991b1b;
+        }
+
+        /* Steps */
+        .steps {
+            counter-reset: step;
+            margin: 1.5rem 0;
+        }
+
+        .step {
+            position: relative;
+            padding-left: 3.5rem;
+            padding-bottom: 1.5rem;
+            border-left: 2px solid var(--border-color);
+            margin-left: 1rem;
+        }
+
+        .step:last-child {
+            border-left: none;
+            padding-bottom: 0;
+        }
+
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: -1.25rem;
+            top: 0;
+            width: 2.5rem;
+            height: 2.5rem;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .step h4 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Status Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-info { background: #e0f2fe; color: #0369a1; }
+        .badge-primary { background: #e0e7ff; color: #3730a3; }
+
+        /* Architecture Diagram */
+        .architecture-diagram {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            color: white;
+        }
+
+        .diagram-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .diagram-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .diagram-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            text-align: center;
+            min-width: 120px;
+            transition: all 0.3s ease;
+        }
+
+        .diagram-box:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .diagram-box.highlight {
+            border-color: var(--primary-color);
+            background: rgba(37, 99, 235, 0.2);
+        }
+
+        .diagram-arrow {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        /* Flow Diagram */
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .flow-item {
+            background: var(--bg-color);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .flow-item.start { background: #dcfce7; border-color: var(--success-color); }
+        .flow-item.process { background: #e0f2fe; border-color: var(--info-color); }
+        .flow-item.decision { background: #fef3c7; border-color: var(--warning-color); }
+        .flow-item.end { background: #fee2e2; border-color: var(--danger-color); }
+
+        .flow-arrow {
+            font-size: 1.25rem;
+            color: var(--secondary-color);
+        }
+
+        /* Footer */
+        footer {
+            background: #1e293b;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        footer a {
+            color: var(--info-color);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 { font-size: 1.8rem; }
+            nav ul { flex-direction: column; align-items: center; }
+            section { padding: 1.5rem; }
+            .card-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Print Styles */
+        @media print {
+            header, nav { position: static; }
+            section { break-inside: avoid; }
+        }
+
+        /* Smooth Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* TOC */
+        .toc {
+            background: var(--bg-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .toc h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .toc ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .toc li {
+            margin-bottom: 0.5rem;
+        }
+
+        .toc a {
+            color: var(--text-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .toc a:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Accordion */
+        .accordion {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .accordion-header {
+            background: var(--bg-color);
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .accordion-header:hover {
+            background: #e0e7ff;
+        }
+
+        .accordion-content {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .accordion.active .accordion-content {
+            display: block;
+        }
+
+        .accordion-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .accordion.active .accordion-icon {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Portail Captif WiFi</h1>
+        <p>Guide Utilisateur Complet - Gestion d'Accès Réseau</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#introduction">Introduction</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#utilisateurs">Utilisateurs</a></li>
+            <li><a href="#profils">Profils</a></li>
+            <li><a href="#promotions">Promotions</a></li>
+            <li><a href="#radius">RADIUS</a></li>
+            <li><a href="#quotas">Quotas</a></li>
+            <li><a href="#blocage">Blocage Sites</a></li>
+            <li><a href="#admin">Administration</a></li>
+            <li><a href="#api">API</a></li>
+            <li><a href="#deploiement">Déploiement</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <!-- Table des matières -->
+        <div class="toc">
+            <h3>Table des Matières</h3>
+            <ul>
+                <li><a href="#introduction">1. Introduction au Projet</a></li>
+                <li><a href="#architecture">2. Architecture du Système</a></li>
+                <li><a href="#utilisateurs">3. Gestion des Utilisateurs</a></li>
+                <li><a href="#profils">4. Système de Profils</a></li>
+                <li><a href="#promotions">5. Gestion des Promotions</a></li>
+                <li><a href="#radius">6. Intégration RADIUS</a></li>
+                <li><a href="#quotas">7. Système de Quotas</a></li>
+                <li><a href="#blocage">8. Blocage de Sites</a></li>
+                <li><a href="#admin">9. Interface d'Administration</a></li>
+                <li><a href="#api">10. API REST</a></li>
+                <li><a href="#deploiement">11. Déploiement Docker</a></li>
+                <li><a href="#troubleshooting">12. Dépannage</a></li>
+            </ul>
+        </div>
+
+        <!-- Section 1: Introduction -->
+        <section id="introduction">
+            <h2>1. Introduction au Projet</h2>
+
+            <p>Le <strong>Portail Captif WiFi</strong> est un système complet de gestion d'accès réseau conçu pour les environnements éducatifs (universités, écoles) ou professionnels. Il permet de contrôler l'accès WiFi des utilisateurs via une authentification centralisée.</p>
+
+            <div class="card-grid">
+                <div class="card info">
+                    <h4>Objectifs Principaux</h4>
+                    <ul>
+                        <li>Authentification centralisée des utilisateurs</li>
+                        <li>Contrôle de la bande passante</li>
+                        <li>Gestion des quotas de données</li>
+                        <li>Blocage de sites indésirables</li>
+                        <li>Suivi des sessions et connexions</li>
+                    </ul>
+                </div>
+
+                <div class="card success">
+                    <h4>Technologies Utilisées</h4>
+                    <ul>
+                        <li><strong>Backend:</strong> Django 5.2.8 + REST Framework</li>
+                        <li><strong>Frontend:</strong> Vue 3 + TypeScript</li>
+                        <li><strong>Base de données:</strong> PostgreSQL</li>
+                        <li><strong>Authentification:</strong> FreeRADIUS</li>
+                        <li><strong>Routeur:</strong> MikroTik RouterOS</li>
+                        <li><strong>Cache:</strong> Redis</li>
+                    </ul>
+                </div>
+
+                <div class="card warning">
+                    <h4>Fonctionnalités Clés</h4>
+                    <ul>
+                        <li>Système de profils avec quotas</li>
+                        <li>Gestion par promotions</li>
+                        <li>Authentification RADIUS</li>
+                        <li>Limitation de bande passante</li>
+                        <li>Blocage DNS par catégorie</li>
+                        <li>Interface d'administration avancée</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>Note:</strong> Ce système est conçu pour fonctionner avec un routeur MikroTik configuré pour rediriger les utilisateurs non authentifiés vers le portail captif.
+            </div>
+        </section>
+
+        <!-- Section 2: Architecture -->
+        <section id="architecture">
+            <h2>2. Architecture du Système</h2>
+
+            <h3>Vue d'ensemble</h3>
+            <div class="architecture-diagram">
+                <div class="diagram-container">
+                    <div class="diagram-row">
+                        <div class="diagram-box">
+                            <strong>Utilisateur</strong><br>
+                            <small>WiFi Client</small>
+                        </div>
+                    </div>
+                    <div class="diagram-arrow">↓</div>
+                    <div class="diagram-row">
+                        <div class="diagram-box highlight">
+                            <strong>MikroTik</strong><br>
+                            <small>Routeur WiFi</small>
+                        </div>
+                    </div>
+                    <div class="diagram-arrow">↓</div>
+                    <div class="diagram-row">
+                        <div class="diagram-box">
+                            <strong>FreeRADIUS</strong><br>
+                            <small>Authentification</small>
+                        </div>
+                        <div class="diagram-box">
+                            <strong>Backend Django</strong><br>
+                            <small>API REST</small>
+                        </div>
+                        <div class="diagram-box">
+                            <strong>Frontend Vue</strong><br>
+                            <small>Interface Web</small>
+                        </div>
+                    </div>
+                    <div class="diagram-arrow">↓</div>
+                    <div class="diagram-row">
+                        <div class="diagram-box">
+                            <strong>PostgreSQL</strong><br>
+                            <small>Base de données</small>
+                        </div>
+                        <div class="diagram-box">
+                            <strong>Redis</strong><br>
+                            <small>Cache & Files</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Composants du Système</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Composant</th>
+                            <th>Rôle</th>
+                            <th>Port</th>
+                            <th>Technologie</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Backend</td>
+                            <td>API REST, Logique métier</td>
+                            <td>8000</td>
+                            <td>Django + Gunicorn</td>
+                        </tr>
+                        <tr>
+                            <td>Frontend</td>
+                            <td>Interface utilisateur</td>
+                            <td>80/443</td>
+                            <td>Vue 3 + Nginx</td>
+                        </tr>
+                        <tr>
+                            <td>FreeRADIUS</td>
+                            <td>Authentification WiFi</td>
+                            <td>1812/1813 UDP</td>
+                            <td>FreeRADIUS 3.x</td>
+                        </tr>
+                        <tr>
+                            <td>PostgreSQL</td>
+                            <td>Stockage des données</td>
+                            <td>5432</td>
+                            <td>PostgreSQL 15</td>
+                        </tr>
+                        <tr>
+                            <td>Redis</td>
+                            <td>Cache & Celery Broker</td>
+                            <td>6379</td>
+                            <td>Redis 7</td>
+                        </tr>
+                        <tr>
+                            <td>MikroTik Agent</td>
+                            <td>Proxy API MikroTik</td>
+                            <td>3001</td>
+                            <td>Node.js</td>
+                        </tr>
+                        <tr>
+                            <td>Celery Worker</td>
+                            <td>Tâches asynchrones</td>
+                            <td>-</td>
+                            <td>Celery</td>
+                        </tr>
+                        <tr>
+                            <td>Celery Beat</td>
+                            <td>Tâches planifiées</td>
+                            <td>-</td>
+                            <td>Celery Beat</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Flux d'Authentification</h3>
+            <div class="flow-container">
+                <div class="flow-item start">Utilisateur se connecte au WiFi</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-item process">MikroTik redirige vers le portail</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-item process">Utilisateur saisit identifiants</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-item decision">RADIUS vérifie les credentials</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-item process">Attributs de profil appliqués</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-item end">Accès Internet autorisé</div>
+            </div>
+        </section>
+
+        <!-- Section 3: Utilisateurs -->
+        <section id="utilisateurs">
+            <h2>3. Gestion des Utilisateurs</h2>
+
+            <h3>Structure d'un Utilisateur</h3>
+            <p>Chaque utilisateur possède les informations suivantes:</p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Champ</th>
+                            <th>Description</th>
+                            <th>Obligatoire</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>username</code></td>
+                            <td>Identifiant unique de connexion</td>
+                            <td><span class="badge badge-success">Oui</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>email</code></td>
+                            <td>Adresse email</td>
+                            <td><span class="badge badge-warning">Non</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>first_name</code></td>
+                            <td>Prénom</td>
+                            <td><span class="badge badge-success">Oui</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>last_name</code></td>
+                            <td>Nom</td>
+                            <td><span class="badge badge-success">Oui</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>matricule</code></td>
+                            <td>Numéro d'étudiant/employé</td>
+                            <td><span class="badge badge-success">Oui</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>promotion</code></td>
+                            <td>Groupe/Classe associé</td>
+                            <td><span class="badge badge-warning">Non</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>profile</code></td>
+                            <td>Profil de connexion individuel</td>
+                            <td><span class="badge badge-warning">Non</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>phone_number</code></td>
+                            <td>Numéro de téléphone</td>
+                            <td><span class="badge badge-warning">Non</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>role</code></td>
+                            <td>admin | user</td>
+                            <td><span class="badge badge-success">Oui</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>États RADIUS d'un Utilisateur</h3>
+            <p>Un utilisateur possède deux états RADIUS distincts:</p>
+
+            <div class="card-grid">
+                <div class="card">
+                    <h4>is_radius_activated (PERMANENT)</h4>
+                    <p>Indique si l'utilisateur a été créé dans les tables RADIUS (radcheck, radreply, radusergroup).</p>
+                    <ul>
+                        <li><span class="badge badge-danger">False</span> - Jamais activé</li>
+                        <li><span class="badge badge-success">True</span> - Présent dans RADIUS</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h4>is_radius_enabled (TEMPORAIRE)</h4>
+                    <p>Contrôle si l'accès WiFi est actuellement autorisé (modifie le champ statut dans radcheck).</p>
+                    <ul>
+                        <li><span class="badge badge-success">True</span> - Accès WiFi actif</li>
+                        <li><span class="badge badge-danger">False</span> - Accès WiFi suspendu</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="alert alert-warning">
+                <strong>Important:</strong> Un utilisateur doit être <strong>activé</strong> (is_radius_activated=True) ET <strong>enabled</strong> (is_radius_enabled=True) pour pouvoir se connecter au WiFi.
+            </div>
+
+            <h3>Indicateurs de Statut</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Indicateur</th>
+                            <th>is_radius_activated</th>
+                            <th>is_radius_enabled</th>
+                            <th>Signification</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span style="color: green; font-size: 1.5rem;">●</span></td>
+                            <td>True</td>
+                            <td>True</td>
+                            <td>WiFi actif - Peut se connecter</td>
+                        </tr>
+                        <tr>
+                            <td><span style="color: orange; font-size: 1.5rem;">◐</span></td>
+                            <td>True</td>
+                            <td>False</td>
+                            <td>WiFi suspendu - Accès désactivé</td>
+                        </tr>
+                        <tr>
+                            <td><span style="color: gray; font-size: 1.5rem;">○</span></td>
+                            <td>False</td>
+                            <td>-</td>
+                            <td>En attente d'activation</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Inscription d'un Utilisateur</h3>
+            <div class="steps">
+                <div class="step">
+                    <h4>Inscription via le Portail</h4>
+                    <p>L'utilisateur remplit le formulaire avec ses informations (nom, prénom, matricule, promotion, mot de passe).</p>
+                </div>
+                <div class="step">
+                    <h4>Création du Compte</h4>
+                    <p>Le compte est créé avec <code>is_radius_activated=False</code>. Le mot de passe est stocké en clair pour RADIUS.</p>
+                </div>
+                <div class="step">
+                    <h4>Activation par l'Admin</h4>
+                    <p>Un administrateur valide et active le compte. Les entrées RADIUS sont créées.</p>
+                </div>
+                <div class="step">
+                    <h4>Connexion WiFi</h4>
+                    <p>L'utilisateur peut maintenant se connecter au WiFi avec ses identifiants.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Profils -->
+        <section id="profils">
+            <h2>4. Système de Profils</h2>
+
+            <p>Les profils définissent les paramètres de connexion appliqués aux utilisateurs: bande passante, quotas, durée de validité.</p>
+
+            <h3>Structure d'un Profil</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Paramètre</th>
+                            <th>Description</th>
+                            <th>Valeurs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>name</code></td>
+                            <td>Nom du profil</td>
+                            <td>Ex: "Étudiant", "Professeur"</td>
+                        </tr>
+                        <tr>
+                            <td><code>bandwidth_download</code></td>
+                            <td>Bande passante descendante</td>
+                            <td>1-1000 Mbps</td>
+                        </tr>
+                        <tr>
+                            <td><code>bandwidth_upload</code></td>
+                            <td>Bande passante montante</td>
+                            <td>1-1000 Mbps</td>
+                        </tr>
+                        <tr>
+                            <td><code>quota_type</code></td>
+                            <td>Type de quota</td>
+                            <td>unlimited | limited</td>
+                        </tr>
+                        <tr>
+                            <td><code>data_volume</code></td>
+                            <td>Quota total de données</td>
+                            <td>En octets (bytes)</td>
+                        </tr>
+                        <tr>
+                            <td><code>daily_limit</code></td>
+                            <td>Limite journalière</td>
+                            <td>En octets</td>
+                        </tr>
+                        <tr>
+                            <td><code>weekly_limit</code></td>
+                            <td>Limite hebdomadaire</td>
+                            <td>En octets</td>
+                        </tr>
+                        <tr>
+                            <td><code>monthly_limit</code></td>
+                            <td>Limite mensuelle</td>
+                            <td>En octets</td>
+                        </tr>
+                        <tr>
+                            <td><code>validity_duration</code></td>
+                            <td>Durée de validité</td>
+                            <td>7, 14, 30, 60, 90, 180, 365 jours</td>
+                        </tr>
+                        <tr>
+                            <td><code>session_timeout</code></td>
+                            <td>Durée max de session</td>
+                            <td>En secondes</td>
+                        </tr>
+                        <tr>
+                            <td><code>idle_timeout</code></td>
+                            <td>Timeout d'inactivité</td>
+                            <td>En secondes</td>
+                        </tr>
+                        <tr>
+                            <td><code>simultaneous_use</code></td>
+                            <td>Connexions simultanées</td>
+                            <td>1, 2, 3...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Exemples de Profils</h3>
+            <div class="card-grid">
+                <div class="card success">
+                    <h4>Profil "Étudiant"</h4>
+                    <ul>
+                        <li><strong>Download:</strong> 10 Mbps</li>
+                        <li><strong>Upload:</strong> 5 Mbps</li>
+                        <li><strong>Quota mensuel:</strong> 50 Go</li>
+                        <li><strong>Limite journalière:</strong> 5 Go</li>
+                        <li><strong>Validité:</strong> 365 jours</li>
+                        <li><strong>Sessions:</strong> 2 simultanées</li>
+                    </ul>
+                </div>
+
+                <div class="card info">
+                    <h4>Profil "Professeur"</h4>
+                    <ul>
+                        <li><strong>Download:</strong> 50 Mbps</li>
+                        <li><strong>Upload:</strong> 20 Mbps</li>
+                        <li><strong>Quota:</strong> Illimité</li>
+                        <li><strong>Validité:</strong> 365 jours</li>
+                        <li><strong>Sessions:</strong> 5 simultanées</li>
+                    </ul>
+                </div>
+
+                <div class="card warning">
+                    <h4>Profil "Invité"</h4>
+                    <ul>
+                        <li><strong>Download:</strong> 5 Mbps</li>
+                        <li><strong>Upload:</strong> 2 Mbps</li>
+                        <li><strong>Quota:</strong> 1 Go/jour</li>
+                        <li><strong>Validité:</strong> 1 jour</li>
+                        <li><strong>Sessions:</strong> 1 simultanée</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3>Hiérarchie des Profils</h3>
+            <p>Un utilisateur peut recevoir son profil de différentes sources. Le système applique une hiérarchie:</p>
+
+            <div class="flow-container">
+                <div class="flow-item start">1. Profil individuel de l'utilisateur</div>
+                <div class="flow-arrow">↓ (si non défini)</div>
+                <div class="flow-item process">2. Profil de la promotion</div>
+                <div class="flow-arrow">↓ (si non défini)</div>
+                <div class="flow-item end">3. Profil par défaut du système</div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>Priorité:</strong> Le profil individuel a toujours la priorité sur le profil de la promotion.
+            </div>
+        </section>
+
+        <!-- Section 5: Promotions -->
+        <section id="promotions">
+            <h2>5. Gestion des Promotions</h2>
+
+            <p>Les promotions permettent de regrouper les utilisateurs (par classe, année, département) et de leur appliquer un profil commun.</p>
+
+            <h3>Structure d'une Promotion</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Champ</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>name</code></td>
+                            <td>Nom de la promotion (ex: "L3 Informatique 2024")</td>
+                        </tr>
+                        <tr>
+                            <td><code>profile</code></td>
+                            <td>Profil appliqué à tous les utilisateurs de la promotion</td>
+                        </tr>
+                        <tr>
+                            <td><code>is_active</code></td>
+                            <td>Statut actif/inactif de la promotion</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Cas d'Utilisation</h3>
+            <div class="card-grid">
+                <div class="card">
+                    <h4>Gestion par Classe</h4>
+                    <p>Créer une promotion par classe avec un profil adapté au niveau d'études.</p>
+                </div>
+                <div class="card">
+                    <h4>Gestion par Département</h4>
+                    <p>Regrouper tous les membres d'un département avec des privilèges spécifiques.</p>
+                </div>
+                <div class="card">
+                    <h4>Gestion Temporaire</h4>
+                    <p>Créer des promotions pour des événements (conférences, examens).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: RADIUS -->
+        <section id="radius">
+            <h2>6. Intégration RADIUS</h2>
+
+            <p>FreeRADIUS gère l'authentification des utilisateurs WiFi. Le système synchronise automatiquement les utilisateurs et leurs attributs.</p>
+
+            <h3>Tables RADIUS Utilisées</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Table</th>
+                            <th>Description</th>
+                            <th>Contenu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>radcheck</code></td>
+                            <td>Vérification d'authentification</td>
+                            <td>Username, password, statut, quota</td>
+                        </tr>
+                        <tr>
+                            <td><code>radreply</code></td>
+                            <td>Attributs de réponse</td>
+                            <td>Session-Timeout, Rate-Limit, etc.</td>
+                        </tr>
+                        <tr>
+                            <td><code>radusergroup</code></td>
+                            <td>Association utilisateur-groupe</td>
+                            <td>Lien vers le groupe du profil</td>
+                        </tr>
+                        <tr>
+                            <td><code>radgroupreply</code></td>
+                            <td>Attributs de groupe</td>
+                            <td>Attributs communs au profil</td>
+                        </tr>
+                        <tr>
+                            <td><code>radacct</code></td>
+                            <td>Comptabilisation</td>
+                            <td>Historique des sessions, traffic</td>
+                        </tr>
+                        <tr>
+                            <td><code>radpostauth</code></td>
+                            <td>Log d'authentification</td>
+                            <td>Tentatives réussies/échouées</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Attributs RADIUS Synchronisés</h3>
+            <pre><code>-- Attributs dans radreply (par utilisateur)
+Mikrotik-Rate-Limit := "10M/5M"      -- Bande passante (download/upload)
+Session-Timeout := 86400              -- Durée max de session (secondes)
+Idle-Timeout := 1800                  -- Timeout d'inactivité (secondes)
+Mikrotik-Total-Limit := 53687091200   -- Quota total (50 Go en bytes)
+
+-- Attributs dans radcheck
+Cleartext-Password := "motdepasse"    -- Mot de passe en clair
+Simultaneous-Use := 2                 -- Connexions simultanées max</code></pre>
+
+            <h3>Commandes de Gestion RADIUS</h3>
+            <pre><code># Vérifier les attributs RADIUS d'un utilisateur
+python manage.py verify_radius --user=john
+
+# Resynchroniser un utilisateur
+python manage.py verify_radius --user=john --resync
+
+# Vérifier tous les utilisateurs
+python manage.py verify_radius --all --fix-missing
+
+# Synchroniser les groupes
+python manage.py sync_radius_groups</code></pre>
+        </section>
+
+        <!-- Section 7: Quotas -->
+        <section id="quotas">
+            <h2>7. Système de Quotas</h2>
+
+            <p>Le système de quotas permet de limiter la consommation de données des utilisateurs selon différentes périodes.</p>
+
+            <h3>Types de Limites</h3>
+            <div class="card-grid">
+                <div class="card info">
+                    <h4>Limite Journalière</h4>
+                    <p>Réinitialisée chaque jour à minuit. Empêche un utilisateur de consommer tout son quota en une journée.</p>
+                </div>
+
+                <div class="card">
+                    <h4>Limite Hebdomadaire</h4>
+                    <p>Réinitialisée chaque lundi. Permet une flexibilité sur la semaine.</p>
+                </div>
+
+                <div class="card warning">
+                    <h4>Limite Mensuelle</h4>
+                    <p>Réinitialisée le 1er de chaque mois. Quota principal de l'utilisateur.</p>
+                </div>
+
+                <div class="card danger">
+                    <h4>Quota Total</h4>
+                    <p>Limite absolue pour la durée de validité du profil. Non réinitialisé.</p>
+                </div>
+            </div>
+
+            <h3>Comportement en Cas de Dépassement</h3>
+            <div class="steps">
+                <div class="step">
+                    <h4>Alerte à 80%</h4>
+                    <p>Notification envoyée à l'utilisateur (email/système).</p>
+                </div>
+                <div class="step">
+                    <h4>Alerte à 95%</h4>
+                    <p>Avertissement critique. L'utilisateur est invité à réduire sa consommation.</p>
+                </div>
+                <div class="step">
+                    <h4>Quota Atteint (100%)</h4>
+                    <p>L'accès WiFi est automatiquement désactivé. L'utilisateur est déconnecté.</p>
+                </div>
+                <div class="step">
+                    <h4>Réinitialisation</h4>
+                    <p>À la prochaine période (jour/semaine/mois), le compteur est remis à zéro et l'accès est restauré.</p>
+                </div>
+            </div>
+
+            <h3>Suivi de la Consommation</h3>
+            <p>Le modèle <code>UserProfileUsage</code> suit la consommation de chaque utilisateur:</p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Champ</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>used_today</code></td>
+                            <td>Octets consommés aujourd'hui</td>
+                        </tr>
+                        <tr>
+                            <td><code>used_week</code></td>
+                            <td>Octets consommés cette semaine</td>
+                        </tr>
+                        <tr>
+                            <td><code>used_month</code></td>
+                            <td>Octets consommés ce mois</td>
+                        </tr>
+                        <tr>
+                            <td><code>used_total</code></td>
+                            <td>Octets consommés depuis l'activation</td>
+                        </tr>
+                        <tr>
+                            <td><code>is_exceeded</code></td>
+                            <td>Indicateur de dépassement</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 8: Blocage Sites -->
+        <section id="blocage">
+            <h2>8. Blocage de Sites</h2>
+
+            <p>Le système permet de bloquer l'accès à certains sites web via le DNS du routeur MikroTik.</p>
+
+            <h3>Types de Blocage</h3>
+            <div class="card-grid">
+                <div class="card danger">
+                    <h4>Blacklist (Liste noire)</h4>
+                    <p>Sites explicitement bloqués. L'accès est refusé.</p>
+                </div>
+
+                <div class="card success">
+                    <h4>Whitelist (Liste blanche)</h4>
+                    <p>Sites explicitement autorisés. Utile en mode restrictif.</p>
+                </div>
+            </div>
+
+            <h3>Catégories de Sites</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Catégorie</th>
+                            <th>Description</th>
+                            <th>Exemples</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-info">social</span></td>
+                            <td>Réseaux sociaux</td>
+                            <td>facebook.com, twitter.com, instagram.com</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">streaming</span></td>
+                            <td>Services de streaming</td>
+                            <td>netflix.com, youtube.com, twitch.tv</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">gaming</span></td>
+                            <td>Jeux en ligne</td>
+                            <td>steam.com, epicgames.com</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-danger">adult</span></td>
+                            <td>Contenu pour adultes</td>
+                            <td>Sites réservés aux adultes</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-danger">gambling</span></td>
+                            <td>Jeux d'argent</td>
+                            <td>Sites de paris, casinos</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-danger">malware</span></td>
+                            <td>Sites malveillants</td>
+                            <td>Sites connus pour malwares</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-secondary">ads</span></td>
+                            <td>Publicités</td>
+                            <td>Réseaux publicitaires</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Portée du Blocage</h3>
+            <div class="card-grid">
+                <div class="card">
+                    <h4>Global</h4>
+                    <p>Appliqué à tous les utilisateurs sans exception.</p>
+                </div>
+
+                <div class="card">
+                    <h4>Par Profil</h4>
+                    <p>Appliqué uniquement aux utilisateurs ayant ce profil.</p>
+                </div>
+
+                <div class="card">
+                    <h4>Par Promotion</h4>
+                    <p>Appliqué uniquement aux utilisateurs de cette promotion.</p>
+                </div>
+            </div>
+
+            <h3>Synchronisation MikroTik</h3>
+            <p>Les règles de blocage sont synchronisées avec le routeur MikroTik via des entrées DNS statiques:</p>
+            <pre><code># Commande pour synchroniser les domaines bloqués
+python manage.py sync_blocked_domains
+
+# Force la resynchronisation de tous les domaines
+python manage.py sync_blocked_domains --force</code></pre>
+        </section>
+
+        <!-- Section 9: Administration -->
+        <section id="admin">
+            <h2>9. Interface d'Administration</h2>
+
+            <p>L'interface d'administration Django offre une gestion complète du système.</p>
+
+            <h3>Accès à l'Administration</h3>
+            <div class="alert alert-info">
+                <strong>URL:</strong> <code>https://votre-domaine.com/admin/</code><br>
+                <strong>Credentials:</strong> Utilisez un compte avec le rôle "admin"
+            </div>
+
+            <h3>Actions Disponibles sur les Utilisateurs</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Description</th>
+                            <th>Effet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Activer RADIUS</strong></td>
+                            <td>Première activation d'un utilisateur</td>
+                            <td>Crée les entrées dans radcheck/radreply/radusergroup</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Désactiver RADIUS</strong></td>
+                            <td>Suppression complète des entrées RADIUS</td>
+                            <td>L'utilisateur ne peut plus se connecter</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Activer WiFi</strong></td>
+                            <td>Réactive l'accès d'un utilisateur suspendu</td>
+                            <td>Met statut=1 dans radcheck</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Suspendre WiFi</strong></td>
+                            <td>Suspend temporairement l'accès</td>
+                            <td>Met statut=0 dans radcheck</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Resync RADIUS</strong></td>
+                            <td>Resynchronise les attributs</td>
+                            <td>Met à jour radreply avec le profil actuel</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Export CSV</strong></td>
+                            <td>Exporte les utilisateurs sélectionnés</td>
+                            <td>Génère un fichier CSV</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Actions sur les Profils</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Activer sync RADIUS</strong></td>
+                            <td>Active la synchronisation automatique avec FreeRADIUS</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Désactiver sync RADIUS</strong></td>
+                            <td>Désactive la synchronisation</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Forcer sync</strong></td>
+                            <td>Force une resynchronisation immédiate</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Supprimer de RADIUS</strong></td>
+                            <td>Supprime le groupe du profil de RADIUS</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Filtres Disponibles</h3>
+            <div class="card-grid">
+                <div class="card">
+                    <h4>Filtres Utilisateurs</h4>
+                    <ul>
+                        <li>Statut RADIUS (Actif/Suspendu/En attente)</li>
+                        <li>Promotion</li>
+                        <li>Profil</li>
+                        <li>Date d'inscription</li>
+                        <li>Statut actif/inactif</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h4>Filtres Profils</h4>
+                    <ul>
+                        <li>Type de quota (Limité/Illimité)</li>
+                        <li>Statut RADIUS</li>
+                        <li>Date de création</li>
+                        <li>Actif/Inactif</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h4>Filtres Sites Bloqués</h4>
+                    <ul>
+                        <li>Statut de synchronisation</li>
+                        <li>Catégorie</li>
+                        <li>Type (Blacklist/Whitelist)</li>
+                        <li>Date d'ajout</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 10: API -->
+        <section id="api">
+            <h2>10. API REST</h2>
+
+            <p>L'API REST permet l'interaction avec le système depuis le frontend ou des applications tierces.</p>
+
+            <h3>Authentification</h3>
+            <p>L'API utilise JWT (JSON Web Tokens) pour l'authentification:</p>
+            <pre><code># Connexion
+POST /api/core/auth/login/
+Body: { "username": "user", "password": "pass" }
+Response: { "access": "eyJ...", "refresh": "eyJ..." }
+
+# Rafraîchir le token
+POST /api/core/auth/token/refresh/
+Body: { "refresh": "eyJ..." }
+Response: { "access": "eyJ..." }
+
+# Déconnexion
+POST /api/core/auth/logout/
+Header: Authorization: Bearer &lt;access_token&gt;</code></pre>
+
+            <h3>Endpoints Principaux</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Endpoint</th>
+                            <th>Méthodes</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>/api/core/users/</code></td>
+                            <td>GET, POST</td>
+                            <td>Liste et création d'utilisateurs</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/core/users/{id}/</code></td>
+                            <td>GET, PUT, DELETE</td>
+                            <td>Détails, modification, suppression</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/core/profiles/</code></td>
+                            <td>GET, POST</td>
+                            <td>Liste et création de profils</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/core/promotions/</code></td>
+                            <td>GET, POST</td>
+                            <td>Liste et création de promotions</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/core/devices/</code></td>
+                            <td>GET</td>
+                            <td>Liste des appareils connectés</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/core/sessions/</code></td>
+                            <td>GET</td>
+                            <td>Sessions actives</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/core/blocked-sites/</code></td>
+                            <td>GET, POST</td>
+                            <td>Gestion des sites bloqués</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/radius/servers/</code></td>
+                            <td>GET</td>
+                            <td>Serveurs RADIUS configurés</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/radius/auth-logs/</code></td>
+                            <td>GET</td>
+                            <td>Logs d'authentification</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Exemple de Requête</h3>
+            <pre><code># Obtenir la liste des utilisateurs
+curl -X GET "http://localhost:8000/api/core/users/" \
+     -H "Authorization: Bearer eyJ..."
+
+# Créer un nouveau profil
+curl -X POST "http://localhost:8000/api/core/profiles/" \
+     -H "Authorization: Bearer eyJ..." \
+     -H "Content-Type: application/json" \
+     -d '{
+       "name": "Nouveau Profil",
+       "bandwidth_download": 20,
+       "bandwidth_upload": 10,
+       "quota_type": "limited",
+       "data_volume": 107374182400,
+       "validity_duration": 30
+     }'</code></pre>
+        </section>
+
+        <!-- Section 11: Déploiement -->
+        <section id="deploiement">
+            <h2>11. Déploiement Docker</h2>
+
+            <h3>Prérequis</h3>
+            <ul>
+                <li>Docker 20.10+</li>
+                <li>Docker Compose 2.0+</li>
+                <li>4 Go de RAM minimum</li>
+                <li>20 Go d'espace disque</li>
+            </ul>
+
+            <h3>Étapes de Déploiement</h3>
+            <div class="steps">
+                <div class="step">
+                    <h4>Cloner le Dépôt</h4>
+                    <pre><code>git clone https://github.com/votre-repo/captive-portal.git
+cd captive-portal</code></pre>
+                </div>
+                <div class="step">
+                    <h4>Configurer l'Environnement</h4>
+                    <pre><code>cp .env.example .env
+# Éditer .env avec vos paramètres</code></pre>
+                </div>
+                <div class="step">
+                    <h4>Lancer les Services</h4>
+                    <pre><code>docker-compose up -d</code></pre>
+                </div>
+                <div class="step">
+                    <h4>Créer un Super Utilisateur</h4>
+                    <pre><code>docker-compose exec backend python manage.py createsuperuser</code></pre>
+                </div>
+                <div class="step">
+                    <h4>Accéder à l'Application</h4>
+                    <p>Frontend: <code>http://localhost</code><br>
+                    Admin: <code>http://localhost/admin</code></p>
+                </div>
+            </div>
+
+            <h3>Variables d'Environnement Importantes</h3>
+            <pre><code># Django
+DEBUG=False
+SECRET_KEY=votre-clé-secrète-très-longue
+ALLOWED_HOSTS=localhost,votre-domaine.com
+
+# Base de données
+DB_NAME=captive_portal_db
+DB_USER=postgres
+DB_PASSWORD=mot-de-passe-sécurisé
+DB_HOST=db
+DB_PORT=5432
+
+# RADIUS
+RADIUS_SERVER=freeradius
+RADIUS_SECRET=secret-partagé-radius
+RADIUS_AUTH_PORT=1812
+
+# MikroTik
+MIKROTIK_HOST=192.168.88.1
+MIKROTIK_USERNAME=admin
+MIKROTIK_PASSWORD=mot-de-passe</code></pre>
+
+            <h3>Commandes Utiles</h3>
+            <pre><code># Voir les logs
+docker-compose logs -f backend
+
+# Redémarrer un service
+docker-compose restart backend
+
+# Arrêter tous les services
+docker-compose down
+
+# Reconstruire les images
+docker-compose build --no-cache
+
+# Accéder au shell Django
+docker-compose exec backend python manage.py shell</code></pre>
+        </section>
+
+        <!-- Section 12: Troubleshooting -->
+        <section id="troubleshooting">
+            <h2>12. Dépannage</h2>
+
+            <h3>Problèmes Courants</h3>
+
+            <div class="accordion">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    L'utilisateur ne peut pas se connecter au WiFi
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <p><strong>Vérifications:</strong></p>
+                    <ol>
+                        <li>Vérifier que <code>is_radius_activated = True</code></li>
+                        <li>Vérifier que <code>is_radius_enabled = True</code></li>
+                        <li>Vérifier les entrées dans radcheck: <code>SELECT * FROM radcheck WHERE username='user';</code></li>
+                        <li>Vérifier les logs RADIUS: <code>docker-compose logs freeradius</code></li>
+                        <li>Resynchroniser l'utilisateur: <code>python manage.py verify_radius --user=username --resync</code></li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    Le quota n'est pas correctement appliqué
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <ol>
+                        <li>Vérifier le profil de l'utilisateur</li>
+                        <li>Vérifier les attributs dans radreply</li>
+                        <li>Forcer la synchronisation du profil</li>
+                        <li>Vérifier les tâches Celery: <code>docker-compose logs celery-worker</code></li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    Les sites bloqués ne sont pas effectifs
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <ol>
+                        <li>Vérifier le statut de synchronisation dans l'admin</li>
+                        <li>Exécuter: <code>python manage.py sync_blocked_domains</code></li>
+                        <li>Vérifier la connectivité MikroTik</li>
+                        <li>Vérifier les entrées DNS sur le routeur MikroTik</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    Erreur de connexion à la base de données
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
+                    <ol>
+                        <li>Vérifier que PostgreSQL est démarré: <code>docker-compose ps db</code></li>
+                        <li>Vérifier les credentials dans .env</li>
+                        <li>Tester la connexion: <code>docker-compose exec db psql -U postgres -d captive_portal_db</code></li>
+                    </ol>
+                </div>
+            </div>
+
+            <h3>Logs Importants</h3>
+            <pre><code># Backend Django
+docker-compose logs -f backend
+
+# FreeRADIUS
+docker-compose logs -f freeradius
+
+# Celery Worker
+docker-compose logs -f celery-worker
+
+# PostgreSQL
+docker-compose logs -f db
+
+# Tous les services
+docker-compose logs -f</code></pre>
+
+            <h3>Commandes de Diagnostic</h3>
+            <pre><code># Vérifier l'état de tous les services
+docker-compose ps
+
+# Vérifier la santé du backend
+curl http://localhost:8000/api/health/
+
+# Tester RADIUS
+radtest username password localhost 0 testing123
+
+# Vérifier les migrations
+docker-compose exec backend python manage.py showmigrations
+
+# Collecter les fichiers statiques
+docker-compose exec backend python manage.py collectstatic --noinput</code></pre>
+        </section>
+    </main>
+
+    <footer>
+        <p><strong>Portail Captif WiFi</strong> - Guide Utilisateur</p>
+        <p>Version 1.0 - Dernière mise à jour: Janvier 2026</p>
+        <p>Documentation générée automatiquement | <a href="https://github.com/Valerdy/captive-portal">Dépôt GitHub</a></p>
+    </footer>
+
+    <script>
+        function toggleAccordion(header) {
+            const accordion = header.parentElement;
+            accordion.classList.toggle('active');
+        }
+
+        // Smooth scroll for navigation
+        document.querySelectorAll('nav a, .toc a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Active section highlighting
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('nav a');
+
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.style.background = '';
+                link.style.color = '';
+                if (link.getAttribute('href') === '#' + current) {
+                    link.style.background = 'var(--primary-color)';
+                    link.style.color = 'white';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
