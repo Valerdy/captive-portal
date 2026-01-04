@@ -1,29 +1,23 @@
 """
-Tâches périodiques pour la gestion des quotas et la synchronisation RADIUS.
+Tâches Celery pour la gestion des quotas, synchronisation RADIUS et notifications.
 
-Ces tâches peuvent être exécutées via:
-- Celery Beat (recommandé pour production)
-- Django-cron
-- Crontab système avec manage.py
+Ces tâches sont exécutées automatiquement via Celery Beat.
+Voir backend/celery.py pour la configuration des schedules.
 
-Exemple crontab:
-# Vérifier les quotas toutes les 5 minutes
-*/5 * * * * cd /path/to/project && python manage.py check_quotas
+Pour démarrer Celery:
+    celery -A backend worker -l info -Q quotas,sync,notifications,maintenance
+    celery -A backend beat -l info
 
-# Synchroniser la consommation toutes les 10 minutes
-*/10 * * * * cd /path/to/project && python manage.py sync_radius_usage
+Alternative sans Celery (crontab):
+    # Vérifier les quotas toutes les 5 minutes
+    */5 * * * * cd /path/to/project && python manage.py check_quotas
 
-# Reset journalier à minuit
-0 0 * * * cd /path/to/project && python manage.py reset_daily_quotas
-
-# Reset hebdomadaire le lundi à minuit
-0 0 * * 1 cd /path/to/project && python manage.py reset_weekly_quotas
-
-# Reset mensuel le 1er du mois à minuit
-0 0 1 * * cd /path/to/project && python manage.py reset_monthly_quotas
+    # Reset journalier à minuit
+    0 0 * * * cd /path/to/project && python manage.py reset_daily_quotas
 """
 
-from django.db import models
+from celery import shared_task
+from django.db import models, transaction
 from django.utils import timezone
 from datetime import timedelta
 import logging
@@ -31,7 +25,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def check_and_enforce_quotas():
+# =============================================================================
+# Tâches de gestion des quotas
+# =============================================================================
+
+@shared_task(
+    bind=True,
+    name='radius.tasks.check_and_enforce_quotas',
+    max_retries=3,
+    default_retry_delay=60,
+    autoretry_for=(Exception,),
+    retry_backoff=True
+)
+def check_and_enforce_quotas(self):
     """
     Vérifie tous les utilisateurs actifs et désactive ceux qui ont dépassé leurs quotas.
 
@@ -62,7 +68,13 @@ def check_and_enforce_quotas():
         raise
 
 
-def reset_daily_quotas():
+@shared_task(
+    bind=True,
+    name='radius.tasks.reset_daily_quotas',
+    max_retries=3,
+    default_retry_delay=300
+)
+def reset_daily_quotas(self):
     """
     Réinitialise les compteurs de quota journaliers pour tous les utilisateurs.
 
@@ -86,7 +98,13 @@ def reset_daily_quotas():
         raise
 
 
-def reset_weekly_quotas():
+@shared_task(
+    bind=True,
+    name='radius.tasks.reset_weekly_quotas',
+    max_retries=3,
+    default_retry_delay=300
+)
+def reset_weekly_quotas(self):
     """
     Réinitialise les compteurs de quota hebdomadaires pour tous les utilisateurs.
 
@@ -110,7 +128,13 @@ def reset_weekly_quotas():
         raise
 
 
-def reset_monthly_quotas():
+@shared_task(
+    bind=True,
+    name='radius.tasks.reset_monthly_quotas',
+    max_retries=3,
+    default_retry_delay=300
+)
+def reset_monthly_quotas(self):
     """
     Réinitialise les compteurs de quota mensuels pour tous les utilisateurs.
 
@@ -134,7 +158,17 @@ def reset_monthly_quotas():
         raise
 
 
-def sync_profiles_to_radius():
+# =============================================================================
+# Tâches de synchronisation RADIUS
+# =============================================================================
+
+@shared_task(
+    bind=True,
+    name='radius.tasks.sync_profiles_to_radius',
+    max_retries=3,
+    default_retry_delay=60
+)
+def sync_profiles_to_radius(self):
     """
     Synchronise tous les profils modifiés vers RADIUS.
 
@@ -177,7 +211,13 @@ def sync_profiles_to_radius():
         raise
 
 
-def check_expired_profiles():
+@shared_task(
+    bind=True,
+    name='radius.tasks.check_expired_profiles',
+    max_retries=3,
+    default_retry_delay=300
+)
+def check_expired_profiles(self):
     """
     Vérifie et désactive les utilisateurs dont le profil a expiré.
 
@@ -210,7 +250,294 @@ def check_expired_profiles():
         raise
 
 
-def cleanup_old_disconnection_logs(days: int = 90):
+# =============================================================================
+# Tâche de retry automatique des syncs échouées
+# =============================================================================
+
+@shared_task(
+    bind=True,
+    name='radius.tasks.retry_failed_syncs',
+    max_retries=1
+)
+def retry_failed_syncs(self):
+    """
+    Retente les synchronisations échouées (RADIUS et MikroTik).
+
+    Cette tâche traite les entrées dans SyncFailureLog qui sont:
+    - En statut 'pending'
+    - Dont next_retry_at est passé
+    - Qui n'ont pas atteint max_retries
+
+    Backoff exponentiel: 2min, 4min, 8min, 16min, 32min...
+    """
+    from core.models import SyncFailureLog, User, Profile
+    from .services import ProfileRadiusService, RadiusProfileGroupService
+
+    logger.info("Starting retry of failed syncs...")
+
+    now = timezone.now()
+    pending_failures = SyncFailureLog.objects.filter(
+        status='pending',
+        next_retry_at__lte=now,
+        retry_count__lt=models.F('max_retries')
+    ).select_for_update(skip_locked=True)[:50]  # Traiter max 50 à la fois
+
+    results = {
+        'processed': 0,
+        'success': 0,
+        'failed': 0,
+        'details': []
+    }
+
+    for failure in pending_failures:
+        results['processed'] += 1
+        failure.status = 'retrying'
+        failure.save(update_fields=['status'])
+
+        try:
+            success = _retry_sync_failure(failure)
+
+            if success:
+                failure.mark_resolved()
+                results['success'] += 1
+                logger.info(f"Retry successful: {failure}")
+            else:
+                failure.schedule_retry()
+                results['failed'] += 1
+                logger.warning(f"Retry failed, rescheduled: {failure}")
+
+            results['details'].append({
+                'id': failure.id,
+                'type': failure.sync_type,
+                'source': failure.source_repr,
+                'success': success
+            })
+
+        except Exception as e:
+            failure.schedule_retry()
+            results['failed'] += 1
+            logger.error(f"Error retrying {failure}: {e}")
+
+    logger.info(
+        f"Retry complete: {results['success']}/{results['processed']} successful, "
+        f"{results['failed']} rescheduled"
+    )
+
+    return results
+
+
+def _retry_sync_failure(failure) -> bool:
+    """
+    Exécute le retry pour un échec de synchronisation spécifique.
+
+    Returns:
+        True si le retry a réussi, False sinon
+    """
+    from core.models import User, Profile, BlockedSite
+    from .services import ProfileRadiusService, RadiusProfileGroupService
+
+    try:
+        # Récupérer l'objet source
+        if failure.source_model == 'User':
+            source = User.objects.get(pk=failure.source_id)
+        elif failure.source_model == 'Profile':
+            source = Profile.objects.get(pk=failure.source_id)
+        elif failure.source_model == 'BlockedSite':
+            source = BlockedSite.objects.get(pk=failure.source_id)
+        else:
+            logger.warning(f"Unknown source model: {failure.source_model}")
+            return False
+
+        # Exécuter le retry selon le type
+        if failure.sync_type == 'radius_user':
+            if isinstance(source, User) and source.is_radius_activated:
+                ProfileRadiusService.sync_user_to_radius(source)
+                return True
+
+        elif failure.sync_type == 'radius_group':
+            if isinstance(source, User) and source.is_radius_activated:
+                RadiusProfileGroupService.sync_user_profile_group(source)
+                return True
+
+        elif failure.sync_type == 'radius_profile':
+            if isinstance(source, Profile) and source.is_radius_enabled:
+                RadiusProfileGroupService.sync_profile_to_radius_group(source)
+                return True
+
+        elif failure.sync_type == 'mikrotik_user':
+            from mikrotik.profile_service import MikrotikProfileSyncService
+            if isinstance(source, User):
+                service = MikrotikProfileSyncService()
+                if service.router:
+                    service.sync_user(source)
+                    return True
+
+        elif failure.sync_type == 'mikrotik_dns':
+            from mikrotik.dns_service import MikrotikDNSBlockingService
+            if isinstance(source, BlockedSite) and source.is_active:
+                service = MikrotikDNSBlockingService()
+                result = service.update_blocked_domain(source)
+                return result.get('success', False)
+
+        return False
+
+    except Exception as e:
+        logger.error(f"Error in retry execution: {e}")
+        return False
+
+
+# =============================================================================
+# Tâches de notifications
+# =============================================================================
+
+@shared_task(
+    bind=True,
+    name='radius.tasks.send_quota_alerts',
+    max_retries=3,
+    default_retry_delay=120
+)
+def send_quota_alerts(self):
+    """
+    Envoie des alertes pour les utilisateurs approchant leurs limites de quota.
+
+    Cette tâche vérifie les seuils d'alerte définis dans ProfileAlert
+    et envoie les notifications via le service approprié.
+    """
+    from core.models import User, ProfileAlert, UserProfileUsage
+    from core.services.notifications import NotificationService
+
+    logger.info("Checking quota alerts...")
+
+    try:
+        # Récupérer toutes les alertes actives
+        alerts = ProfileAlert.objects.filter(is_active=True).select_related('profile')
+
+        triggered_alerts = []
+        notifications_sent = 0
+
+        for alert in alerts:
+            # Récupérer les utilisateurs avec ce profil
+            users = User.objects.filter(
+                is_radius_activated=True,
+                is_radius_enabled=True
+            ).filter(
+                models.Q(profile=alert.profile) |
+                models.Q(promotion__profile=alert.profile)
+            ).select_related('profile_usage', 'profile', 'promotion__profile')
+
+            for user in users:
+                usage = getattr(user, 'profile_usage', None)
+                if usage and alert.should_trigger(usage):
+                    # Éviter les doublons d'alertes
+                    alert_key = f"{user.id}_{alert.id}_{alert.alert_type}"
+                    if _should_send_alert(alert_key, alert):
+                        triggered_alerts.append({
+                            'user': user.username,
+                            'email': user.email,
+                            'alert_type': alert.alert_type,
+                            'threshold': alert.threshold_percent,
+                            'notification_method': alert.notification_method
+                        })
+
+                        # Envoyer la notification
+                        try:
+                            NotificationService.send_alert(
+                                user=user,
+                                alert=alert,
+                                usage=usage
+                            )
+                            notifications_sent += 1
+                            _mark_alert_sent(alert_key)
+                        except Exception as e:
+                            logger.error(f"Failed to send alert to {user.username}: {e}")
+
+        logger.info(
+            f"Quota alerts: {len(triggered_alerts)} triggered, "
+            f"{notifications_sent} notifications sent"
+        )
+
+        return {
+            'triggered_alerts': triggered_alerts,
+            'notifications_sent': notifications_sent
+        }
+
+    except Exception as e:
+        logger.error(f"Error sending quota alerts: {e}")
+        raise
+
+
+def _should_send_alert(alert_key: str, alert) -> bool:
+    """
+    Vérifie si une alerte doit être envoyée (évite les doublons).
+
+    Utilise le cache Django pour tracker les alertes déjà envoyées.
+    """
+    from django.core.cache import cache
+
+    cache_key = f"alert_sent_{alert_key}"
+    if cache.get(cache_key):
+        return False
+
+    return True
+
+
+def _mark_alert_sent(alert_key: str):
+    """Marque une alerte comme envoyée dans le cache."""
+    from django.core.cache import cache
+
+    cache_key = f"alert_sent_{alert_key}"
+    # Cache pour 6 heures pour éviter le spam
+    cache.set(cache_key, True, timeout=21600)
+
+
+@shared_task(
+    bind=True,
+    name='radius.tasks.send_notification',
+    max_retries=3,
+    default_retry_delay=60
+)
+def send_notification(self, user_id: int, notification_type: str, context: dict = None):
+    """
+    Envoie une notification à un utilisateur spécifique.
+
+    Args:
+        user_id: ID de l'utilisateur
+        notification_type: Type de notification (quota_warning, quota_exceeded, etc.)
+        context: Contexte additionnel pour le template
+    """
+    from core.models import User
+    from core.services.notifications import NotificationService
+
+    try:
+        user = User.objects.get(pk=user_id)
+
+        NotificationService.send_notification(
+            user=user,
+            notification_type=notification_type,
+            context=context or {}
+        )
+
+        logger.info(f"Notification '{notification_type}' sent to {user.username}")
+        return {'success': True, 'user': user.username}
+
+    except User.DoesNotExist:
+        logger.error(f"User {user_id} not found")
+        return {'success': False, 'error': 'User not found'}
+    except Exception as e:
+        logger.error(f"Error sending notification: {e}")
+        raise
+
+
+# =============================================================================
+# Tâches de maintenance
+# =============================================================================
+
+@shared_task(
+    bind=True,
+    name='radius.tasks.cleanup_old_disconnection_logs',
+    max_retries=1
+)
+def cleanup_old_disconnection_logs(self, days: int = 90):
     """
     Nettoie les anciens logs de déconnexion.
 
@@ -236,45 +563,32 @@ def cleanup_old_disconnection_logs(days: int = 90):
         raise
 
 
-def send_quota_alerts():
+@shared_task(
+    bind=True,
+    name='radius.tasks.cleanup_old_sync_failures',
+    max_retries=1
+)
+def cleanup_old_sync_failures(self, days: int = 30):
     """
-    Envoie des alertes pour les utilisateurs approchant leurs limites de quota.
+    Nettoie les anciens logs d'échecs de synchronisation résolus.
 
-    Cette tâche vérifie les seuils d'alerte définis dans ProfileAlert.
+    Args:
+        days: Nombre de jours de rétention (défaut: 30)
     """
-    from core.models import User, ProfileAlert, UserProfileUsage
+    from core.models import SyncFailureLog
 
-    logger.info("Checking quota alerts...")
+    logger.info(f"Cleaning up resolved sync failures older than {days} days...")
 
     try:
-        # Récupérer toutes les alertes actives
-        alerts = ProfileAlert.objects.filter(is_active=True).select_related('profile')
+        cutoff_date = timezone.now() - timedelta(days=days)
+        deleted, _ = SyncFailureLog.objects.filter(
+            status__in=['resolved', 'ignored', 'failed'],
+            created_at__lt=cutoff_date
+        ).delete()
 
-        triggered_alerts = []
-
-        for alert in alerts:
-            # Récupérer les utilisateurs avec ce profil
-            users = User.objects.filter(
-                is_radius_activated=True,
-                is_radius_enabled=True
-            ).filter(
-                models.Q(profile=alert.profile) |
-                models.Q(promotion__profile=alert.profile)
-            ).select_related('profile_usage')
-
-            for user in users:
-                usage = getattr(user, 'profile_usage', None)
-                if usage and alert.should_trigger(usage):
-                    triggered_alerts.append({
-                        'user': user.username,
-                        'alert_type': alert.alert_type,
-                        'threshold': alert.threshold_percent
-                    })
-                    # TODO: Implémenter l'envoi de notification selon notification_method
-
-        logger.info(f"Triggered {len(triggered_alerts)} quota alerts")
-        return {'triggered_alerts': triggered_alerts}
+        logger.info(f"Deleted {deleted} old sync failure logs")
+        return {'deleted': deleted}
 
     except Exception as e:
-        logger.error(f"Error sending quota alerts: {e}")
+        logger.error(f"Error cleaning up sync failures: {e}")
         raise
