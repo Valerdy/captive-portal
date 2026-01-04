@@ -227,6 +227,91 @@ services:
     networks:
       - captive-network
 
+  # =============================================================================
+  # PostgreSQL Backup Service
+  # =============================================================================
+  db-backup:
+    image: postgres:15-alpine
+    container_name: captive-portal-db-backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-captive_portal_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      PGPASSWORD: ${DB_PASSWORD:?Database password is required}
+    volumes:
+      - db_backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - captive-network
+    entrypoint: /bin/sh
+    command: >
+      -c 'while true; do
+        TIMESTAMP=$$(date +%Y%m%d_%H%M%S);
+        echo "[$$TIMESTAMP] Starting backup...";
+        pg_dump -h db -U $${POSTGRES_USER} -d $${POSTGRES_DB} | gzip > /backups/backup_$$TIMESTAMP.sql.gz;
+        echo "[$$TIMESTAMP] Backup completed: backup_$$TIMESTAMP.sql.gz";
+
+        # Keep only last 7 days of backups
+        find /backups -name "backup_*.sql.gz" -mtime +7 -delete;
+        echo "[$$TIMESTAMP] Old backups cleaned up";
+
+        # Sleep 24 hours
+        sleep 86400;
+      done'
+
+  # =============================================================================
+  # Prometheus Monitoring
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: captive-portal-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - captive-network
+
+  # =============================================================================
+  # Grafana Dashboards
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: captive-portal-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - captive-network
+
 # =============================================================================
 # Networks
 # =============================================================================
@@ -248,4 +333,10 @@ volumes:
   static_volume:
     driver: local
   media_volume:
+    driver: local
+  db_backups:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local

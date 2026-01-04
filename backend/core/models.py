@@ -383,6 +383,10 @@ class User(AbstractUser):
         indexes = [
             models.Index(fields=['is_radius_activated', 'is_radius_enabled']),
             models.Index(fields=['promotion', 'is_active']),
+            models.Index(fields=['is_active', 'is_radius_activated']),
+            models.Index(fields=['profile', 'is_active']),
+            models.Index(fields=['date_joined']),
+            models.Index(fields=['email']),
         ]
 
     def __str__(self):
@@ -459,6 +463,10 @@ class Device(models.Model):
     class Meta:
         db_table = 'devices'
         ordering = ['-last_seen']
+        indexes = [
+            models.Index(fields=['user', 'is_active']),
+            models.Index(fields=['last_seen']),
+        ]
 
     def __str__(self):
         return f"{self.mac_address} - {self.user.username}"
@@ -552,6 +560,10 @@ class Voucher(models.Model):
     class Meta:
         db_table = 'vouchers'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status', 'valid_until']),
+            models.Index(fields=['created_by', 'created_at']),
+        ]
 
     def __str__(self):
         return f"Voucher {self.code} - {self.status}"
@@ -766,6 +778,9 @@ class UserQuota(models.Model):
     class Meta:
         db_table = 'user_quotas'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_exceeded', 'is_active']),
+        ]
 
     def __str__(self):
         return f"Quota for {self.user.username}"
@@ -908,6 +923,10 @@ class UserProfileUsage(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Utilisation de profil'
         verbose_name_plural = 'Utilisations de profils'
+        indexes = [
+            models.Index(fields=['is_exceeded', 'is_active']),
+            models.Index(fields=['activation_date']),
+        ]
 
     def __str__(self):
         return f"Usage de {self.user.username}"
@@ -1124,6 +1143,10 @@ class ProfileHistory(models.Model):
         ordering = ['-changed_at']
         verbose_name = 'Historique de profil'
         verbose_name_plural = 'Historiques de profils'
+        indexes = [
+            models.Index(fields=['user', '-changed_at']),
+            models.Index(fields=['changed_by', '-changed_at']),
+        ]
 
     def __str__(self):
         if self.change_type == 'assigned':
