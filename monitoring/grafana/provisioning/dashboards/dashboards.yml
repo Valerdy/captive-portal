@@ -1,0 +1,16 @@
+# Grafana Dashboards Provisioning
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  - name: 'Captive Portal'
+    orgId: 1
+    folder: 'Captive Portal'
+    folderUid: 'captive-portal'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

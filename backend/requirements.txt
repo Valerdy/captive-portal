@@ -20,9 +20,15 @@ PyMySQL==1.1.0  # MySQL adapter
 # Security
 django-ratelimit==4.1.0  # Rate limiting for API endpoints
 
+# Celery (Background Tasks)
+celery==5.4.0
+django-celery-beat==2.7.0
+redis==5.2.0
+
 # Utilities
 python-dateutil==2.9.0
 requests==2.32.3
+psutil==6.1.0  # System metrics for monitoring
 
 # Testing
 pytest==8.3.4
