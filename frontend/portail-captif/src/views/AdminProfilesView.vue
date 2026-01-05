@@ -6,6 +6,7 @@ import { useProfileStore } from '@/stores/profile'
 import { useUserStore } from '@/stores/user'
 import { usePromotionStore } from '@/stores/promotion'
 import { useNotificationStore } from '@/stores/notification'
+import { profileService } from '@/services/profile.service'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import type { Profile } from '@/types'
@@ -28,6 +29,7 @@ const searchQuery = ref('')
 const filterStatus = ref('all')
 const filterQuotaType = ref('all')
 const isDeleting = ref(false)
+const isSyncingRadius = ref<number | null>(null) // ID du profil en cours de sync
 
 // Variables pour les détails du profil (utilisateurs et promotions)
 const profileUsers = ref<any[]>([])
@@ -314,6 +316,62 @@ function formatSeconds(seconds: number): string {
   if (hours > 0) return `${hours}h${minutes > 0 ? ` ${minutes}min` : ''}`
   return `${minutes}min`
 }
+
+// Activation dans RADIUS
+async function handleActivateInRadius(profile: Profile) {
+  if (isSyncingRadius.value !== null) return
+
+  if (!profile.is_active) {
+    notificationStore.warning('Le profil doit être actif pour être activé dans RADIUS')
+    return
+  }
+
+  isSyncingRadius.value = profile.id
+  try {
+    const result = await profileService.activateInRadius(profile.id)
+    if (result.success) {
+      notificationStore.success(
+        `Profil "${profile.name}" activé dans RADIUS. ${result.users_synced || 0} utilisateur(s) synchronisé(s).`
+      )
+      // Rafraîchir la liste des profils
+      await profileStore.fetchProfiles()
+    } else {
+      notificationStore.error(result.error || 'Erreur lors de l\'activation dans RADIUS')
+    }
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || 'Erreur inconnue'
+    notificationStore.error(`Erreur lors de l'activation RADIUS: ${message}`)
+    console.error('Erreur activation RADIUS:', error)
+  } finally {
+    isSyncingRadius.value = null
+  }
+}
+
+async function handleDeactivateInRadius(profile: Profile) {
+  if (isSyncingRadius.value !== null) return
+
+  if (!confirm(`Voulez-vous vraiment désactiver le profil "${profile.name}" de RADIUS ?\n\nLes utilisateurs de ce profil ne pourront plus se connecter via RADIUS.`)) {
+    return
+  }
+
+  isSyncingRadius.value = profile.id
+  try {
+    const result = await profileService.deactivateInRadius(profile.id)
+    if (result.success) {
+      notificationStore.success(`Profil "${profile.name}" désactivé de RADIUS`)
+      // Rafraîchir la liste des profils
+      await profileStore.fetchProfiles()
+    } else {
+      notificationStore.error(result.error || 'Erreur lors de la désactivation dans RADIUS')
+    }
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || 'Erreur inconnue'
+    notificationStore.error(`Erreur lors de la désactivation RADIUS: ${message}`)
+    console.error('Erreur désactivation RADIUS:', error)
+  } finally {
+    isSyncingRadius.value = null
+  }
+}
 </script>
 
 <template>
@@ -452,6 +510,22 @@ function formatSeconds(seconds: number): string {
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                     <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+
+                <button
+                  @click="handleActivateInRadius(profile)"
+                  class="action-btn radius"
+                  :class="{ syncing: isSyncingRadius === profile.id }"
+                  :disabled="isSyncingRadius !== null || !profile.is_active"
+                  :title="profile.is_active ? 'Activer dans RADIUS' : 'Le profil doit être actif'"
+                >
+                  <svg v-if="isSyncingRadius === profile.id" class="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="32" stroke-dashoffset="32"/>
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 1v4M12 19v4M23 12h-4M5 12H1M20.5 3.5l-2.8 2.8M6.3 17.7l-2.8 2.8M20.5 20.5l-2.8-2.8M6.3 6.3L3.5 3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                   </svg>
                 </button>
 
@@ -1248,6 +1322,37 @@ function formatSeconds(seconds: number): string {
 
 .action-btn.delete:hover svg {
   color: #DC2626;
+}
+
+.action-btn.radius:hover:not(:disabled) {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+}
+
+.action-btn.radius:hover:not(:disabled) svg {
+  color: #F59E0B;
+}
+
+.action-btn.radius.syncing {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+}
+
+.action-btn.radius.syncing svg {
+  color: #F59E0B;
+}
+
+.action-btn .spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state {
