@@ -84,9 +84,10 @@ class RadiusSyncService:
             }
 
             # Mettre à jour le profil Django
-            profile.is_synced_to_radius = True
+            # Note: is_synced_to_radius est une propriété calculée basée sur radius_group_name et last_radius_sync
+            profile.radius_group_name = group_result.get('groupname')
             profile.last_radius_sync = timezone.now()
-            profile.save(update_fields=['is_synced_to_radius', 'last_radius_sync'])
+            profile.save(update_fields=['radius_group_name', 'last_radius_sync'])
 
         except Exception as e:
             results['success'] = False
@@ -187,9 +188,10 @@ class RadiusSyncService:
                     results['synced_profiles'] += 1
 
                     # Mettre à jour le profil Django
-                    profile.is_synced_to_radius = True
+                    # Note: is_synced_to_radius est une propriété calculée
+                    profile.radius_group_name = result.get('groupname')
                     profile.last_radius_sync = timezone.now()
-                    profile.save(update_fields=['is_synced_to_radius', 'last_radius_sync'])
+                    profile.save(update_fields=['radius_group_name', 'last_radius_sync'])
 
                 results['details'].append({
                     'profile_id': profile.id,
@@ -429,9 +431,11 @@ class RadiusSyncService:
             }
 
         # Désactiver le profil
+        # Note: is_synced_to_radius est une propriété, on efface radius_group_name
         profile.is_radius_enabled = False
-        profile.is_synced_to_radius = False
-        profile.save(update_fields=['is_radius_enabled', 'is_synced_to_radius'])
+        profile.radius_group_name = None
+        profile.last_radius_sync = None
+        profile.save(update_fields=['is_radius_enabled', 'radius_group_name', 'last_radius_sync'])
 
         # Supprimer du groupe RADIUS
         try:
