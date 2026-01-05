@@ -604,3 +604,199 @@ class MikrotikIntegrationViewSet(viewsets.ViewSet):
                 'success': False,
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# RADIUS Sync ViewSet - API pour la synchronisation depuis l'interface
+# ============================================================================
+
+class RadiusSyncViewSet(viewsets.ViewSet):
+    """
+    ViewSet pour la synchronisation RADIUS depuis l'interface web.
+
+    Endpoints:
+    - POST /api/radius/sync/profile/{id}/activate/  → Activer un profil dans RADIUS
+    - POST /api/radius/sync/profile/{id}/sync/      → Synchroniser un profil
+    - POST /api/radius/sync/all-profiles/           → Synchroniser tous les profils
+    - POST /api/radius/sync/all-users/              → Synchroniser tous les utilisateurs
+    - POST /api/radius/sync/full/                   → Synchronisation complète
+    - GET  /api/radius/sync/status/                 → Statut de synchronisation
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    @action(detail=False, methods=['post'], url_path='profile/(?P<profile_id>[^/.]+)/activate')
+    def activate_profile(self, request, profile_id=None):
+        """
+        Active un profil dans RADIUS et le synchronise.
+
+        POST /api/radius/sync/profile/{profile_id}/activate/
+
+        C'est l'endpoint principal appelé par le bouton "Activer dans RADIUS".
+        """
+        from core.services.radius_sync_service import RadiusSyncService
+
+        try:
+            profile_id = int(profile_id)
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'error': 'ID de profil invalide'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        result = RadiusSyncService.activate_profile_in_radius(profile_id)
+
+        if result['success']:
+            return Response(result)
+        else:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='profile/(?P<profile_id>[^/.]+)/deactivate')
+    def deactivate_profile(self, request, profile_id=None):
+        """
+        Désactive un profil dans RADIUS.
+
+        POST /api/radius/sync/profile/{profile_id}/deactivate/
+        """
+        from core.services.radius_sync_service import RadiusSyncService
+
+        try:
+            profile_id = int(profile_id)
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'error': 'ID de profil invalide'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        result = RadiusSyncService.deactivate_profile_in_radius(profile_id)
+
+        if result['success']:
+            return Response(result)
+        else:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='profile/(?P<profile_id>[^/.]+)/sync')
+    def sync_profile(self, request, profile_id=None):
+        """
+        Synchronise un profil spécifique vers RADIUS (sans changer is_radius_enabled).
+
+        POST /api/radius/sync/profile/{profile_id}/sync/
+        """
+        from core.services.radius_sync_service import RadiusSyncService
+
+        try:
+            profile_id = int(profile_id)
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'error': 'ID de profil invalide'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        result = RadiusSyncService.sync_profile(profile_id)
+
+        if result['success']:
+            return Response(result)
+        else:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='all-profiles')
+    def sync_all_profiles(self, request):
+        """
+        Synchronise tous les profils actifs vers RADIUS.
+
+        POST /api/radius/sync/all-profiles/
+
+        Équivalent à: python manage.py sync_radius_groups --profiles-only
+        """
+        from core.services.radius_sync_service import RadiusSyncService
+
+        result = RadiusSyncService.sync_all_profiles()
+        return Response(result)
+
+    @action(detail=False, methods=['post'], url_path='all-users')
+    def sync_all_users(self, request):
+        """
+        Synchronise tous les utilisateurs vers leurs groupes RADIUS.
+
+        POST /api/radius/sync/all-users/
+
+        Équivalent à: python manage.py sync_radius_groups --users-only
+        """
+        from core.services.radius_sync_service import RadiusSyncService
+
+        result = RadiusSyncService.sync_all_users()
+        return Response(result)
+
+    @action(detail=False, methods=['post'], url_path='full')
+    def sync_full(self, request):
+        """
+        Synchronisation complète: tous les profils + tous les utilisateurs.
+
+        POST /api/radius/sync/full/
+
+        Équivalent à: python manage.py sync_radius_groups
+        """
+        from core.services.radius_sync_service import RadiusSyncService
+
+        result = RadiusSyncService.sync_all()
+        return Response(result)
+
+    @action(detail=False, methods=['get'], url_path='status')
+    def sync_status(self, request):
+        """
+        Retourne le statut global de synchronisation RADIUS.
+
+        GET /api/radius/sync/status/
+        """
+        from core.services.radius_sync_service import RadiusSyncService
+
+        result = RadiusSyncService.get_sync_status()
+        return Response(result)
+
+    @action(detail=False, methods=['post'], url_path='user/(?P<user_id>[^/.]+)/sync')
+    def sync_user(self, request, user_id=None):
+        """
+        Synchronise un utilisateur spécifique vers RADIUS.
+
+        POST /api/radius/sync/user/{user_id}/sync/
+        """
+        from core.services.radius_sync_service import RadiusSyncService
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'error': 'ID utilisateur invalide'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        result = RadiusSyncService.sync_user(user_id)
+
+        if result['success']:
+            return Response(result)
+        else:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='promotion/(?P<promotion_id>[^/.]+)/sync')
+    def sync_promotion(self, request, promotion_id=None):
+        """
+        Synchronise tous les utilisateurs d'une promotion.
+
+        POST /api/radius/sync/promotion/{promotion_id}/sync/
+        """
+        from core.services.radius_sync_service import RadiusSyncService
+
+        try:
+            promotion_id = int(promotion_id)
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'error': 'ID promotion invalide'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        result = RadiusSyncService.sync_promotion(promotion_id)
+
+        if result['success']:
+            return Response(result)
+        else:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+

@@ -5,7 +5,7 @@ from .viewsets import (
     RadiusAccountingViewSet, RadiusClientViewSet,
     RadiusUserViewSet, RadCheckViewSet, RadReplyViewSet,
     RadUserGroupViewSet, RadGroupCheckViewSet, RadGroupReplyViewSet,
-    RadPostAuthViewSet, MikrotikIntegrationViewSet
+    RadPostAuthViewSet, MikrotikIntegrationViewSet, RadiusSyncViewSet
 )
 
 router = DefaultRouter()
@@ -26,6 +26,9 @@ router.register(r'radpostauth', RadPostAuthViewSet, basename='radpostauth')
 
 # MikroTik integration routes
 router.register(r'mikrotik', MikrotikIntegrationViewSet, basename='mikrotik')
+
+# RADIUS Sync routes - API pour la synchronisation depuis l'interface web
+router.register(r'sync', RadiusSyncViewSet, basename='radius-sync')
 
 urlpatterns = [
     path('', include(router.urls)),
