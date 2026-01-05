@@ -21,6 +21,10 @@ class ProfileSerializer(serializers.ModelSerializer):
     users_count = serializers.SerializerMethodField()
     promotions_count = serializers.SerializerMethodField()
 
+    # Liste des utilisateurs et promotions assignés (pour la vue détail)
+    assigned_users = serializers.SerializerMethodField()
+    assigned_promotions = serializers.SerializerMethodField()
+
     # Champs RADIUS (lecture seule sauf is_radius_enabled)
     is_synced_to_radius = serializers.BooleanField(read_only=True)
     radius_sync_status = serializers.CharField(read_only=True)
@@ -52,6 +56,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'simultaneous_use', 'created_by', 'created_by_username',
             'created_at', 'updated_at',
             'users_count', 'promotions_count',
+            'assigned_users', 'assigned_promotions',
             'assign_to_promotions', 'assign_to_users',
             # Champs RADIUS
             'is_radius_enabled', 'radius_group_name', 'last_radius_sync',
@@ -62,6 +67,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'data_volume_gb', 'bandwidth_upload_mbps', 'bandwidth_download_mbps',
             'daily_limit_gb', 'weekly_limit_gb', 'monthly_limit_gb',
             'users_count', 'promotions_count',
+            'assigned_users', 'assigned_promotions',
             # RADIUS read-only fields
             'radius_group_name', 'last_radius_sync',
             'is_synced_to_radius', 'radius_sync_status'
@@ -74,6 +80,41 @@ class ProfileSerializer(serializers.ModelSerializer):
     def get_promotions_count(self, obj):
         """Nombre de promotions utilisant ce profil"""
         return obj.promotions.count()
+
+    def get_assigned_users(self, obj):
+        """Liste des utilisateurs directement assignés à ce profil"""
+        users = obj.users.all()[:50]  # Limiter à 50 pour éviter les surcharges
+        return [
+            {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'full_name': f"{user.first_name} {user.last_name}".strip() or user.username,
+                'matricule': user.matricule,
+                'is_active': user.is_active,
+                'is_radius_activated': user.is_radius_activated,
+                'is_radius_enabled': user.is_radius_enabled,
+                'promotion_name': user.promotion.name if user.promotion else None,
+            }
+            for user in users
+        ]
+
+    def get_assigned_promotions(self, obj):
+        """Liste des promotions utilisant ce profil"""
+        promotions = obj.promotions.all()
+        return [
+            {
+                'id': promo.id,
+                'name': promo.name,
+                'is_active': promo.is_active,
+                'users_count': promo.users.count(),
+                'active_users_count': promo.users.filter(is_active=True).count(),
+                'radius_activated_count': promo.users.filter(is_radius_activated=True).count(),
+            }
+            for promo in promotions
+        ]
 
     def create(self, validated_data):
         # Extraire les listes d'assignation
