@@ -74,16 +74,46 @@ class ProfileSerializer(serializers.ModelSerializer):
         ]
 
     def get_users_count(self, obj):
-        """Nombre d'utilisateurs utilisant ce profil (directement)"""
-        return obj.users.count()
+        """
+        Nombre total d'utilisateurs utilisant ce profil.
+        Inclut les utilisateurs directs + ceux via promotion.
+        """
+        from django.db.models import Q
+
+        # Utilisateurs directs
+        direct_count = obj.users.count()
+
+        # Utilisateurs via promotion (sans profil direct)
+        promotion_count = User.objects.filter(
+            Q(profile__isnull=True) & Q(promotion__profile=obj)
+        ).count()
+
+        return direct_count + promotion_count
 
     def get_promotions_count(self, obj):
         """Nombre de promotions utilisant ce profil"""
         return obj.promotions.count()
 
     def get_assigned_users(self, obj):
-        """Liste des utilisateurs directement assignés à ce profil"""
-        users = obj.users.all()[:50]  # Limiter à 50 pour éviter les surcharges
+        """
+        Liste des utilisateurs utilisant ce profil.
+        Inclut:
+        - Utilisateurs avec profil direct (User.profile = ce profil)
+        - Utilisateurs via promotion (User.profile is null ET User.promotion.profile = ce profil)
+        """
+        from django.db.models import Q
+
+        # Utilisateurs directs (profil assigné directement)
+        direct_users = obj.users.all()
+
+        # Utilisateurs via promotion (pas de profil direct, mais promotion avec ce profil)
+        promotion_users = User.objects.filter(
+            Q(profile__isnull=True) & Q(promotion__profile=obj)
+        )
+
+        # Combiner et limiter à 50 pour éviter les surcharges
+        all_users = list(direct_users[:25]) + list(promotion_users[:25])
+
         return [
             {
                 'id': user.id,
@@ -97,8 +127,9 @@ class ProfileSerializer(serializers.ModelSerializer):
                 'is_radius_activated': user.is_radius_activated,
                 'is_radius_enabled': user.is_radius_enabled,
                 'promotion_name': user.promotion.name if user.promotion else None,
+                'assignment_type': 'direct' if user.profile == obj else 'via_promotion',
             }
-            for user in users
+            for user in all_users
         ]
 
     def get_assigned_promotions(self, obj):
