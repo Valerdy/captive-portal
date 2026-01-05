@@ -11,11 +11,15 @@ Usage:
     python manage.py sync_radius_groups --profiles-only  # Sync profiles only
     python manage.py sync_radius_groups --users-only     # Sync users only
     python manage.py sync_radius_groups --dry-run        # Preview changes
+
+Note: Cette commande utilise le service RadiusSyncService pour la synchronisation.
+      La même logique est disponible via l'API REST /api/radius/sync/
 """
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from radius.services import RadiusProfileGroupService
 from core.models import Profile, User
+from core.services.radius_sync_service import RadiusSyncService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -76,24 +80,78 @@ class Command(BaseCommand):
         if username:
             return self._sync_single_user(username, dry_run)
 
-        # Full sync
-        results = {
-            'profiles': None,
-            'users': None
-        }
+        # Full sync using the service
+        if not dry_run:
+            if profiles_only:
+                result = RadiusSyncService.sync_all_profiles()
+                self._print_service_result("Profiles", result)
+            elif users_only:
+                result = RadiusSyncService.sync_all_users()
+                self._print_service_result("Users", result)
+            else:
+                result = RadiusSyncService.sync_all()
+                self._print_full_result(result)
+        else:
+            # Dry run - preview only
+            results = {
+                'profiles': None,
+                'users': None
+            }
 
-        # Step 1: Sync profiles to groups
-        if not users_only:
-            self.stdout.write("\n[1/2] Syncing profiles to RADIUS groups...")
-            results['profiles'] = self._sync_all_profiles(dry_run)
+            if not users_only:
+                self.stdout.write("\n[1/2] Syncing profiles to RADIUS groups...")
+                results['profiles'] = self._sync_all_profiles(dry_run)
 
-        # Step 2: Sync users to groups
-        if not profiles_only:
-            self.stdout.write("\n[2/2] Assigning users to profile groups...")
-            results['users'] = self._sync_all_users(dry_run)
+            if not profiles_only:
+                self.stdout.write("\n[2/2] Assigning users to profile groups...")
+                results['users'] = self._sync_all_users(dry_run)
 
-        # Summary
-        self._print_summary(results, dry_run)
+            self._print_summary(results, dry_run)
+
+    def _print_service_result(self, type_name, result):
+        """Print result from RadiusSyncService."""
+        self.stdout.write("\n" + "=" * 70)
+        self.stdout.write(self.style.SUCCESS(f"{type_name.upper()} SYNCHRONIZATION RESULT"))
+        self.stdout.write("=" * 70)
+
+        if type_name == "Profiles":
+            self.stdout.write(f"Total: {result.get('total_profiles', 0)}")
+            self.stdout.write(f"Synced: {result.get('synced_profiles', 0)}")
+            if result.get('errors'):
+                self.stdout.write(self.style.ERROR(f"Errors: {len(result['errors'])}"))
+                for err in result['errors'][:5]:
+                    self.stdout.write(f"  - {err}")
+        else:
+            self.stdout.write(f"Total: {result.get('total', 0)}")
+            self.stdout.write(f"Assigned: {result.get('assigned', 0)}")
+            self.stdout.write(f"No profile: {result.get('no_profile', 0)}")
+            if result.get('errors'):
+                self.stdout.write(self.style.ERROR(f"Errors: {len(result['errors'])}"))
+                for err in result['errors'][:5]:
+                    self.stdout.write(f"  - {err}")
+
+        self.stdout.write("")
+
+    def _print_full_result(self, result):
+        """Print full sync result."""
+        self.stdout.write("\n" + "=" * 70)
+        self.stdout.write(self.style.SUCCESS("FULL SYNCHRONIZATION RESULT"))
+        self.stdout.write("=" * 70)
+
+        profiles = result.get('profiles', {})
+        users = result.get('users', {})
+
+        self.stdout.write(f"\nProfiles: {profiles.get('synced', 0)}/{profiles.get('total', 0)}")
+        self.stdout.write(f"Users: {users.get('assigned', 0)}/{users.get('total', 0)}")
+
+        if profiles.get('errors', 0) > 0 or users.get('errors', 0) > 0:
+            self.stdout.write(self.style.ERROR(
+                f"Errors: {profiles.get('errors', 0)} profiles, {users.get('errors', 0)} users"
+            ))
+        else:
+            self.stdout.write(self.style.SUCCESS("✅ No errors"))
+
+        self.stdout.write("")
 
     def _sync_single_profile(self, profile_id, dry_run):
         """Sync a single profile."""

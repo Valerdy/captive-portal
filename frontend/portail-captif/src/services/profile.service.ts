@@ -115,9 +115,139 @@ export const profileService = {
 
   /**
    * Force la synchronisation de tous les utilisateurs de ce profil vers RADIUS
+   * @deprecated Utiliser activateInRadius ou syncProfile à la place
    */
   async syncToRadius(profileId: number): Promise<any> {
     const response = await api.post(`/api/core/profiles/${profileId}/sync_to_radius/`)
+    return response.data
+  },
+
+  // ============================================================================
+  // RADIUS Sync API - Nouvelles méthodes de synchronisation
+  // ============================================================================
+
+  /**
+   * Active un profil dans RADIUS et synchronise les données.
+   * C'est la méthode principale à utiliser pour le bouton "Activer dans RADIUS".
+   */
+  async activateInRadius(profileId: number): Promise<{
+    success: boolean
+    message?: string
+    profile_id?: number
+    profile_name?: string
+    groupname?: string
+    users_synced?: number
+    errors?: string[]
+    error?: string
+  }> {
+    const response = await api.post(`/api/radius/sync/profile/${profileId}/activate/`)
+    return response.data
+  },
+
+  /**
+   * Désactive un profil dans RADIUS.
+   */
+  async deactivateInRadius(profileId: number): Promise<{
+    success: boolean
+    message?: string
+    removed_group?: string
+    affected_users?: string[]
+    error?: string
+  }> {
+    const response = await api.post(`/api/radius/sync/profile/${profileId}/deactivate/`)
+    return response.data
+  },
+
+  /**
+   * Synchronise un profil spécifique vers RADIUS (sans changer is_radius_enabled).
+   */
+  async syncProfile(profileId: number): Promise<{
+    success: boolean
+    profile_id?: number
+    profile_name?: string
+    group_sync?: {
+      groupname: string
+      reply_attributes: number
+      check_attributes: number
+      success: boolean
+    }
+    users_sync?: {
+      total: number
+      synced: number
+      errors: any[]
+    }
+    errors?: string[]
+    error?: string
+  }> {
+    const response = await api.post(`/api/radius/sync/profile/${profileId}/sync/`)
+    return response.data
+  },
+
+  /**
+   * Synchronise tous les profils actifs vers RADIUS.
+   */
+  async syncAllProfiles(): Promise<{
+    success: boolean
+    total_profiles: number
+    synced_profiles: number
+    errors: any[]
+    details: any[]
+  }> {
+    const response = await api.post('/api/radius/sync/all-profiles/')
+    return response.data
+  },
+
+  /**
+   * Synchronise tous les utilisateurs vers leurs groupes RADIUS.
+   */
+  async syncAllUsers(): Promise<{
+    success: boolean
+    total: number
+    assigned: number
+    no_profile: number
+    errors: any[]
+  }> {
+    const response = await api.post('/api/radius/sync/all-users/')
+    return response.data
+  },
+
+  /**
+   * Synchronisation complète: tous les profils + tous les utilisateurs.
+   */
+  async syncFull(): Promise<{
+    success: boolean
+    profiles: {
+      total: number
+      synced: number
+      errors: number
+    }
+    users: {
+      total: number
+      assigned: number
+      no_profile: number
+      errors: number
+    }
+  }> {
+    const response = await api.post('/api/radius/sync/full/')
+    return response.data
+  },
+
+  /**
+   * Retourne le statut global de synchronisation RADIUS.
+   */
+  async getSyncStatus(): Promise<{
+    profiles: {
+      total: number
+      synced: number
+      pending: number
+    }
+    users: {
+      total_activated: number
+      in_radius_groups: number
+    }
+    last_check: string
+  }> {
+    const response = await api.get('/api/radius/sync/status/')
     return response.data
   }
 }
