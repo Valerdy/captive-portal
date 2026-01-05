@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'django_celery_beat',
 
     # Local apps
     'core',
@@ -246,50 +247,12 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes max par tâche
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes max per task
 
-# =============================================================================
-# Notification Configuration
-# =============================================================================
-NOTIFICATION_CONFIG = {
-    'EMAIL_ENABLED': env.bool('NOTIFICATION_EMAIL_ENABLED', default=True),
-    'SMS_ENABLED': env.bool('NOTIFICATION_SMS_ENABLED', default=False),
-    'SYSTEM_ENABLED': env.bool('NOTIFICATION_SYSTEM_ENABLED', default=True),
-    'SMS_API_URL': env('SMS_API_URL', default=''),
-    'SMS_API_KEY': env('SMS_API_KEY', default=''),
-    'FROM_EMAIL': env('NOTIFICATION_FROM_EMAIL', default='noreply@captive-portal.local'),
-    'ADMIN_EMAIL': env('NOTIFICATION_ADMIN_EMAIL', default='admin@captive-portal.local'),
-}
+# Retry configuration
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
 
-# Email Configuration (pour les notifications)
-EMAIL_BACKEND = env(
-    'EMAIL_BACKEND',
-    default='django.core.mail.backends.console.EmailBackend'  # Console en dev
-)
-EMAIL_HOST = env('EMAIL_HOST', default='localhost')
-EMAIL_PORT = env.int('EMAIL_PORT', default=587)
-EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@captive-portal.local')
-
-# =============================================================================
-# Cache Configuration (pour les alertes et le rate limiting)
-# =============================================================================
-CACHES = {
-    'default': {
-        'BACKEND': env(
-            'CACHE_BACKEND',
-            default='django.core.cache.backends.locmem.LocMemCache'
-        ),
-        'LOCATION': env('CACHE_LOCATION', default='unique-snowflake'),
-    }
-}
-
-# Configuration Redis pour le cache en production
-if env.bool('USE_REDIS_CACHE', default=False):
-    CACHES['default'] = {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': env('REDIS_URL', default='redis://localhost:6379/1'),
-    }
+# Beat scheduler
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
