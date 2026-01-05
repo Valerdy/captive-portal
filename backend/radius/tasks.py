@@ -425,8 +425,12 @@ def cleanup_old_logs_task(days: int = 90):
     """
     Nettoie les anciens logs de déconnexion et échecs de synchronisation.
 
-    Args:
-        days: Nombre de jours de rétention (défaut: 90)
+    Cette tâche traite les entrées dans SyncFailureLog qui sont:
+    - En statut 'pending'
+    - Dont next_retry_at est passé
+    - Qui n'ont pas atteint max_retries
+
+    Backoff exponentiel: 2min, 4min, 8min, 16min, 32min...
     """
     from core.models import UserDisconnectionLog, SyncFailureLog, AdminAuditLog
 
@@ -498,6 +502,9 @@ def cleanup_old_radius_sessions_task(days: int = 30):
         logger.error(f"Error cleaning up RADIUS sessions: {e}")
         raise
 
+# =============================================================================
+# Tâches de notifications
+# =============================================================================
 
 # =============================================================================
 # Tâches de synchronisation en masse
@@ -618,6 +625,7 @@ def send_quota_alerts_task():
         alerts = ProfileAlert.objects.filter(is_active=True).select_related('profile')
 
         triggered_alerts = []
+        notifications_sent = 0
 
         for alert in alerts:
             # Récupérer les utilisateurs avec ce profil
@@ -627,7 +635,7 @@ def send_quota_alerts_task():
             ).filter(
                 models.Q(profile=alert.profile) |
                 models.Q(promotion__profile=alert.profile)
-            ).select_related('profile_usage')
+            ).select_related('profile_usage', 'profile', 'promotion__profile')
 
             for user in users:
                 usage = getattr(user, 'profile_usage', None)
@@ -641,9 +649,139 @@ def send_quota_alerts_task():
                     })
                     # TODO: Implémenter l'envoi de notification selon notification_method
 
-        logger.info(f"Triggered {len(triggered_alerts)} quota alerts")
-        return {'triggered_alerts': triggered_alerts}
+        return {
+            'triggered_alerts': triggered_alerts,
+            'notifications_sent': notifications_sent
+        }
 
     except Exception as e:
         logger.error(f"Error sending quota alerts: {e}")
+        raise
+
+
+def _should_send_alert(alert_key: str, alert) -> bool:
+    """
+    Vérifie si une alerte doit être envoyée (évite les doublons).
+
+    Utilise le cache Django pour tracker les alertes déjà envoyées.
+    """
+    from django.core.cache import cache
+
+    cache_key = f"alert_sent_{alert_key}"
+    if cache.get(cache_key):
+        return False
+
+    return True
+
+
+def _mark_alert_sent(alert_key: str):
+    """Marque une alerte comme envoyée dans le cache."""
+    from django.core.cache import cache
+
+    cache_key = f"alert_sent_{alert_key}"
+    # Cache pour 6 heures pour éviter le spam
+    cache.set(cache_key, True, timeout=21600)
+
+
+@shared_task(
+    bind=True,
+    name='radius.tasks.send_notification',
+    max_retries=3,
+    default_retry_delay=60
+)
+def send_notification(self, user_id: int, notification_type: str, context: dict = None):
+    """
+    Envoie une notification à un utilisateur spécifique.
+
+    Args:
+        user_id: ID de l'utilisateur
+        notification_type: Type de notification (quota_warning, quota_exceeded, etc.)
+        context: Contexte additionnel pour le template
+    """
+    from core.models import User
+    from core.services.notifications import NotificationService
+
+    try:
+        user = User.objects.get(pk=user_id)
+
+        NotificationService.send_notification(
+            user=user,
+            notification_type=notification_type,
+            context=context or {}
+        )
+
+        logger.info(f"Notification '{notification_type}' sent to {user.username}")
+        return {'success': True, 'user': user.username}
+
+    except User.DoesNotExist:
+        logger.error(f"User {user_id} not found")
+        return {'success': False, 'error': 'User not found'}
+    except Exception as e:
+        logger.error(f"Error sending notification: {e}")
+        raise
+
+
+# =============================================================================
+# Tâches de maintenance
+# =============================================================================
+
+@shared_task(
+    bind=True,
+    name='radius.tasks.cleanup_old_disconnection_logs',
+    max_retries=1
+)
+def cleanup_old_disconnection_logs(self, days: int = 90):
+    """
+    Nettoie les anciens logs de déconnexion.
+
+    Args:
+        days: Nombre de jours de rétention (défaut: 90)
+    """
+    from core.models import UserDisconnectionLog
+
+    logger.info(f"Cleaning up disconnection logs older than {days} days...")
+
+    try:
+        cutoff_date = timezone.now() - timedelta(days=days)
+        deleted, _ = UserDisconnectionLog.objects.filter(
+            disconnected_at__lt=cutoff_date,
+            is_active=False
+        ).delete()
+
+        logger.info(f"Deleted {deleted} old disconnection logs")
+        return {'deleted': deleted}
+
+    except Exception as e:
+        logger.error(f"Error cleaning up disconnection logs: {e}")
+        raise
+
+
+@shared_task(
+    bind=True,
+    name='radius.tasks.cleanup_old_sync_failures',
+    max_retries=1
+)
+def cleanup_old_sync_failures(self, days: int = 30):
+    """
+    Nettoie les anciens logs d'échecs de synchronisation résolus.
+
+    Args:
+        days: Nombre de jours de rétention (défaut: 30)
+    """
+    from core.models import SyncFailureLog
+
+    logger.info(f"Cleaning up resolved sync failures older than {days} days...")
+
+    try:
+        cutoff_date = timezone.now() - timedelta(days=days)
+        deleted, _ = SyncFailureLog.objects.filter(
+            status__in=['resolved', 'ignored', 'failed'],
+            created_at__lt=cutoff_date
+        ).delete()
+
+        logger.info(f"Deleted {deleted} old sync failure logs")
+        return {'deleted': deleted}
+
+    except Exception as e:
+        logger.error(f"Error cleaning up sync failures: {e}")
         raise
