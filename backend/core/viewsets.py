@@ -253,7 +253,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
         # Utiliser annotate pour éviter les N+1 queries sur users.count()
         promotions = profile.promotions.filter(is_active=True).annotate(
             user_count=Count('users', filter=models.Q(users__is_active=True))
-        )
+        ).order_by('name')
 
         # Pagination manuelle
         paginator = StandardResultsSetPagination()
