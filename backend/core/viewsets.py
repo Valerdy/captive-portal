@@ -213,15 +213,28 @@ class ProfileViewSet(viewsets.ModelViewSet):
     def users(self, request, pk=None):
         """
         Récupère la liste des utilisateurs utilisant ce profil.
-        Inclut la pagination et utilise select_related pour optimiser les requêtes.
+        Inclut les utilisateurs directs ET ceux via promotion.
+        Utilise la pagination et select_related pour optimiser les requêtes.
         """
+        from django.db.models import Q
+
         profile = self.get_object()
-        # Utiliser select_related pour éviter les N+1 queries
-        users_queryset = profile.users.filter(is_active=True).select_related('promotion')
+
+        # Utilisateurs directs (profil assigné directement)
+        direct_users = profile.users.filter(is_active=True).select_related('promotion')
+
+        # Utilisateurs via promotion (pas de profil direct, mais promotion avec ce profil)
+        promotion_users = User.objects.filter(
+            Q(profile__isnull=True) & Q(promotion__profile=profile) & Q(is_active=True)
+        ).select_related('promotion')
+
+        # Combiner les deux querysets
+        from itertools import chain
+        all_users = list(chain(direct_users, promotion_users))
 
         # Pagination manuelle
         paginator = LargeResultsSetPagination()
-        paginated_users = paginator.paginate_queryset(users_queryset, request)
+        paginated_users = paginator.paginate_queryset(all_users, request)
 
         users_data = []
         for user in paginated_users:
@@ -234,6 +247,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 'promotion': {'id': user.promotion.id, 'name': user.promotion.name} if user.promotion else None,
                 'is_active': user.is_active,
                 'is_radius_activated': user.is_radius_activated,
+                'assignment_type': 'direct' if user.profile == profile else 'via_promotion',
             })
 
         return paginator.get_paginated_response({
