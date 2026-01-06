@@ -47,11 +47,13 @@ function goBack() {
 
 <template>
   <div class="admin-login-page">
-    <!-- Fond animé -->
-    <div class="animated-background">
-      <div class="gradient-orb orb-1"></div>
-      <div class="gradient-orb orb-2"></div>
-      <div class="gradient-orb orb-3"></div>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+      <div class="grid-overlay"></div>
+      <div class="glow-orb orb-1"></div>
+      <div class="glow-orb orb-2"></div>
+      <div class="glow-orb orb-3"></div>
+      <div class="scan-line"></div>
     </div>
 
     <!-- Bouton retour -->
@@ -62,105 +64,142 @@ function goBack() {
       <span>Retour</span>
     </button>
 
-    <!-- Carte de connexion -->
-    <div class="login-card">
-      <!-- Badge Admin -->
-      <div class="admin-badge">
-        <div class="badge-icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2"/>
-          </svg>
+    <div class="login-container">
+      <!-- Logo animé -->
+      <div class="logo-section">
+        <div class="logo-container">
+          <div class="logo-ring outer"></div>
+          <div class="logo-ring middle"></div>
+          <div class="logo-ring inner"></div>
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </div>
         </div>
+        <h1 class="title">ADMIN</h1>
+        <p class="subtitle">Espace Administrateur</p>
       </div>
 
-      <!-- En-tête -->
-      <div class="header">
-        <h1>Espace Administrateur</h1>
-        <p class="subtitle">UCAC-ICAM Portail Captif</p>
-      </div>
-
-      <!-- Formulaire -->
-      <form @submit.prevent="handleLogin" class="form">
-        <div class="form-group">
-          <label for="username">
+      <!-- Carte de connexion -->
+      <div class="login-card">
+        <div class="card-header">
+          <div class="header-icon">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
-              <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Nom d'utilisateur
-          </label>
-          <input
-            id="username"
-            v-model="username"
-            type="text"
-            placeholder="admin"
-            autocomplete="username"
-            :disabled="isLoading"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="password">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            Mot de passe
-          </label>
-          <div class="password-input">
-            <input
-              id="password"
-              v-model="password"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="••••••••"
-              autocomplete="current-password"
-              :disabled="isLoading"
-              required
-            />
-            <button
-              type="button"
-              @click="showPassword = !showPassword"
-              class="toggle-password"
-              :disabled="isLoading"
-              tabindex="-1"
-            >
-              <svg v-if="!showPassword" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
-                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2"/>
-                <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2"/>
-              </svg>
-            </button>
+          </div>
+          <div>
+            <h2>Connexion Sécurisée</h2>
+            <p>UCAC-ICAM Portail Captif</p>
           </div>
         </div>
 
-        <button type="submit" :disabled="isLoading" class="submit-btn">
-          <LoadingSpinner v-if="isLoading" size="small" />
-          <span v-else>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Se connecter
-          </span>
-        </button>
-      </form>
+        <!-- Formulaire -->
+        <form @submit.prevent="handleLogin" class="form">
+          <div class="form-group">
+            <label for="username">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Identifiant
+            </label>
+            <div class="input-wrapper">
+              <input
+                id="username"
+                v-model="username"
+                type="text"
+                placeholder="Nom d'utilisateur"
+                autocomplete="username"
+                :disabled="isLoading"
+                required
+              />
+              <div class="input-glow"></div>
+            </div>
+          </div>
 
-      <!-- Footer sécurité -->
-      <div class="security-notice">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>Connexion sécurisée - Accès réservé aux administrateurs</span>
+          <div class="form-group">
+            <label for="password">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Mot de passe
+            </label>
+            <div class="input-wrapper password-wrapper">
+              <input
+                id="password"
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="••••••••"
+                autocomplete="current-password"
+                :disabled="isLoading"
+                required
+              />
+              <button
+                type="button"
+                @click="showPassword = !showPassword"
+                class="toggle-password"
+                :disabled="isLoading"
+                tabindex="-1"
+              >
+                <svg v-if="!showPassword" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" stroke-width="2"/>
+                  <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </button>
+              <div class="input-glow"></div>
+            </div>
+          </div>
+
+          <button type="submit" :disabled="isLoading" class="submit-btn">
+            <LoadingSpinner v-if="isLoading" size="small" color="white" />
+            <template v-else>
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Accéder au panneau</span>
+            </template>
+          </button>
+        </form>
+
+        <!-- Footer sécurité -->
+        <div class="security-notice">
+          <div class="security-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="security-text">
+            <span class="security-label">Zone sécurisée</span>
+            <span class="security-desc">Accès réservé aux administrateurs autorisés</span>
+          </div>
+          <div class="security-indicator">
+            <span class="indicator-dot"></span>
+            <span class="indicator-dot"></span>
+            <span class="indicator-dot"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="page-footer">
+        <p>&copy; 2024 UCAC-ICAM - Système de gestion du portail captif</p>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
 * {
   margin: 0;
   padding: 0;
@@ -175,77 +214,96 @@ function goBack() {
   padding: 2rem;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  background: linear-gradient(135deg, #0a0a12 0%, #0f0f1a 50%, #1a1a2e 100%);
 }
 
-/* Fond animé */
-.animated-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+/* Animated Background */
+.bg-animation {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
   z-index: 0;
 }
 
-.gradient-orb {
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(242, 148, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(242, 148, 0, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+}
+
+@keyframes gridMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+.glow-orb {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.3;
-  animation: float 20s ease-in-out infinite;
+  opacity: 0.5;
+  animation: float 10s ease-in-out infinite;
 }
 
 .orb-1 {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, #dc2626, transparent);
-  top: -10%;
-  left: -10%;
+  background: radial-gradient(circle, rgba(242, 148, 0, 0.4) 0%, transparent 70%);
+  top: -150px;
+  right: -150px;
   animation-delay: 0s;
 }
 
 .orb-2 {
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, #f97316, transparent);
-  bottom: -10%;
-  right: -10%;
-  animation-delay: 5s;
+  background: radial-gradient(circle, rgba(229, 50, 18, 0.3) 0%, transparent 70%);
+  bottom: -100px;
+  left: -100px;
+  animation-delay: -3s;
 }
 
 .orb-3 {
   width: 300px;
   height: 300px;
-  background: radial-gradient(circle, #991b1b, transparent);
+  background: radial-gradient(circle, rgba(0, 142, 207, 0.3) 0%, transparent 70%);
   top: 50%;
-  left: 50%;
+  left: 30%;
   transform: translate(-50%, -50%);
-  animation-delay: 10s;
+  animation-delay: -6s;
 }
 
 @keyframes float {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(30px, -30px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-40px) scale(1.1); }
+}
+
+.scan-line {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(242, 148, 0, 0.5), transparent);
+  top: 0;
+  animation: scan 4s linear infinite;
+}
+
+@keyframes scan {
+  0% { top: 0; opacity: 1; }
+  100% { top: 100%; opacity: 0; }
 }
 
 /* Bouton retour */
 .back-btn {
-  position: absolute;
-  top: 2rem;
-  left: 2rem;
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 15, 25, 0.8);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(242, 148, 0, 0.3);
   border-radius: 12px;
   padding: 0.75rem 1.25rem;
   display: flex;
@@ -253,40 +311,39 @@ function goBack() {
   gap: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: white;
-  font-weight: 500;
+  color: #F29400;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .back-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(242, 148, 0, 0.1);
+  border-color: #F29400;
+  box-shadow: 0 0 20px rgba(242, 148, 0, 0.3);
   transform: translateX(-4px);
 }
 
-/* Carte de connexion */
-.login-card {
+/* Container */
+.login-container {
   position: relative;
   z-index: 1;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  padding: 3rem;
-  max-width: 480px;
   width: 100%;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-  animation: slideUp 0.6s ease-out;
+  max-width: 440px;
+  animation: fadeInUp 0.6s ease-out;
 }
 
-@keyframes slideUp {
+@keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(40px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -294,85 +351,155 @@ function goBack() {
   }
 }
 
-/* Badge Admin */
-.admin-badge {
-  position: absolute;
-  top: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 80px;
+/* Logo Section */
+.logo-section {
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
-.badge-icon {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
-  border-radius: 50%;
+.logo-container {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 1.5rem;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 4px solid rgba(15, 23, 42, 0.9);
-  box-shadow:
-    0 0 30px rgba(220, 38, 38, 0.6),
-    0 10px 25px rgba(0, 0, 0, 0.4);
-  animation: pulse 3s ease-in-out infinite;
 }
 
-.badge-icon svg {
-  width: 40px;
-  height: 40px;
+.logo-ring {
+  position: absolute;
+  border: 2px solid transparent;
+  border-radius: 50%;
+}
+
+.logo-ring.outer {
+  width: 100%;
+  height: 100%;
+  border-top-color: #F29400;
+  border-right-color: #F29400;
+  animation: spin 3s linear infinite;
+}
+
+.logo-ring.middle {
+  width: 80%;
+  height: 80%;
+  border-top-color: #e53212;
+  border-bottom-color: #e53212;
+  animation: spin 2.5s linear infinite reverse;
+}
+
+.logo-ring.inner {
+  width: 60%;
+  height: 60%;
+  border-top-color: #008ecf;
+  border-left-color: #008ecf;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.logo-icon {
+  width: 45px;
+  height: 45px;
+  background: linear-gradient(135deg, rgba(242, 148, 0, 0.3) 0%, rgba(229, 50, 18, 0.2) 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(242, 148, 0, 0.4);
+  box-shadow: 0 0 20px rgba(242, 148, 0, 0.3);
+}
+
+.logo-icon svg {
+  width: 26px;
+  height: 26px;
+  color: #F29400;
+  animation: pulse-icon 2s ease-in-out infinite;
+}
+
+@keyframes pulse-icon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 900;
   color: white;
-  animation: rotate 8s linear infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    box-shadow:
-      0 0 30px rgba(220, 38, 38, 0.6),
-      0 10px 25px rgba(0, 0, 0, 0.4);
-  }
-  50% {
-    box-shadow:
-      0 0 50px rgba(249, 115, 22, 0.8),
-      0 15px 35px rgba(0, 0, 0, 0.5);
-  }
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* En-tête */
-.header {
-  text-align: center;
-  margin-top: 2.5rem;
-  margin-bottom: 2.5rem;
-}
-
-.header h1 {
-  color: white;
-  font-size: 2rem;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #fff 0%, #f97316 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  letter-spacing: 8px;
+  text-shadow: 0 0 40px rgba(242, 148, 0, 0.5);
+  margin-bottom: 0.25rem;
 }
 
 .subtitle {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.95rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.1rem;
   font-weight: 500;
+  color: #F29400;
+  letter-spacing: 3px;
+  text-transform: uppercase;
 }
 
-/* Formulaire */
+/* Login Card */
+.login-card {
+  background: rgba(15, 15, 25, 0.85);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(242, 148, 0, 0.2);
+  padding: 2rem;
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, rgba(242, 148, 0, 0.2) 0%, rgba(229, 50, 18, 0.1) 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(242, 148, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.header-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #F29400;
+}
+
+.card-header h2 {
+  font-family: 'Rajdhani', sans-serif;
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.card-header p {
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+}
+
+/* Form */
 .form {
   display: flex;
   flex-direction: column;
@@ -382,57 +509,75 @@ function goBack() {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .form-group label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .form-group label svg {
-  width: 18px;
-  height: 18px;
-  color: #f97316;
+  width: 16px;
+  height: 16px;
+  color: #F29400;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 1rem 1.25rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  color: white;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.form-group input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.form-group input:focus {
-  outline: none;
-  background: rgba(255, 255, 255, 0.15);
-  border-color: #f97316;
-  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
-}
-
-.form-group input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Champ mot de passe */
-.password-input {
+.input-wrapper {
   position: relative;
 }
 
-.password-input input {
+.input-wrapper input {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.input-wrapper input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.input-wrapper input:focus {
+  outline: none;
+  border-color: #F29400;
+  background: rgba(242, 148, 0, 0.05);
+  box-shadow: 0 0 25px rgba(242, 148, 0, 0.2);
+}
+
+.input-wrapper input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: linear-gradient(135deg, rgba(242, 148, 0, 0.1) 0%, transparent 50%);
+}
+
+.input-wrapper:focus-within .input-glow {
+  opacity: 1;
+}
+
+/* Password */
+.password-wrapper input {
   padding-right: 3.5rem;
 }
 
@@ -448,45 +593,46 @@ function goBack() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.4);
   transition: all 0.3s ease;
+  z-index: 2;
 }
 
 .toggle-password svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .toggle-password:hover {
-  color: #f97316;
+  color: #F29400;
 }
 
 .toggle-password:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
-/* Bouton submit */
+/* Submit Button */
 .submit-btn {
-  margin-top: 1rem;
   width: 100%;
-  padding: 1.125rem 2rem;
-  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
-  border: 2px solid rgba(220, 38, 38, 0.5);
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #F29400 0%, #e53212 100%);
+  border: none;
   border-radius: 12px;
-  color: white;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 1.1rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: white;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.3),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.25),
-    inset 0 2px 8px rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 20px rgba(242, 148, 0, 0.3);
+  margin-top: 0.5rem;
 }
 
 .submit-btn svg {
@@ -495,15 +641,12 @@ function goBack() {
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ef4444 0%, #fb923c 100%);
-  border-color: rgba(239, 68, 68, 0.8);
   transform: translateY(-2px);
-  box-shadow:
-    0 0 20px rgba(220, 38, 38, 0.5),
-    0 0 40px rgba(220, 38, 38, 0.3),
-    0 6px 16px rgba(0, 0, 0, 0.4),
-    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
-    inset 0 3px 6px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 30px rgba(242, 148, 0, 0.5);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .submit-btn:disabled {
@@ -511,25 +654,89 @@ function goBack() {
   cursor: not-allowed;
 }
 
-/* Notice de sécurité */
+/* Security Notice */
 .security-notice {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   padding: 1rem;
-  background: rgba(249, 115, 22, 0.1);
-  border: 1px solid rgba(249, 115, 22, 0.3);
+  background: linear-gradient(135deg, rgba(0, 142, 207, 0.1) 0%, rgba(0, 142, 207, 0.05) 100%);
+  border: 1px solid rgba(0, 142, 207, 0.3);
   border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.85rem;
+  gap: 1rem;
 }
 
-.security-notice svg {
+.security-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 142, 207, 0.2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.security-icon svg {
   width: 20px;
   height: 20px;
-  color: #f97316;
-  flex-shrink: 0;
+  color: #008ecf;
+}
+
+.security-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.security-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #008ecf;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.security-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.security-indicator {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #008ecf;
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+.indicator-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.indicator-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Footer */
+.page-footer {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
 }
 
 /* Responsive */
@@ -541,37 +748,72 @@ function goBack() {
   .back-btn {
     top: 1rem;
     left: 1rem;
-    padding: 0.65rem 1rem;
-    font-size: 0.9rem;
-  }
-
-  .login-card {
-    padding: 2.5rem 1.5rem;
-  }
-
-  .header h1 {
-    font-size: 1.65rem;
-  }
-
-  .subtitle {
+    padding: 0.6rem 1rem;
     font-size: 0.85rem;
   }
 
-  .admin-badge {
-    width: 70px;
-    height: 70px;
-    top: -35px;
+  .logo-container {
+    width: 80px;
+    height: 80px;
   }
 
-  .badge-icon svg {
-    width: 35px;
-    height: 35px;
+  .logo-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .logo-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .title {
+    font-size: 2rem;
+    letter-spacing: 5px;
+  }
+
+  .subtitle {
+    font-size: 0.95rem;
+    letter-spacing: 2px;
+  }
+
+  .login-card {
+    padding: 1.5rem;
+  }
+
+  .card-header {
+    flex-direction: column;
+    text-align: center;
   }
 
   .security-notice {
-    font-size: 0.8rem;
     flex-direction: column;
     text-align: center;
+    gap: 0.75rem;
+  }
+
+  .security-indicator {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 380px) {
+  .title {
+    font-size: 1.75rem;
+    letter-spacing: 4px;
+  }
+
+  .login-card {
+    padding: 1.25rem;
+  }
+
+  .input-wrapper input {
+    padding: 0.875rem 1rem;
+  }
+
+  .submit-btn {
+    padding: 0.875rem;
+    font-size: 1rem;
   }
 }
 </style>
