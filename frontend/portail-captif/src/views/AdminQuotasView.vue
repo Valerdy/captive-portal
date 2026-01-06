@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useQuotaStore } from '@/stores/quota'
 import { useNotificationStore } from '@/stores/notification'
 import AdminLayout from '@/layouts/AdminLayout.vue'
-import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import DataTable from '@/components/DataTable.vue'
 
 const router = useRouter()
@@ -126,9 +125,7 @@ async function handleReset(quotaId: number) {
 
 <template>
   <AdminLayout activePage="quotas">
-      <LoadingSpinner v-if="isLoading" />
-
-      <div v-else class="content-card">
+      <div class="content-card">
         <DataTable
           :columns="columns"
           :data="quotas"

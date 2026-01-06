@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useSiteStore } from '@/stores/site'
 import { useNotificationStore } from '@/stores/notification'
 import AdminLayout from '@/layouts/AdminLayout.vue'
-import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -207,11 +206,7 @@ async function handleDelete(site: any) {
       </div>
 
       <!-- Table -->
-      <div v-if="isLoading" class="loading-container">
-        <LoadingSpinner />
-      </div>
-
-      <div v-else class="table-container">
+      <div class="table-container">
         <table class="data-table">
           <thead>
             <tr>

@@ -625,11 +625,7 @@ function getStatusLabel(status: string): string {
       </div>
 
       <!-- Table -->
-      <div v-if="isLoading" class="loading-container">
-        <LoadingSpinner />
-      </div>
-
-      <div v-else class="table-container">
+      <div class="table-container">
         <table class="data-table">
           <thead>
             <tr>
