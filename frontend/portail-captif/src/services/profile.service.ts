@@ -249,5 +249,84 @@ export const profileService = {
   }> {
     const response = await api.get('/api/radius/sync/status/')
     return response.data
+  },
+
+  // ============================================================================
+  // RADIUS Verification API - Vérification de l'application des profils RADIUS
+  // ============================================================================
+
+  /**
+   * Vérifie l'application du profil RADIUS pour un utilisateur spécifique.
+   * Compare les attributs attendus (FreeRADIUS) avec les attributs réels (MikroTik).
+   */
+  async verifyUser(userId: number): Promise<VerificationResult> {
+    const response = await api.get(`/api/radius/sync/verify/user/${userId}/`)
+    return response.data
+  },
+
+  /**
+   * Vérifie l'application du profil RADIUS pour tous les utilisateurs d'un profil.
+   */
+  async verifyProfile(profileId: number): Promise<ProfileVerificationResult> {
+    const response = await api.get(`/api/radius/sync/verify/profile/${profileId}/`)
+    return response.data
+  },
+
+  /**
+   * Vérifie l'application des profils RADIUS pour tous les utilisateurs connectés.
+   */
+  async verifyAllConnected(): Promise<BulkVerificationResult> {
+    const response = await api.get('/api/radius/sync/verify/all/')
+    return response.data
   }
+}
+
+// Types pour les résultats de vérification
+export interface AttributeDifference {
+  attribute: string
+  expected: string | number | null
+  actual: string | number | null
+  status: 'match' | 'mismatch' | 'missing'
+}
+
+export interface VerificationResult {
+  success: boolean
+  user_id?: number
+  username?: string
+  profile_name?: string
+  status?: 'OK' | 'WARNING' | 'ERROR' | 'NOT_CONNECTED'
+  message?: string
+  expected_attributes?: Record<string, string | number>
+  actual_attributes?: Record<string, string | number>
+  differences?: AttributeDifference[]
+  verified_at?: string
+  error?: string
+}
+
+export interface ProfileVerificationResult {
+  success: boolean
+  profile_id?: number
+  profile_name?: string
+  total_users?: number
+  connected_users?: number
+  results?: VerificationResult[]
+  summary?: {
+    ok: number
+    warning: number
+    error: number
+    not_connected: number
+  }
+  error?: string
+}
+
+export interface BulkVerificationResult {
+  success: boolean
+  total_connected?: number
+  results?: VerificationResult[]
+  summary?: {
+    ok: number
+    warning: number
+    error: number
+  }
+  error?: string
 }

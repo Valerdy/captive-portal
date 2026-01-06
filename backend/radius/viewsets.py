@@ -800,3 +800,141 @@ class RadiusSyncViewSet(viewsets.ViewSet):
         else:
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
+    # =========================================================================
+    # VÉRIFICATION DE L'APPLICATION DES PROFILS RADIUS
+    # =========================================================================
+
+    @action(detail=False, methods=['get'], url_path='verify/user/(?P<user_id>[^/.]+)')
+    def verify_user(self, request, user_id=None):
+        """
+        Vérifie que le profil RADIUS est correctement appliqué pour un utilisateur.
+
+        GET /api/radius/sync/verify/user/{user_id}/
+
+        Compare les attributs RADIUS attendus (FreeRADIUS) avec les attributs
+        réellement appliqués sur MikroTik.
+
+        Returns:
+            {
+                "user_id": 123,
+                "username": "john.doe",
+                "status": "ok" | "warning" | "error" | "not_connected",
+                "profile_expected": "Etudiant",
+                "groupname_radius": "profile_5_etudiant",
+                "session_info": {...},
+                "expected_attributes": [...],
+                "actual_attributes": [...],
+                "comparisons": [...],
+                "differences": [...],
+                "error_message": null,
+                "verified_at": "2024-01-06T10:00:00Z"
+            }
+        """
+        from mikrotik.verification_service import RadiusVerificationService
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'error': 'ID utilisateur invalide'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        service = RadiusVerificationService()
+        result = service.verify_user(user_id)
+
+        # Journaliser la vérification
+        service.log_verification(
+            admin_user=request.user,
+            verification_type='user',
+            target_id=user_id,
+            result=result.to_dict()
+        )
+
+        return Response(result.to_dict())
+
+    @action(detail=False, methods=['get'], url_path='verify/profile/(?P<profile_id>[^/.]+)')
+    def verify_profile(self, request, profile_id=None):
+        """
+        Vérifie l'application du profil RADIUS pour tous les utilisateurs d'un profil.
+
+        GET /api/radius/sync/verify/profile/{profile_id}/
+
+        Returns:
+            {
+                "verified_at": "2024-01-06T10:00:00Z",
+                "profile_id": 5,
+                "profile_name": "Etudiant",
+                "total_users": 100,
+                "connected_users": 45,
+                "status_summary": {
+                    "ok": 40,
+                    "warning": 3,
+                    "error": 2,
+                    "not_connected": 55
+                },
+                "users": [...],
+                "errors": []
+            }
+        """
+        from mikrotik.verification_service import RadiusVerificationService
+
+        try:
+            profile_id = int(profile_id)
+        except (ValueError, TypeError):
+            return Response({
+                'success': False,
+                'error': 'ID profil invalide'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        service = RadiusVerificationService()
+        result = service.verify_profile_users(profile_id)
+
+        # Journaliser la vérification
+        service.log_verification(
+            admin_user=request.user,
+            verification_type='profile',
+            target_id=profile_id,
+            result=result
+        )
+
+        return Response(result)
+
+    @action(detail=False, methods=['get'], url_path='verify/all')
+    def verify_all(self, request):
+        """
+        Vérifie l'application des profils RADIUS pour tous les utilisateurs connectés.
+
+        GET /api/radius/sync/verify/all/
+
+        Returns:
+            {
+                "verified_at": "2024-01-06T10:00:00Z",
+                "mikrotik_available": true,
+                "total_sessions": 150,
+                "verified_users": 148,
+                "status_summary": {
+                    "ok": 140,
+                    "warning": 5,
+                    "error": 3,
+                    "not_found": 2
+                },
+                "users": [...],
+                "errors": []
+            }
+        """
+        from mikrotik.verification_service import RadiusVerificationService
+
+        service = RadiusVerificationService()
+        result = service.verify_all_connected_users()
+
+        # Journaliser la vérification
+        service.log_verification(
+            admin_user=request.user,
+            verification_type='bulk',
+            target_id=0,
+            result=result
+        )
+
+        return Response(result)
+
