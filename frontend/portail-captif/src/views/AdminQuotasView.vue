@@ -252,17 +252,17 @@ async function handleReset(quotaId: number) {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Contenu spécifique à la page quotas */
+/* Contenu spécifique à la page quotas - Dark Theme */
 
 
 .content-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .usage-cell {
@@ -281,20 +281,21 @@ async function handleReset(quotaId: number) {
 
 .usage-value {
   font-weight: 600;
-  color: #111827;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.95rem;
 }
 
 .usage-percent {
+  font-family: 'Orbitron', monospace;
   font-weight: 700;
-  color: #6B7280;
+  color: #F29400;
   font-size: 0.85rem;
 }
 
 .progress-bar-container {
   width: 100%;
   height: 8px;
-  background: #E5E7EB;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -314,15 +315,15 @@ async function handleReset(quotaId: number) {
 }
 
 .status-badge.active {
-  background: #D1FAE5;
-  color: #059669;
-  border: 1px solid #A7F3D0;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .status-badge.inactive {
-  background: #FEE2E2;
-  color: #DC2626;
-  border: 1px solid #FECACA;
+  background: rgba(229, 50, 18, 0.2);
+  color: #e53212;
+  border: 1px solid rgba(229, 50, 18, 0.3);
 }
 
 .action-buttons {
@@ -348,35 +349,35 @@ async function handleReset(quotaId: number) {
 }
 
 .action-btn.edit {
-  background: #DBEAFE;
-  color: #3B82F6;
-  border-color: #BFDBFE;
+  background: rgba(0, 142, 207, 0.2);
+  color: #008ecf;
+  border-color: rgba(0, 142, 207, 0.3);
 }
 
 .action-btn.edit:hover {
-  background: #BFDBFE;
+  background: rgba(0, 142, 207, 0.3);
   transform: translateY(-1px);
 }
 
 .action-btn.reset {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.2);
   color: #10B981;
-  border-color: #A7F3D0;
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .action-btn.reset:hover {
-  background: #A7F3D0;
+  background: rgba(16, 185, 129, 0.3);
   transform: translateY(-1px);
 }
 
 .action-btn.toggle {
-  background: #FED7AA;
-  color: #F97316;
-  border-color: #FDBA74;
+  background: rgba(242, 148, 0, 0.2);
+  color: #F29400;
+  border-color: rgba(242, 148, 0, 0.3);
 }
 
 .action-btn.toggle:hover {
-  background: #FDBA74;
+  background: rgba(242, 148, 0, 0.3);
   transform: translateY(-1px);
 }
 
@@ -396,14 +397,14 @@ async function handleReset(quotaId: number) {
 }
 
 .modal-content {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: rgba(15, 15, 25, 0.95);
+  border: 1px solid rgba(0, 142, 207, 0.2);
   border-radius: 16px;
   padding: 2rem;
   max-width: 600px;
   width: 100%;
   position: relative;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 25px 50px rgba(0, 142, 207, 0.2);
 }
 
 .modal-close {
@@ -412,21 +413,21 @@ async function handleReset(quotaId: number) {
   right: 1.5rem;
   width: 36px;
   height: 36px;
-  background: #F3F4F6;
-  border: 1px solid #E5E7EB;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: #6B7280;
+  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .modal-close:hover {
-  background: #FEE2E2;
-  color: #DC2626;
-  border-color: #FECACA;
+  background: rgba(229, 50, 18, 0.2);
+  color: #e53212;
+  border-color: rgba(229, 50, 18, 0.3);
 }
 
 .modal-close svg {
@@ -442,7 +443,7 @@ async function handleReset(quotaId: number) {
 .modal-icon {
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
+  background: linear-gradient(135deg, #F29400 0%, #008ecf 100%);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -457,20 +458,22 @@ async function handleReset(quotaId: number) {
 }
 
 .modal-content h2 {
-  color: #111827;
+  font-family: 'Orbitron', monospace;
+  color: #008ecf;
   font-size: 1.75rem;
   font-weight: 800;
   margin: 0 0 0.5rem 0;
 }
 
 .modal-subtitle {
-  color: #6B7280;
+  font-family: 'Rajdhani', sans-serif;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 1rem;
   margin: 0;
 }
 
 .modal-subtitle strong {
-  color: #F97316;
+  color: #F29400;
   font-weight: 700;
 }
 
@@ -487,7 +490,8 @@ async function handleReset(quotaId: number) {
 }
 
 .form-group label {
-  color: #374151;
+  font-family: 'Rajdhani', sans-serif;
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 600;
   font-size: 0.95rem;
 }
@@ -495,29 +499,29 @@ async function handleReset(quotaId: number) {
 .form-group input {
   width: 100%;
   padding: 0.875rem;
-  background: #F9FAFB;
-  border: 1px solid #E5E7EB;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  color: #111827;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 1rem;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .form-group input:focus {
   outline: none;
-  background: #FFFFFF;
-  border-color: #F97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  background: rgba(0, 0, 0, 0.4);
+  border-color: #008ecf;
+  box-shadow: 0 0 15px rgba(0, 142, 207, 0.2);
 }
 
 .info-box {
   display: flex;
   gap: 1rem;
   padding: 1rem;
-  background: #EFF6FF;
-  border: 1px solid #DBEAFE;
+  background: rgba(0, 142, 207, 0.1);
+  border: 1px solid rgba(0, 142, 207, 0.2);
   border-radius: 8px;
-  color: #1E40AF;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.9rem;
 }
 
@@ -525,7 +529,7 @@ async function handleReset(quotaId: number) {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  color: #3B82F6;
+  color: #008ecf;
 }
 
 .form-actions {

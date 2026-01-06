@@ -1206,9 +1206,9 @@ function getStatusLabel(status: string): string {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Contenu spécifique à la page utilisateurs */
+/* Contenu spécifique à la page utilisateurs - Dark Theme */
 .content-header {
   display: flex;
   justify-content: space-between;
@@ -1224,15 +1224,18 @@ function getStatusLabel(status: string): string {
 }
 
 .page-title {
+  font-family: 'Orbitron', monospace;
   font-size: 1.875rem;
   font-weight: 800;
-  color: #1F2937;
+  color: #F29400;
   margin-bottom: 0.5rem;
+  text-shadow: 0 0 20px rgba(242, 148, 0, 0.3);
 }
 
 .page-subtitle {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 1rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .btn-primary {
@@ -1240,14 +1243,15 @@ function getStatusLabel(status: string): string {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
+  background: linear-gradient(135deg, #F29400 0%, #008ecf 100%);
   color: white;
   border: none;
   border-radius: 10px;
+  font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(242, 148, 0, 0.3);
   white-space: nowrap;
 }
 
@@ -1258,7 +1262,7 @@ function getStatusLabel(status: string): string {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 6px 20px rgba(242, 148, 0, 0.4);
 }
 
 .btn-success {
@@ -1270,10 +1274,11 @@ function getStatusLabel(status: string): string {
   color: white;
   border: none;
   border-radius: 10px;
+  font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
   white-space: nowrap;
 }
 
@@ -1289,7 +1294,7 @@ function getStatusLabel(status: string): string {
 
 .btn-success:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
 /* Statistiques */
@@ -1301,11 +1306,18 @@ function getStatusLabel(status: string): string {
 }
 
 .stat-box {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
-  border-left: 4px solid #6B7280;
+  border-left: 4px solid #636362;
+  transition: all 0.3s;
+}
+
+.stat-box:hover {
+  border-color: rgba(0, 142, 207, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 142, 207, 0.15);
 }
 
 .stat-box.success {
@@ -1313,24 +1325,24 @@ function getStatusLabel(status: string): string {
 }
 
 .stat-box.danger {
-  border-left-color: #DC2626;
+  border-left-color: #e53212;
 }
 
 .stat-box.info {
-  border-left-color: #3B82F6;
+  border-left-color: #008ecf;
 }
 
 .stat-box.warning {
-  border-left-color: #F59E0B;
+  border-left-color: #F29400;
 }
 
 .promo-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1rem;
   margin: 1.5rem 0;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
 }
 
 .promo-header {
@@ -1338,6 +1350,11 @@ function getStatusLabel(status: string): string {
   align-items: baseline;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+}
+
+.promo-header h3 {
+  font-family: 'Orbitron', monospace;
+  color: #008ecf;
 }
 
 .promo-list {
@@ -1351,13 +1368,20 @@ function getStatusLabel(status: string): string {
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem;
-  border: 1px solid #E5E7EB;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+}
+
+.promo-item:hover {
+  border-color: rgba(0, 142, 207, 0.3);
 }
 
 .promo-name {
+  font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
-  color: #111827;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .promo-status {
@@ -1365,31 +1389,35 @@ function getStatusLabel(status: string): string {
 }
 
 .promo-status.active {
-  color: #059669;
+  color: #10B981;
 }
 
 .promo-status.inactive {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .stat-value {
+  font-family: 'Orbitron', monospace;
   font-size: 2rem;
   font-weight: 800;
-  color: #1F2937;
+  color: #F29400;
   margin-bottom: 0.25rem;
+  text-shadow: 0 0 15px rgba(242, 148, 0, 0.3);
 }
 
 .stat-label {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.875rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
 }
 
 /* Filtres */
 .filters-section {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   display: flex;
@@ -1411,22 +1439,28 @@ function getStatusLabel(status: string): string {
   left: 1rem;
   width: 20px;
   height: 20px;
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .search-input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 3rem;
-  border: 1px solid #E5E7EB;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   font-size: 0.875rem;
-  transition: all 0.2s;
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #F97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  border-color: #008ecf;
+  box-shadow: 0 0 15px rgba(0, 142, 207, 0.2);
 }
 
 .filter-group {
@@ -1437,28 +1471,29 @@ function getStatusLabel(status: string): string {
 
 .filter-select {
   padding: 0.75rem 1rem;
-  border: 1px solid #E5E7EB;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #1F2937;
-  background: white;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.3);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
   min-width: 180px;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #F97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  border-color: #008ecf;
+  box-shadow: 0 0 15px rgba(0, 142, 207, 0.2);
 }
 
 /* Table */
 .table-container {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -1468,25 +1503,26 @@ function getStatusLabel(status: string): string {
 }
 
 .data-table thead {
-  background: #F9FAFB;
-  border-bottom: 1px solid #E5E7EB;
+  background: rgba(0, 142, 207, 0.1);
+  border-bottom: 1px solid rgba(0, 142, 207, 0.2);
 }
 
 .data-table th {
   padding: 1rem 1.5rem;
   text-align: left;
+  font-family: 'Orbitron', monospace;
   font-size: 0.75rem;
-  font-weight: 700;
-  color: #6B7280;
+  font-weight: 600;
+  color: #008ecf;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 
 .data-table td {
   padding: 1rem 1.5rem;
   font-size: 0.875rem;
-  color: #1F2937;
-  border-bottom: 1px solid #F3F4F6;
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .data-table tbody tr:last-child td {
@@ -1494,17 +1530,17 @@ function getStatusLabel(status: string): string {
 }
 
 .data-table tbody tr:hover {
-  background: #F9FAFB;
+  background: rgba(0, 142, 207, 0.05);
 }
 
 .id-badge {
   display: inline-block;
   padding: 0.25rem 0.625rem;
-  background: #F3F4F6;
+  background: rgba(0, 142, 207, 0.2);
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6B7280;
+  color: #008ecf;
 }
 
 .user-cell {
@@ -1516,7 +1552,7 @@ function getStatusLabel(status: string): string {
 .user-avatar-sm {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
+  background: linear-gradient(135deg, #F29400 0%, #008ecf 100%);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -1529,12 +1565,12 @@ function getStatusLabel(status: string): string {
 
 .user-name-text {
   font-weight: 600;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .user-full-name {
   font-size: 0.75rem;
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .info-cell {
@@ -1544,7 +1580,7 @@ function getStatusLabel(status: string): string {
 }
 
 .text-gray {
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .badge {
@@ -1556,37 +1592,37 @@ function getStatusLabel(status: string): string {
 }
 
 .badge-success {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.2);
   color: #10B981;
   display: inline-flex;
   align-items: center;
 }
 
 .badge-danger {
-  background: #FEE2E2;
-  color: #DC2626;
+  background: rgba(229, 50, 18, 0.2);
+  color: #e53212;
 }
 
 .badge-info {
-  background: #DBEAFE;
-  color: #3B82F6;
+  background: rgba(0, 142, 207, 0.2);
+  color: #008ecf;
 }
 
 .badge-gray {
-  background: #F3F4F6;
-  color: #6B7280;
+  background: rgba(99, 99, 98, 0.3);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .badge-warning {
-  background: #FEF3C7;
-  color: #F59E0B;
+  background: rgba(242, 148, 0, 0.2);
+  color: #F29400;
   display: inline-flex;
   align-items: center;
 }
 
 .badge-light {
-  background: #F3F4F6;
-  color: #4B5563;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
 }
 
@@ -1601,11 +1637,11 @@ function getStatusLabel(status: string): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #E5E7EB;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
-  background: white;
+  background: rgba(0, 0, 0, 0.3);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .action-btn:disabled {
@@ -1616,11 +1652,11 @@ function getStatusLabel(status: string): string {
 .action-btn svg {
   width: 16px;
   height: 16px;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .action-btn.radius:hover:not(:disabled) {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.2);
   border-color: #10B981;
 }
 
@@ -1629,7 +1665,7 @@ function getStatusLabel(status: string): string {
 }
 
 .action-btn.radius-enable:hover:not(:disabled) {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.2);
   border-color: #10B981;
 }
 
@@ -1638,25 +1674,25 @@ function getStatusLabel(status: string): string {
 }
 
 .action-btn.radius-disable:hover:not(:disabled) {
-  background: #FEF3C7;
-  border-color: #F59E0B;
+  background: rgba(242, 148, 0, 0.2);
+  border-color: #F29400;
 }
 
 .action-btn.radius-disable:hover:not(:disabled) svg {
-  color: #F59E0B;
+  color: #F29400;
 }
 
 .action-btn.edit:hover {
-  background: #EFF6FF;
-  border-color: #3B82F6;
+  background: rgba(0, 142, 207, 0.2);
+  border-color: #008ecf;
 }
 
 .action-btn.edit:hover svg {
-  color: #3B82F6;
+  color: #008ecf;
 }
 
 .action-btn.success:hover {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.2);
   border-color: #10B981;
 }
 
@@ -1665,21 +1701,21 @@ function getStatusLabel(status: string): string {
 }
 
 .action-btn.danger:hover {
-  background: #FEE2E2;
-  border-color: #DC2626;
+  background: rgba(229, 50, 18, 0.2);
+  border-color: #e53212;
 }
 
 .action-btn.danger:hover svg {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .action-btn.delete:hover {
-  background: #FEE2E2;
-  border-color: #DC2626;
+  background: rgba(229, 50, 18, 0.2);
+  border-color: #e53212;
 }
 
 .action-btn.delete:hover svg {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .empty-state {
@@ -1690,20 +1726,21 @@ function getStatusLabel(status: string): string {
 .empty-state svg {
   width: 64px;
   height: 64px;
-  color: #D1D5DB;
+  color: rgba(255, 255, 255, 0.3);
   margin-bottom: 1rem;
 }
 
 .empty-state h3 {
+  font-family: 'Orbitron', monospace;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.9);
   margin-bottom: 0.5rem;
 }
 
 .empty-state p {
   font-size: 0.875rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* Modal */
@@ -1713,7 +1750,8 @@ function getStatusLabel(status: string): string {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1722,13 +1760,14 @@ function getStatusLabel(status: string): string {
 }
 
 .modal-content {
-  background: white;
+  background: rgba(15, 15, 25, 0.95);
+  border: 1px solid rgba(0, 142, 207, 0.2);
   border-radius: 16px;
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 50px rgba(0, 142, 207, 0.2);
 }
 
 .modal-large {
@@ -1737,43 +1776,45 @@ function getStatusLabel(status: string): string {
 
 .modal-header {
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .modal-header h3 {
+  font-family: 'Orbitron', monospace;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1F2937;
+  color: #008ecf;
 }
 
 .modal-close {
   width: 36px;
   height: 36px;
-  border: none;
-  background: #F3F4F6;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .modal-close svg {
   width: 20px;
   height: 20px;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .modal-close:hover {
-  background: #FEE2E2;
+  background: rgba(229, 50, 18, 0.2);
+  border-color: #e53212;
 }
 
 .modal-close:hover svg {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .modal-body {
@@ -1788,7 +1829,7 @@ function getStatusLabel(status: string): string {
 
 .summary-card {
   flex: 1;
-  background: #F9FAFB;
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 12px;
   padding: 1.5rem;
   text-align: center;
@@ -1796,13 +1837,13 @@ function getStatusLabel(status: string): string {
 }
 
 .summary-card.success {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.15);
   border-color: #10B981;
 }
 
 .summary-card.danger {
-  background: #FEE2E2;
-  border-color: #DC2626;
+  background: rgba(229, 50, 18, 0.15);
+  border-color: #e53212;
 }
 
 .summary-icon {
@@ -1811,15 +1852,17 @@ function getStatusLabel(status: string): string {
 }
 
 .summary-value {
+  font-family: 'Orbitron', monospace;
   font-size: 2.5rem;
   font-weight: 800;
-  color: #1F2937;
+  color: #F29400;
   margin-bottom: 0.25rem;
 }
 
 .summary-label {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.875rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 600;
 }
 
@@ -1828,23 +1871,24 @@ function getStatusLabel(status: string): string {
 }
 
 .section-title {
+  font-family: 'Orbitron', monospace;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1F2937;
+  color: #008ecf;
   margin-bottom: 1rem;
 }
 
 .section-title.error {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .activation-note {
   display: flex;
   gap: 1rem;
   padding: 1rem;
-  background: #EFF6FF;
-  border: 1px solid #DBEAFE;
-  border-left: 4px solid #3B82F6;
+  background: rgba(0, 142, 207, 0.1);
+  border: 1px solid rgba(0, 142, 207, 0.2);
+  border-left: 4px solid #008ecf;
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
@@ -1852,13 +1896,13 @@ function getStatusLabel(status: string): string {
 .activation-note svg {
   width: 24px;
   height: 24px;
-  color: #3B82F6;
+  color: #008ecf;
   flex-shrink: 0;
 }
 
 .activation-note p {
   font-size: 0.875rem;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.9);
   margin: 0;
 }
 
@@ -1871,8 +1915,8 @@ function getStatusLabel(status: string): string {
 
 .activated-user-card,
 .failed-user-card {
-  background: #F9FAFB;
-  border: 1px solid #E5E7EB;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 1rem;
 }
@@ -1887,14 +1931,14 @@ function getStatusLabel(status: string): string {
 .user-info strong {
   font-size: 1rem;
   font-weight: 700;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.95);
   display: block;
   margin-bottom: 0.25rem;
 }
 
 .user-name {
   font-size: 0.875rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .user-details {
@@ -1911,13 +1955,13 @@ function getStatusLabel(status: string): string {
 
 .detail-label {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 600;
 }
 
 .detail-value {
   font-size: 0.875rem;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
 }
 
@@ -1926,10 +1970,10 @@ function getStatusLabel(status: string): string {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: #FEF2F2;
-  border: 1px solid #FEE2E2;
+  background: rgba(229, 50, 18, 0.15);
+  border: 1px solid rgba(229, 50, 18, 0.3);
   border-radius: 8px;
-  color: #DC2626;
+  color: #e53212;
   font-size: 0.875rem;
 }
 
@@ -1952,31 +1996,39 @@ function getStatusLabel(status: string): string {
 
 .form-group label {
   display: block;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: rgba(255, 255, 255, 0.7);
   margin-bottom: 0.5rem;
 }
 
 .form-group input[type="text"],
 .form-group input[type="email"],
 .form-group input[type="password"],
+.form-group select,
 .form-group select.form-select {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #E5E7EB;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   font-size: 0.875rem;
-  transition: all 0.2s;
-  background: white;
+  transition: all 0.3s;
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
 }
 
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
 .form-group input:focus,
+.form-group select:focus,
 .form-group select.form-select:focus {
   outline: none;
-  border-color: #F97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  border-color: #008ecf;
+  box-shadow: 0 0 15px rgba(0, 142, 207, 0.2);
 }
 
 .checkbox-group {
@@ -1995,7 +2047,7 @@ function getStatusLabel(status: string): string {
   height: 20px;
   margin-top: 2px;
   cursor: pointer;
-  accent-color: #DC2626;
+  accent-color: #F29400;
 }
 
 .checkbox-text {
@@ -2007,12 +2059,12 @@ function getStatusLabel(status: string): string {
 .checkbox-text strong {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .checkbox-text small {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .info-note {
@@ -2020,9 +2072,9 @@ function getStatusLabel(status: string): string {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem;
-  background: #EFF6FF;
-  border: 1px solid #DBEAFE;
-  border-left: 4px solid #3B82F6;
+  background: rgba(0, 142, 207, 0.1);
+  border: 1px solid rgba(0, 142, 207, 0.2);
+  border-left: 4px solid #008ecf;
   border-radius: 8px;
   margin-bottom: 1rem;
 }
@@ -2030,20 +2082,20 @@ function getStatusLabel(status: string): string {
 .info-note svg {
   width: 20px;
   height: 20px;
-  color: #3B82F6;
+  color: #008ecf;
   flex-shrink: 0;
   margin-top: 2px;
 }
 
 .info-note p {
   font-size: 0.875rem;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.9);
   margin: 0;
 }
 
 .modal-footer {
   padding: 1.5rem 2rem;
-  border-top: 1px solid #E5E7EB;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
@@ -2051,17 +2103,19 @@ function getStatusLabel(status: string): string {
 
 .btn-secondary {
   padding: 0.75rem 1.5rem;
-  background: #F3F4F6;
-  color: #374151;
-  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
+  font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .btn-secondary:hover {
-  background: #E5E7EB;
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .loading-container {
@@ -2074,23 +2128,23 @@ function getStatusLabel(status: string): string {
 
 .loading-text {
   margin-top: 1rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.875rem;
 }
 
 /* Verification Button */
 .action-btn.verify:hover:not(:disabled) {
-  background: #DBEAFE;
-  border-color: #3B82F6;
+  background: rgba(0, 142, 207, 0.2);
+  border-color: #008ecf;
 }
 
 .action-btn.verify:hover:not(:disabled) svg {
-  color: #3B82F6;
+  color: #008ecf;
 }
 
 .action-btn.verify.verifying {
-  background: #DBEAFE;
-  border-color: #3B82F6;
+  background: rgba(0, 142, 207, 0.2);
+  border-color: #008ecf;
 }
 
 .action-btn .spinner {
@@ -2111,19 +2165,20 @@ function getStatusLabel(status: string): string {
 .error-icon svg {
   width: 48px;
   height: 48px;
-  color: #DC2626;
+  color: #e53212;
   margin-bottom: 1rem;
 }
 
 .error-container h4 {
+  font-family: 'Orbitron', monospace;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #DC2626;
+  color: #e53212;
   margin-bottom: 0.5rem;
 }
 
 .error-container p {
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .verification-status-header {
@@ -2138,7 +2193,7 @@ function getStatusLabel(status: string): string {
 }
 
 .verification-info {
-  background: #F9FAFB;
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -2147,16 +2202,16 @@ function getStatusLabel(status: string): string {
 .verification-info p {
   margin: 0.25rem 0;
   font-size: 0.875rem;
-  color: #4B5563;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .not-connected-message {
   display: flex;
   gap: 1rem;
   padding: 1rem;
-  background: #F3F4F6;
-  border: 1px solid #E5E7EB;
-  border-left: 4px solid #9CA3AF;
+  background: rgba(99, 99, 98, 0.2);
+  border: 1px solid rgba(99, 99, 98, 0.3);
+  border-left: 4px solid #636362;
   border-radius: 8px;
   margin: 1.5rem 0;
 }
@@ -2164,13 +2219,13 @@ function getStatusLabel(status: string): string {
 .not-connected-message svg {
   width: 24px;
   height: 24px;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
   flex-shrink: 0;
 }
 
 .not-connected-message p {
   font-size: 0.875rem;
-  color: #4B5563;
+  color: rgba(255, 255, 255, 0.7);
   margin: 0;
 }
 
@@ -2178,15 +2233,16 @@ function getStatusLabel(status: string): string {
   margin-top: 1.5rem;
 }
 
-.section-title {
+.attributes-section .section-title {
+  font-family: 'Orbitron', monospace;
   font-size: 0.875rem;
   font-weight: 700;
-  color: #6B7280;
+  color: #008ecf;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #E5E7EB;
+  border-bottom: 2px solid rgba(0, 142, 207, 0.2);
 }
 
 .attributes-grid {
@@ -2196,16 +2252,17 @@ function getStatusLabel(status: string): string {
 }
 
 .attributes-card {
-  background: #F9FAFB;
-  border: 1px solid #E5E7EB;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 1rem;
 }
 
 .attributes-card h5 {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #374151;
+  color: rgba(255, 255, 255, 0.7);
   margin-bottom: 0.75rem;
 }
 
@@ -2214,7 +2271,7 @@ function getStatusLabel(status: string): string {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .attribute-item:last-child {
@@ -2222,22 +2279,22 @@ function getStatusLabel(status: string): string {
 }
 
 .attribute-item code {
-  background: #E5E7EB;
+  background: rgba(0, 142, 207, 0.2);
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
   font-family: monospace;
   font-size: 0.75rem;
-  color: #4B5563;
+  color: #008ecf;
 }
 
 .attribute-item span {
   font-size: 0.8125rem;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
 }
 
 .empty-attributes {
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
   font-size: 0.8125rem;
   font-style: italic;
 }
@@ -2260,35 +2317,36 @@ function getStatusLabel(status: string): string {
 .differences-table td {
   padding: 0.5rem;
   text-align: left;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .differences-table th {
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(0, 142, 207, 0.1);
   font-weight: 600;
-  color: #6B7280;
+  color: #008ecf;
   text-transform: uppercase;
   font-size: 0.6875rem;
 }
 
 .differences-table tr.match {
-  background: rgba(16, 185, 129, 0.05);
+  background: rgba(16, 185, 129, 0.1);
 }
 
 .differences-table tr.mismatch {
-  background: rgba(220, 38, 38, 0.05);
+  background: rgba(229, 50, 18, 0.1);
 }
 
 .differences-table tr.missing {
-  background: rgba(245, 158, 11, 0.05);
+  background: rgba(242, 148, 0, 0.1);
 }
 
 .differences-table code {
-  background: #E5E7EB;
+  background: rgba(0, 142, 207, 0.2);
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
   font-family: monospace;
   font-size: 0.75rem;
+  color: #008ecf;
 }
 
 .diff-status {
@@ -2303,18 +2361,18 @@ function getStatusLabel(status: string): string {
 }
 
 .diff-status.match {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.2);
   color: #10B981;
 }
 
 .diff-status.mismatch {
-  background: #FEE2E2;
-  color: #DC2626;
+  background: rgba(229, 50, 18, 0.2);
+  color: #e53212;
 }
 
 .diff-status.missing {
-  background: #FEF3C7;
-  color: #D97706;
+  background: rgba(242, 148, 0, 0.2);
+  color: #F29400;
 }
 
 /* Responsive */

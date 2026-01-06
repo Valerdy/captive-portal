@@ -326,6 +326,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 .admin-disconnections {
   padding: 2rem;
   max-width: 1400px;
@@ -337,13 +339,16 @@ onMounted(() => {
 }
 
 .page-header h1 {
+  font-family: 'Orbitron', monospace;
   font-size: 2rem;
   margin: 0 0 0.5rem 0;
-  color: #2c3e50;
+  color: #F29400;
+  text-shadow: 0 0 20px rgba(242, 148, 0, 0.3);
 }
 
 .page-description {
-  color: #7f8c8d;
+  font-family: 'Rajdhani', sans-serif;
+  color: rgba(255, 255, 255, 0.6);
   margin: 0;
 }
 
@@ -352,9 +357,10 @@ onMounted(() => {
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   flex-wrap: wrap;
 }
 
@@ -367,17 +373,28 @@ onMounted(() => {
 }
 
 .filter-group label {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .filter-group select,
 .search-input {
   padding: 0.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   font-size: 0.95rem;
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s;
+}
+
+.filter-group select:focus,
+.search-input:focus {
+  outline: none;
+  border-color: #008ecf;
+  box-shadow: 0 0 15px rgba(0, 142, 207, 0.2);
 }
 
 .btn-refresh {
@@ -385,17 +402,20 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: #3498db;
+  background: linear-gradient(135deg, #008ecf 0%, #00b4e6 100%);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
   align-self: flex-end;
+  transition: all 0.3s;
 }
 
 .btn-refresh:hover {
-  background: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 142, 207, 0.3);
 }
 
 .stats-cards {
@@ -406,33 +426,44 @@ onMounted(() => {
 }
 
 .stat-card {
-  background: white;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #e74c3c;
+  border-radius: 16px;
+  border-left: 4px solid #e53212;
+  transition: all 0.3s;
+}
+
+.stat-card:hover {
+  border-color: rgba(0, 142, 207, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 142, 207, 0.15);
 }
 
 .stat-card.success {
-  border-left-color: #27ae60;
+  border-left-color: #10B981;
 }
 
 .stat-value {
+  font-family: 'Orbitron', monospace;
   font-size: 2rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: #F29400;
+  text-shadow: 0 0 15px rgba(242, 148, 0, 0.3);
 }
 
 .stat-label {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.9rem;
-  color: #7f8c8d;
+  color: rgba(255, 255, 255, 0.6);
   margin-top: 0.5rem;
 }
 
 .disconnections-table {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -442,24 +473,33 @@ table {
 }
 
 thead {
-  background: #f8f9fa;
+  background: rgba(0, 142, 207, 0.1);
 }
 
 th {
   padding: 1rem;
   text-align: left;
+  font-family: 'Orbitron', monospace;
   font-weight: 600;
-  color: #2c3e50;
-  border-bottom: 2px solid #dee2e6;
+  color: #008ecf;
+  border-bottom: 1px solid rgba(0, 142, 207, 0.2);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
 }
 
 td {
   padding: 1rem;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 tr.inactive {
   opacity: 0.6;
+}
+
+tr:hover {
+  background: rgba(0, 142, 207, 0.05);
 }
 
 .user-info {
@@ -470,12 +510,12 @@ tr.inactive {
 
 .user-name {
   font-weight: 600;
-  color: #2c3e50;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .user-username {
   font-size: 0.85rem;
-  color: #7f8c8d;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .reason-badge {
@@ -484,38 +524,38 @@ tr.inactive {
   border-radius: 12px;
   font-size: 0.85rem;
   font-weight: 600;
-  background: #e74c3c;
+  background: rgba(229, 50, 18, 0.8);
   color: white;
 }
 
 .reason-quota_exceeded {
-  background: #e74c3c;
+  background: rgba(229, 50, 18, 0.8);
 }
 
 .reason-daily_limit,
 .reason-weekly_limit,
 .reason-monthly_limit {
-  background: #f39c12;
+  background: rgba(242, 148, 0, 0.8);
 }
 
 .reason-validity_expired {
-  background: #95a5a6;
+  background: rgba(99, 99, 98, 0.8);
 }
 
 .details {
   font-size: 0.9rem;
-  color: #555;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .quota-details {
   font-size: 0.8rem;
-  color: #7f8c8d;
+  color: rgba(255, 255, 255, 0.5);
   margin-top: 0.25rem;
 }
 
 .date-info {
   font-size: 0.9rem;
-  color: #555;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .status-badge {
@@ -527,53 +567,59 @@ tr.inactive {
 }
 
 .status-badge.active {
-  background: #ffe5e5;
-  color: #e74c3c;
+  background: rgba(229, 50, 18, 0.2);
+  color: #e53212;
 }
 
 .status-badge.reconnected {
-  background: #d4edda;
-  color: #27ae60;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
 }
 
 .reconnected-info {
   font-size: 0.75rem;
   margin-top: 0.25rem;
   opacity: 0.8;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .btn-reactivate {
   padding: 0.5rem 1rem;
-  background: #27ae60;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  transition: all 0.3s;
 }
 
 .btn-reactivate:hover {
-  background: #229954;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
 .btn-reactivate:disabled {
-  background: #95a5a6;
+  background: rgba(99, 99, 98, 0.5);
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .already-reconnected {
-  color: #bdc3c7;
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .empty-state {
   padding: 4rem 2rem;
   text-align: center;
-  color: #95a5a6;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .empty-state svg {
   margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .pagination {
@@ -586,15 +632,20 @@ tr.inactive {
 
 .btn-page {
   padding: 0.5rem 1rem;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  background: rgba(15, 15, 25, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s;
 }
 
 .btn-page:hover:not(:disabled) {
-  background: #f8f9fa;
+  background: rgba(0, 142, 207, 0.2);
+  border-color: #008ecf;
+  color: #008ecf;
 }
 
 .btn-page:disabled {
@@ -603,7 +654,8 @@ tr.inactive {
 }
 
 .page-info {
-  font-weight: 500;
-  color: #2c3e50;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
 }
 </style>

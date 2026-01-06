@@ -379,35 +379,36 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Contenu spécifique à la page monitoring */
+/* Contenu spécifique à la page monitoring - Dark Theme */
 .warning-banner {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.5rem;
   margin-bottom: 2rem;
-  background: #FEF3C7;
-  border: 1px solid #FDE68A;
-  border-left: 4px solid #F59E0B;
+  background: rgba(242, 148, 0, 0.15);
+  border: 1px solid rgba(242, 148, 0, 0.3);
+  border-left: 4px solid #F29400;
   border-radius: 12px;
-  color: #92400E;
+  color: #F29400;
 }
 
 .warning-banner svg {
   width: 24px;
   height: 24px;
   flex-shrink: 0;
-  color: #F59E0B;
+  color: #F29400;
 }
 
 .warning-banner code {
-  background: #FDE68A;
+  background: rgba(242, 148, 0, 0.2);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
   font-size: 0.9rem;
+  color: #F29400;
 }
 
 .metrics-grid {
@@ -418,13 +419,19 @@ onUnmounted(() => {
 }
 
 .metric-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 1.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
+  transition: all 0.3s;
+}
+
+.metric-card:hover {
+  border-color: rgba(0, 142, 207, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 142, 207, 0.15);
 }
 
 .metric-icon {
@@ -443,7 +450,7 @@ onUnmounted(() => {
 }
 
 .metric-icon.pulse {
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(16, 185, 129, 0.2);
   color: #10b981;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -458,49 +465,52 @@ onUnmounted(() => {
 }
 
 .metric-icon.bandwidth {
-  background: rgba(249, 115, 22, 0.1);
-  color: #f97316;
+  background: rgba(242, 148, 0, 0.2);
+  color: #F29400;
 }
 
 .metric-icon.cpu {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: rgba(0, 142, 207, 0.2);
+  color: #008ecf;
 }
 
 .metric-icon.memory {
-  background: rgba(168, 85, 247, 0.1);
-  color: #a855f7;
+  background: rgba(162, 56, 130, 0.2);
+  color: #a23882;
 }
 
 .metric-info h3 {
+  font-family: 'Orbitron', monospace;
   font-size: 2rem;
   font-weight: 800;
   margin-bottom: 0.25rem;
-  color: #111827;
+  color: #F29400;
+  text-shadow: 0 0 15px rgba(242, 148, 0, 0.3);
 }
 
 .metric-info p {
-  color: #6B7280;
+  font-family: 'Rajdhani', sans-serif;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.9rem;
 }
 
 .progress-bar {
   margin-top: 1rem;
   height: 6px;
-  background: #E5E7EB;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .progress {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  background: linear-gradient(90deg, #008ecf, #00b4e6);
   transition: width 0.5s ease;
   border-radius: 3px;
 }
 
 .memory-progress {
-  background: linear-gradient(90deg, #a855f7, #c084fc);
+  background: linear-gradient(90deg, #a23882, #d048a8);
 }
 
 .charts-section {
@@ -511,11 +521,11 @@ onUnmounted(() => {
 }
 
 .chart-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .chart-header {
@@ -526,9 +536,10 @@ onUnmounted(() => {
 }
 
 .chart-header h3 {
+  font-family: 'Orbitron', monospace;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #111827;
+  color: #008ecf;
   margin: 0;
 }
 
@@ -537,10 +548,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.375rem 0.875rem;
-  background: #D1FAE5;
-  border: 1px solid #A7F3D0;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: 6px;
-  color: #059669;
+  color: #10B981;
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -553,12 +564,23 @@ onUnmounted(() => {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
 .activity-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .activity-header {
@@ -569,9 +591,11 @@ onUnmounted(() => {
 }
 
 .activity-header h2 {
+  font-family: 'Orbitron', monospace;
   font-size: 1.5rem;
   font-weight: 800;
-  color: #111827;
+  color: #F29400;
+  text-shadow: 0 0 15px rgba(242, 148, 0, 0.3);
 }
 
 .no-activity {
@@ -580,14 +604,14 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .no-activity svg {
   width: 64px;
   height: 64px;
   margin-bottom: 1rem;
-  color: #D1D5DB;
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .activity-list {
@@ -601,20 +625,20 @@ onUnmounted(() => {
   align-items: center;
   gap: 1.5rem;
   padding: 1.25rem;
-  background: #F9FAFB;
-  border: 1px solid #E5E7EB;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   transition: all 0.3s ease;
 }
 
 .activity-item:hover {
-  background: #F3F4F6;
-  border-color: #F97316;
+  background: rgba(0, 142, 207, 0.1);
+  border-color: rgba(0, 142, 207, 0.3);
 }
 
 .activity-time {
   font-size: 0.85rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
   min-width: 100px;
   font-family: monospace;
 }
@@ -628,20 +652,20 @@ onUnmounted(() => {
 
 .activity-user {
   font-weight: 600;
-  color: #3B82F6;
+  color: #008ecf;
 }
 
 .activity-action {
-  color: #111827;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .activity-ip {
   margin-left: auto;
   padding: 0.375rem 0.875rem;
-  background: #FED7AA;
-  border: 1px solid #FDBA74;
+  background: rgba(242, 148, 0, 0.2);
+  border: 1px solid rgba(242, 148, 0, 0.3);
   border-radius: 8px;
-  color: #C2410C;
+  color: #F29400;
   font-size: 0.85rem;
   font-family: monospace;
   font-weight: 600;
