@@ -336,15 +336,18 @@ async function handleDelete(site: any) {
 }
 
 .page-title {
+  font-family: 'Orbitron', monospace;
   font-size: 1.875rem;
   font-weight: 800;
-  color: #1F2937;
+  color: #F29400;
   margin-bottom: 0.5rem;
+  text-shadow: 0 0 20px rgba(242, 148, 0, 0.3);
 }
 
 .page-subtitle {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 1rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .btn-primary {
@@ -352,14 +355,15 @@ async function handleDelete(site: any) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
+  background: linear-gradient(135deg, #F29400 0%, #008ecf 100%);
   color: white;
   border: none;
   border-radius: 10px;
+  font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(242, 148, 0, 0.3);
 }
 
 .btn-primary svg {
@@ -369,7 +373,7 @@ async function handleDelete(site: any) {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 6px 20px rgba(242, 148, 0, 0.4);
 }
 
 /* Statistiques */
@@ -381,11 +385,18 @@ async function handleDelete(site: any) {
 }
 
 .stat-box {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
-  border-left: 4px solid #6B7280;
+  border-left: 4px solid #636362;
+  transition: all 0.3s;
+}
+
+.stat-box:hover {
+  border-color: rgba(0, 142, 207, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 142, 207, 0.15);
 }
 
 .stat-box.success {
@@ -393,31 +404,35 @@ async function handleDelete(site: any) {
 }
 
 .stat-box.danger {
-  border-left-color: #DC2626;
+  border-left-color: #e53212;
 }
 
 .stat-box.info {
-  border-left-color: #3B82F6;
+  border-left-color: #008ecf;
 }
 
 .stat-value {
+  font-family: 'Orbitron', monospace;
   font-size: 2rem;
   font-weight: 800;
-  color: #1F2937;
+  color: #F29400;
   margin-bottom: 0.25rem;
+  text-shadow: 0 0 15px rgba(242, 148, 0, 0.3);
 }
 
 .stat-label {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.875rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
 }
 
 /* Filtres */
 .filters-section {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   display: flex;
@@ -437,22 +452,28 @@ async function handleDelete(site: any) {
   left: 1rem;
   width: 20px;
   height: 20px;
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .search-input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 3rem;
-  border: 1px solid #E5E7EB;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   font-size: 0.875rem;
-  transition: all 0.2s;
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #F97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  border-color: #008ecf;
+  box-shadow: 0 0 15px rgba(0, 142, 207, 0.2);
 }
 
 .filter-group {
@@ -462,27 +483,28 @@ async function handleDelete(site: any) {
 
 .filter-select {
   padding: 0.75rem 1rem;
-  border: 1px solid #E5E7EB;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #1F2937;
-  background: white;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.3);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #F97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  border-color: #008ecf;
+  box-shadow: 0 0 15px rgba(0, 142, 207, 0.2);
 }
 
 /* Table */
 .table-container {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -492,25 +514,26 @@ async function handleDelete(site: any) {
 }
 
 .data-table thead {
-  background: #F9FAFB;
-  border-bottom: 1px solid #E5E7EB;
+  background: rgba(0, 142, 207, 0.1);
+  border-bottom: 1px solid rgba(0, 142, 207, 0.2);
 }
 
 .data-table th {
   padding: 1rem 1.5rem;
   text-align: left;
+  font-family: 'Orbitron', monospace;
   font-size: 0.75rem;
-  font-weight: 700;
-  color: #6B7280;
+  font-weight: 600;
+  color: #008ecf;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 
 .data-table td {
   padding: 1rem 1.5rem;
   font-size: 0.875rem;
-  color: #1F2937;
-  border-bottom: 1px solid #F3F4F6;
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .data-table tbody tr:last-child td {
@@ -518,7 +541,7 @@ async function handleDelete(site: any) {
 }
 
 .data-table tbody tr:hover {
-  background: #F9FAFB;
+  background: rgba(0, 142, 207, 0.05);
 }
 
 .url-cell {
@@ -530,17 +553,17 @@ async function handleDelete(site: any) {
 .url-cell svg {
   width: 20px;
   height: 20px;
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
 }
 
 .url-cell span {
   font-weight: 500;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .reason-text {
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
   font-style: italic;
 }
 
@@ -553,23 +576,23 @@ async function handleDelete(site: any) {
 }
 
 .badge-success {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.2);
   color: #10B981;
 }
 
 .badge-danger {
-  background: #FEE2E2;
-  color: #DC2626;
+  background: rgba(229, 50, 18, 0.2);
+  color: #e53212;
 }
 
 .badge-info {
-  background: #DBEAFE;
-  color: #3B82F6;
+  background: rgba(0, 142, 207, 0.2);
+  color: #008ecf;
 }
 
 .badge-gray {
-  background: #F3F4F6;
-  color: #6B7280;
+  background: rgba(99, 99, 98, 0.3);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .action-buttons {
@@ -583,21 +606,21 @@ async function handleDelete(site: any) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #E5E7EB;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
-  background: white;
+  background: rgba(0, 0, 0, 0.3);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .action-btn svg {
   width: 16px;
   height: 16px;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .action-btn.success:hover {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.2);
   border-color: #10B981;
 }
 
@@ -606,21 +629,21 @@ async function handleDelete(site: any) {
 }
 
 .action-btn.danger:hover {
-  background: #FEE2E2;
-  border-color: #DC2626;
+  background: rgba(229, 50, 18, 0.2);
+  border-color: #e53212;
 }
 
 .action-btn.danger:hover svg {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .action-btn.delete:hover {
-  background: #FEE2E2;
-  border-color: #DC2626;
+  background: rgba(229, 50, 18, 0.2);
+  border-color: #e53212;
 }
 
 .action-btn.delete:hover svg {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .empty-state {
@@ -631,20 +654,21 @@ async function handleDelete(site: any) {
 .empty-state svg {
   width: 64px;
   height: 64px;
-  color: #D1D5DB;
+  color: rgba(255, 255, 255, 0.2);
   margin-bottom: 1rem;
 }
 
 .empty-state h3 {
+  font-family: 'Orbitron', monospace;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.9);
   margin-bottom: 0.5rem;
 }
 
 .empty-state p {
   font-size: 0.875rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* Modal */
@@ -654,7 +678,8 @@ async function handleDelete(site: any) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -663,54 +688,57 @@ async function handleDelete(site: any) {
 }
 
 .modal-content {
-  background: white;
+  background: rgba(15, 15, 25, 0.95);
+  border: 1px solid rgba(0, 142, 207, 0.2);
   border-radius: 16px;
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 50px rgba(0, 142, 207, 0.2);
 }
 
 .modal-header {
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .modal-header h3 {
+  font-family: 'Orbitron', monospace;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1F2937;
+  color: #008ecf;
 }
 
 .modal-close {
   width: 36px;
   height: 36px;
-  border: none;
-  background: #F3F4F6;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .modal-close svg {
   width: 20px;
   height: 20px;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .modal-close:hover {
-  background: #FEE2E2;
+  background: rgba(229, 50, 18, 0.2);
+  border-color: #e53212;
 }
 
 .modal-close:hover svg {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .modal-body {
@@ -723,9 +751,10 @@ async function handleDelete(site: any) {
 
 .form-group label {
   display: block;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: rgba(255, 255, 255, 0.7);
   margin-bottom: 0.5rem;
 }
 
@@ -733,7 +762,7 @@ async function handleDelete(site: any) {
   display: block;
   margin-top: 0.5rem;
   font-size: 0.75rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .form-group input[type="text"],
@@ -741,10 +770,12 @@ async function handleDelete(site: any) {
 .form-select {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #E5E7EB;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   font-size: 0.875rem;
-  transition: all 0.2s;
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s;
 }
 
 .form-group input:focus,

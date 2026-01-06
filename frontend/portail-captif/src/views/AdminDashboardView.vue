@@ -614,9 +614,9 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family:Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Contenu spécifique au dashboard */
+/* Contenu spécifique au dashboard - Dark Theme */
 .content-wrapper {
   display: flex;
   flex-direction: column;
@@ -631,18 +631,20 @@ onMounted(async () => {
 }
 
 .stat-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .stat-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 142, 207, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 142, 207, 0.15);
   transform: translateY(-2px);
 }
 
@@ -662,33 +664,33 @@ onMounted(async () => {
 }
 
 .stat-icon.users {
-  background: #DBEAFE;
-  color: #3B82F6;
+  background: rgba(0, 142, 207, 0.2);
+  color: #008ecf;
 }
 
 .stat-icon.sessions {
-  background: #FEF3C7;
-  color: #F59E0B;
+  background: rgba(242, 148, 0, 0.2);
+  color: #F29400;
 }
 
 .stat-icon.devices {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.2);
   color: #10B981;
 }
 
 .stat-icon.bandwidth {
-  background: #FEE2E2;
-  color: #DC2626;
+  background: rgba(229, 50, 18, 0.2);
+  color: #e53212;
 }
 
 .stat-icon.profiles {
-  background: #EDE9FE;
-  color: #8B5CF6;
+  background: rgba(162, 56, 130, 0.2);
+  color: #a23882;
 }
 
 .stat-icon.quota {
-  background: #FBCFE8;
-  color: #EC4899;
+  background: rgba(162, 56, 130, 0.2);
+  color: #a23882;
 }
 
 .stat-content {
@@ -696,16 +698,19 @@ onMounted(async () => {
 }
 
 .stat-content h3 {
+  font-family: 'Orbitron', monospace;
   font-size: 2rem;
   font-weight: 800;
-  color: #1F2937;
+  color: #F29400;
   line-height: 1;
   margin-bottom: 0.5rem;
+  text-shadow: 0 0 15px rgba(242, 148, 0, 0.3);
 }
 
 .stat-content p {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.875rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
   margin-bottom: 0.75rem;
 }
@@ -719,23 +724,23 @@ onMounted(async () => {
 }
 
 .stat-badge.success {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.2);
   color: #10B981;
 }
 
 .stat-badge.info {
-  background: #DBEAFE;
-  color: #3B82F6;
+  background: rgba(0, 142, 207, 0.2);
+  color: #008ecf;
 }
 
 .stat-badge.warning {
-  background: #FEF3C7;
-  color: #F59E0B;
+  background: rgba(242, 148, 0, 0.2);
+  color: #F29400;
 }
 
 .stat-badge.danger {
-  background: #FEE2E2;
-  color: #DC2626;
+  background: rgba(229, 50, 18, 0.2);
+  color: #e53212;
 }
 
 /* Graphiques */
@@ -746,28 +751,31 @@ onMounted(async () => {
 }
 
 .chart-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
 }
 
 .chart-header {
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .chart-header h2 {
+  font-family: 'Orbitron', monospace;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1F2937;
+  color: #008ecf;
   margin-bottom: 0.25rem;
 }
 
 .chart-subtitle {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.875rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .chart-body {
@@ -779,7 +787,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   height: 350px;
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
   font-size: 1rem;
 }
 
@@ -789,10 +797,12 @@ onMounted(async () => {
 }
 
 .section-title {
+  font-family: 'Orbitron', monospace;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1F2937;
+  color: #F29400;
   margin-bottom: 1.5rem;
+  text-shadow: 0 0 15px rgba(242, 148, 0, 0.3);
 }
 
 .quick-actions-grid {
@@ -802,25 +812,26 @@ onMounted(async () => {
 }
 
 .action-btn {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
   text-align: left;
 }
 
 .action-btn:hover {
-  border-color: #F97316;
-  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.1);
+  border-color: rgba(0, 142, 207, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 142, 207, 0.2);
   transform: translateY(-2px);
 }
 
 .action-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
+  background: linear-gradient(135deg, #F29400 0%, #008ecf 100%);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -835,15 +846,16 @@ onMounted(async () => {
 }
 
 .action-btn h3 {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 1rem;
   font-weight: 600;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.95);
   margin-bottom: 0.25rem;
 }
 
 .action-btn p {
   font-size: 0.875rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* Responsive */

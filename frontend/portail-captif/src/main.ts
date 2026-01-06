@@ -6,6 +6,7 @@ import router from './router'
 
 // Import global futuristic styles
 import './assets/styles/main.css'
+import './assets/styles/admin-dark-theme.css'
 
 const app = createApp(App)
 
