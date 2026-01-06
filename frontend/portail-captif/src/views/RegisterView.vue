@@ -75,6 +75,14 @@ onMounted(() => {
 
 <template>
   <div class="register-page">
+    <!-- Animated Background -->
+    <div class="bg-animation">
+      <div class="grid-overlay"></div>
+      <div class="glow-orb orb-1"></div>
+      <div class="glow-orb orb-2"></div>
+      <div class="glow-orb orb-3"></div>
+    </div>
+
     <!-- Bouton Accueil -->
     <router-link to="/" class="home-button" title="Retour à l'accueil">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -86,22 +94,38 @@ onMounted(() => {
     <div class="register-container">
       <!-- Logo et Header -->
       <div class="header">
-        <div class="logo-circle">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <div class="logo-container">
+          <div class="logo-ring outer"></div>
+          <div class="logo-ring inner"></div>
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
         </div>
         <h1>UCAC-ICAM</h1>
         <h2>Portail Captif</h2>
-        <p class="subtitle">Complétez votre inscription</p>
+        <p class="subtitle">Créez votre compte étudiant</p>
       </div>
 
       <!-- Carte d'inscription -->
       <div class="register-card">
-        <h3>Inscription</h3>
-        <p class="info-text">Utilisez les informations fournies par l'administration</p>
+        <div class="card-header">
+          <div class="header-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+              <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+              <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="23" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h3>Inscription</h3>
+            <p class="info-text">Utilisez les informations fournies par l'administration</p>
+          </div>
+        </div>
 
         <form @submit.prevent="handleRegister">
           <div class="form-row">
@@ -111,16 +135,18 @@ onMounted(() => {
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                Prénom *
+                Prénom
               </label>
-              <input
-                id="first_name"
-                v-model="formData.first_name"
-                type="text"
-                required
-                placeholder="Votre prénom"
-                autocomplete="given-name"
-              />
+              <div class="input-wrapper">
+                <input
+                  id="first_name"
+                  v-model="formData.first_name"
+                  type="text"
+                  required
+                  placeholder="Votre prénom"
+                  autocomplete="given-name"
+                />
+              </div>
             </div>
             <div class="form-group">
               <label for="last_name">
@@ -128,16 +154,18 @@ onMounted(() => {
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                Nom *
+                Nom
               </label>
-              <input
-                id="last_name"
-                v-model="formData.last_name"
-                type="text"
-                required
-                placeholder="Votre nom"
-                autocomplete="family-name"
-              />
+              <div class="input-wrapper">
+                <input
+                  id="last_name"
+                  v-model="formData.last_name"
+                  type="text"
+                  required
+                  placeholder="Votre nom"
+                  autocomplete="family-name"
+                />
+              </div>
             </div>
           </div>
 
@@ -148,18 +176,23 @@ onMounted(() => {
                   <path d="M22 10v6M2 10l10-5 10 5-10 5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M6 12v5c3 3 9 3 12 0v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                Promotion *
+                Promotion
               </label>
-              <select
-                id="promotion"
-                v-model="formData.promotion"
-                required
-              >
-                <option value="" disabled>Choisir une promotion</option>
-                <option v-for="promo in promotions" :key="promo.id" :value="promo.id">
-                  {{ promo.name }}
-                </option>
-              </select>
+              <div class="input-wrapper select-wrapper">
+                <select
+                  id="promotion"
+                  v-model="formData.promotion"
+                  required
+                >
+                  <option value="" disabled>Choisir une promotion</option>
+                  <option v-for="promo in promotions" :key="promo.id" :value="promo.id">
+                    {{ promo.name }}
+                  </option>
+                </select>
+                <svg class="select-arrow" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
             </div>
             <div class="form-group">
               <label for="matricule">
@@ -169,16 +202,18 @@ onMounted(() => {
                   <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                Matricule *
+                Matricule
               </label>
-              <input
-                id="matricule"
-                v-model="formData.matricule"
-                type="text"
-                required
-                placeholder="Votre matricule"
-                autocomplete="off"
-              />
+              <div class="input-wrapper">
+                <input
+                  id="matricule"
+                  v-model="formData.matricule"
+                  type="text"
+                  required
+                  placeholder="Ex: 2024XXXX"
+                  autocomplete="off"
+                />
+              </div>
             </div>
           </div>
 
@@ -188,9 +223,9 @@ onMounted(() => {
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              Mot de passe *
+              Mot de passe
             </label>
-            <div class="password-input-wrapper">
+            <div class="input-wrapper password-wrapper">
               <input
                 id="password"
                 v-model="formData.password"
@@ -222,10 +257,11 @@ onMounted(() => {
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="16" r="1" fill="currentColor"/>
               </svg>
-              Confirmation du mot de passe *
+              Confirmer le mot de passe
             </label>
-            <div class="password-input-wrapper">
+            <div class="input-wrapper password-wrapper">
               <input
                 id="password2"
                 v-model="formData.password2"
@@ -259,14 +295,22 @@ onMounted(() => {
             @dismiss="errorMessage = ''"
           />
 
-          <button type="submit" :disabled="authStore.isLoading" class="btn-primary">
+          <button type="submit" :disabled="authStore.isLoading" class="btn-submit">
             <LoadingSpinner v-if="authStore.isLoading" size="small" color="white" />
-            <span v-else>S'inscrire</span>
+            <template v-else>
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <line x1="23" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span>Créer mon compte</span>
+            </template>
           </button>
         </form>
 
         <div class="divider">
-          <span>OU</span>
+          <span>Déjà inscrit ?</span>
         </div>
 
         <div class="footer">
@@ -274,7 +318,7 @@ onMounted(() => {
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Déjà inscrit ? Se connecter
+            <span>Se connecter</span>
           </router-link>
         </div>
       </div>
@@ -288,6 +332,8 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
 * {
   margin: 0;
   padding: 0;
@@ -299,14 +345,82 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #dc2626 0%, #f97316 50%, #ff6b35 100%);
-  padding: 1rem;
+  background: linear-gradient(135deg, #0a0a12 0%, #0f0f1a 50%, #1a1a2e 100%);
+  padding: 2rem 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated Background */
+.bg-animation {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(242, 148, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(242, 148, 0, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+}
+
+@keyframes gridMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: float 10s ease-in-out infinite;
+}
+
+.orb-1 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(242, 148, 0, 0.3) 0%, transparent 70%);
+  top: -100px;
+  right: -100px;
+  animation-delay: 0s;
+}
+
+.orb-2 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(0, 142, 207, 0.3) 0%, transparent 70%);
+  bottom: -50px;
+  left: -50px;
+  animation-delay: -3s;
+}
+
+.orb-3 {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(162, 56, 130, 0.3) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: -6s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-30px) scale(1.05); }
 }
 
 .register-container {
   width: 100%;
-  max-width: 600px;
+  max-width: 560px;
   animation: fadeInUp 0.6s ease-out;
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes fadeInUp {
@@ -324,80 +438,140 @@ onMounted(() => {
 .header {
   text-align: center;
   margin-bottom: 2rem;
-  color: white;
 }
 
-.logo-circle {
-  width: 80px;
-  height: 80px;
+.logo-container {
+  width: 90px;
+  height: 90px;
   margin: 0 auto 1.5rem;
-  background: white;
-  border-radius: 50%;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  animation: pulse 2s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
+.logo-ring {
+  position: absolute;
+  border: 2px solid transparent;
+  border-radius: 50%;
 }
 
-.logo-circle svg {
-  width: 40px;
-  height: 40px;
-  color: #dc2626;
+.logo-ring.outer {
+  width: 100%;
+  height: 100%;
+  border-top-color: #F29400;
+  border-right-color: #F29400;
+  animation: spin 3s linear infinite;
+}
+
+.logo-ring.inner {
+  width: 70%;
+  height: 70%;
+  border-top-color: #008ecf;
+  border-left-color: #008ecf;
+  animation: spin 2s linear infinite reverse;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.logo-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, rgba(242, 148, 0, 0.2) 0%, rgba(0, 142, 207, 0.2) 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(242, 148, 0, 0.3);
+}
+
+.logo-icon svg {
+  width: 28px;
+  height: 28px;
+  color: #F29400;
 }
 
 .header h1 {
-  font-size: 2.5rem;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.2rem;
   font-weight: 800;
-  margin-bottom: 0.5rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-  letter-spacing: 2px;
+  color: white;
+  margin-bottom: 0.25rem;
+  letter-spacing: 3px;
+  text-shadow: 0 0 30px rgba(242, 148, 0, 0.5);
 }
 
 .header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #F29400;
   margin-bottom: 0.5rem;
-  opacity: 0.95;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 .subtitle {
-  font-size: 1rem;
-  opacity: 0.9;
-  font-weight: 300;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
 }
 
 /* Carte d'inscription */
 .register-card {
-  background: white;
-  padding: 2.5rem;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  padding: 2rem;
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(242, 148, 0, 0.2);
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   margin-bottom: 1.5rem;
 }
 
-.register-card h3 {
-  color: #dc2626;
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-  text-align: center;
-  font-weight: 700;
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, rgba(242, 148, 0, 0.2) 0%, rgba(242, 148, 0, 0.05) 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(242, 148, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.header-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #F29400;
+}
+
+.card-header h3 {
+  font-family: 'Rajdhani', sans-serif;
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
 }
 
 .info-text {
-  text-align: center;
-  color: #666;
-  font-size: 0.9rem;
-  margin-bottom: 2rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
 }
 
 /* Formulaire */
@@ -408,7 +582,7 @@ onMounted(() => {
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 label {
@@ -416,74 +590,83 @@ label {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
-  color: #333;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 label svg {
-  width: 18px;
-  height: 18px;
-  color: #f97316;
+  width: 16px;
+  height: 16px;
+  color: #F29400;
   flex-shrink: 0;
 }
 
-input {
-  width: 100%;
-  padding: 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  background: #f8f8f8;
-}
-
-input:focus {
-  outline: none;
-  border-color: #f97316;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
-}
-
-input::placeholder {
-  color: #999;
-}
-
-/* Select dropdown */
-.form-select {
-  width: 100%;
-  padding: 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  background: #f8f8f8;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  padding-right: 3rem;
-}
-
-.form-select:focus {
-  outline: none;
-  border-color: #f97316;
-  background-color: white;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
-}
-
-.form-select:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Password input with toggle */
-.password-input-wrapper {
+.input-wrapper {
   position: relative;
 }
 
-.password-input-wrapper input {
+input, select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #F29400;
+  background: rgba(242, 148, 0, 0.05);
+  box-shadow: 0 0 20px rgba(242, 148, 0, 0.15);
+}
+
+/* Select styling */
+.select-wrapper {
+  position: relative;
+}
+
+select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 2.5rem;
+}
+
+select option {
+  background: #1a1a2e;
+  color: white;
+  padding: 0.5rem;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  transition: color 0.3s ease;
+}
+
+.select-wrapper:focus-within .select-arrow {
+  color: #F29400;
+}
+
+/* Password input */
+.password-wrapper input {
   padding-right: 3rem;
 }
 
@@ -499,48 +682,57 @@ input::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: rgba(255, 255, 255, 0.4);
   transition: color 0.3s ease;
 }
 
 .toggle-password:hover {
-  color: #f97316;
+  color: #F29400;
 }
 
 .toggle-password svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Bouton principal */
+.btn-submit {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #F29400 0%, #e53212 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  box-shadow: 0 4px 20px rgba(242, 148, 0, 0.3);
+}
+
+.btn-submit svg {
   width: 20px;
   height: 20px;
 }
 
-/* Bouton principal */
-.btn-primary {
-  width: 100%;
-  padding: 1rem;
-  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.btn-primary:hover:not(:disabled) {
+.btn-submit:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+  box-shadow: 0 8px 30px rgba(242, 148, 0, 0.4);
 }
 
-.btn-primary:active:not(:disabled) {
+.btn-submit:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.btn-primary:disabled {
+.btn-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -548,7 +740,7 @@ input::placeholder {
 /* Divider */
 .divider {
   text-align: center;
-  margin: 2rem 0;
+  margin: 1.5rem 0;
   position: relative;
 }
 
@@ -557,9 +749,9 @@ input::placeholder {
   content: '';
   position: absolute;
   top: 50%;
-  width: 42%;
+  width: 38%;
   height: 1px;
-  background: #e0e0e0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
 }
 
 .divider::before {
@@ -571,11 +763,13 @@ input::placeholder {
 }
 
 .divider span {
-  background: white;
   padding: 0 1rem;
-  color: #999;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 /* Footer */
@@ -588,13 +782,17 @@ input::placeholder {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
-  border: 2px solid #f97316;
-  border-radius: 12px;
-  color: #f97316;
+  padding: 0.875rem 2rem;
+  background: transparent;
+  border: 1px solid rgba(0, 142, 207, 0.5);
+  border-radius: 10px;
+  color: #008ecf;
   text-decoration: none;
+  font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   transition: all 0.3s ease;
 }
 
@@ -604,70 +802,18 @@ input::placeholder {
 }
 
 .link-button:hover {
-  background: #f97316;
-  color: white;
+  background: rgba(0, 142, 207, 0.1);
+  border-color: #008ecf;
+  box-shadow: 0 0 20px rgba(0, 142, 207, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
 }
 
 /* Footer de la page */
 .page-footer {
   text-align: center;
-  color: white;
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
-/* Responsive */
-@media (max-width: 640px) {
-  .register-page {
-    padding: 0.5rem;
-  }
-
-  .header h1 {
-    font-size: 2rem;
-  }
-
-  .header h2 {
-    font-size: 1.2rem;
-  }
-
-  .register-card {
-    padding: 2rem 1.5rem;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .logo-circle {
-    width: 70px;
-    height: 70px;
-  }
-
-  .logo-circle svg {
-    width: 35px;
-    height: 35px;
-  }
-}
-
-@media (max-width: 380px) {
-  .header h1 {
-    font-size: 1.75rem;
-  }
-
-  .register-card {
-    padding: 1.5rem 1rem;
-  }
-
-  input {
-    padding: 0.875rem;
-  }
-
-  .btn-primary {
-    padding: 0.875rem;
-    font-size: 1rem;
-  }
+  color: rgba(255, 255, 255, 0.4);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
 }
 
 /* Bouton Accueil */
@@ -677,34 +823,74 @@ input::placeholder {
   left: 1.5rem;
   width: 50px;
   height: 50px;
-  background: white;
-  border-radius: 50%;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(242, 148, 0, 0.3);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   text-decoration: none;
   transition: all 0.3s ease;
   z-index: 100;
 }
 
 .home-button svg {
-  width: 24px;
-  height: 24px;
-  color: #dc2626;
-  transition: transform 0.3s ease;
+  width: 22px;
+  height: 22px;
+  color: #F29400;
+  transition: all 0.3s ease;
 }
 
 .home-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  background: rgba(242, 148, 0, 0.1);
+  border-color: #F29400;
+  box-shadow: 0 0 20px rgba(242, 148, 0, 0.3);
+  transform: translateY(-2px);
 }
 
-.home-button:hover svg {
-  transform: scale(1.1);
-}
-
+/* Responsive */
 @media (max-width: 640px) {
+  .register-page {
+    padding: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .header h2 {
+    font-size: 1rem;
+  }
+
+  .register-card {
+    padding: 1.5rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .card-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .logo-container {
+    width: 70px;
+    height: 70px;
+  }
+
+  .logo-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .logo-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
   .home-button {
     top: 1rem;
     left: 1rem;
@@ -713,8 +899,28 @@ input::placeholder {
   }
 
   .home-button svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 380px) {
+  .header h1 {
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+  }
+
+  .register-card {
+    padding: 1.25rem;
+  }
+
+  input, select {
+    padding: 0.75rem;
+  }
+
+  .btn-submit {
+    padding: 0.875rem;
+    font-size: 1rem;
   }
 }
 </style>
