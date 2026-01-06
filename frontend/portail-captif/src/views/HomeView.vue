@@ -31,14 +31,10 @@ async function verifyAccount() {
   verifyMessage.value = ''
 
   try {
-    // Simuler une vérification API - à remplacer par un vrai appel API
     await new Promise(resolve => setTimeout(resolve, 1500))
-
-    // Logique de vérification à implémenter
-    verifyMessage.value = 'Compte vérifié avec succès ! Votre compte est actif.'
-
-  } catch (error) {
-    verifyError.value = 'Erreur lors de la vérification. Veuillez réessayer.'
+    verifyMessage.value = 'Compte verifie avec succes ! Votre compte est actif.'
+  } catch {
+    verifyError.value = 'Erreur lors de la verification. Veuillez reessayer.'
   } finally {
     verifyLoading.value = false
   }
@@ -52,6 +48,10 @@ function goToRegister() {
   router.push('/register')
 }
 
+function goToLogin() {
+  router.push('/login')
+}
+
 function goToAdminLogin() {
   router.push('/admin/login')
 }
@@ -59,76 +59,136 @@ function goToAdminLogin() {
 
 <template>
   <div class="home-page">
-    <!-- Image de fond -->
-    <div class="image-background"></div>
+    <!-- Animated Background -->
+    <div class="bg-animated">
+      <div class="grid-overlay"></div>
+      <div class="gradient-orb orb-1"></div>
+      <div class="gradient-orb orb-2"></div>
+      <div class="gradient-orb orb-3"></div>
+      <div class="scan-line"></div>
+    </div>
 
-    <!-- Bouton Admin en haut à droite -->
-    <button @click="goToAdminLogin" class="admin-btn" title="Connexion administrateur">
+    <!-- Admin Button -->
+    <button @click="goToAdminLogin" class="admin-btn" title="Administration">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="2"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2"/>
       </svg>
       <span>Admin</span>
     </button>
 
+    <!-- Main Content -->
     <div class="content">
-      <!-- Logo et Titre -->
-      <div class="header-section">
-        <div class="logo-main">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+      <!-- Logo Section -->
+      <div class="logo-section animate-fadeInUp">
+        <div class="logo-container">
+          <div class="logo-ring ring-1"></div>
+          <div class="logo-ring ring-2"></div>
+          <div class="logo-ring ring-3"></div>
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
         </div>
-        <h1>UCAC-ICAM</h1>
-        <h2>Portail Captif Réseau</h2>
-        <p class="subtitle">Bienvenue sur le portail d'accès Internet</p>
+        <h1 class="title">
+          <span class="title-main">UCAC-ICAM</span>
+          <span class="title-glow">UCAC-ICAM</span>
+        </h1>
+        <h2 class="subtitle">Portail Captif Reseau</h2>
+        <p class="tagline">Systeme d'authentification securise</p>
       </div>
 
-      <!-- Boutons d'action -->
-      <div class="action-buttons">
-        <div class="btn-wrapper">
-          <button @click="goToRegister" class="btn btn-primary" title="Créer un compte">
+      <!-- Action Cards -->
+      <div class="action-grid animate-fadeInUp stagger-2">
+        <!-- Login Card -->
+        <button @click="goToLogin" class="action-card">
+          <div class="card-glow"></div>
+          <div class="card-icon orange">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span class="card-label">Connexion</span>
+          <span class="card-desc">Acceder a votre compte</span>
+          <div class="card-arrow">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </button>
+
+        <!-- Register Card -->
+        <button @click="goToRegister" class="action-card">
+          <div class="card-glow blue"></div>
+          <div class="card-icon blue">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="23" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+              <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="23" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
-          </button>
-          <span class="btn-label">Créer un compte</span>
-        </div>
+          </div>
+          <span class="card-label">Inscription</span>
+          <span class="card-desc">Creer un nouveau compte</span>
+          <div class="card-arrow">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </button>
 
-        <div class="btn-wrapper">
-          <button @click="openVerifyModal" class="btn btn-secondary" title="Vérifier son compte">
+        <!-- Verify Card -->
+        <button @click="openVerifyModal" class="action-card">
+          <div class="card-glow magenta"></div>
+          <div class="card-icon magenta">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-          </button>
-          <span class="btn-label">Vérifier compte</span>
-        </div>
-
-        <div class="btn-wrapper">
-          <button @click="goToInternet" class="btn btn-accent" title="Aller sur Internet">
+          </div>
+          <span class="card-label">Verification</span>
+          <span class="card-desc">Verifier votre compte</span>
+          <div class="card-arrow">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-          </button>
-          <span class="btn-label">Aller sur Internet</span>
-        </div>
+          </div>
+        </button>
+
+        <!-- Internet Card -->
+        <button @click="goToInternet" class="action-card">
+          <div class="card-glow green"></div>
+          <div class="card-icon green">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </div>
+          <span class="card-label">Internet</span>
+          <span class="card-desc">Acceder au reseau</span>
+          <div class="card-arrow">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </button>
       </div>
 
       <!-- Footer -->
-      <div class="footer">
-        <p>&copy; 2024 UCAC-ICAM - Portail d'accès réseau sécurisé</p>
+      <div class="footer animate-fadeInUp stagger-3">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>Systeme operationnel</span>
+        </div>
+        <p>&copy; 2024 UCAC-ICAM - Portail Captif Securise</p>
       </div>
     </div>
 
-    <!-- Modal de vérification -->
+    <!-- Verify Modal -->
     <Teleport to="body">
       <div v-if="showVerifyModal" class="modal-overlay" @click="closeVerifyModal">
         <div class="modal-content" @click.stop>
@@ -141,36 +201,34 @@ function goToAdminLogin() {
           <div class="modal-header">
             <div class="modal-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <h3>Vérification du compte</h3>
-            <p>Entrez votre matricule pour vérifier l'état de votre compte</p>
+            <h3>Verification du compte</h3>
+            <p>Entrez votre matricule pour verifier l'etat de votre compte</p>
           </div>
 
           <div class="modal-body">
-            <div class="form-group">
-              <label for="matricule">
+            <div class="input-group">
+              <label class="input-label">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
-                  <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                  <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  <line x1="23" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
                 </svg>
                 Matricule
               </label>
               <input
-                id="matricule"
                 v-model="matricule"
                 type="text"
+                class="input"
                 placeholder="Ex: UCAC2024001"
                 @keyup.enter="verifyAccount"
                 :disabled="verifyLoading"
               />
             </div>
 
-            <div v-if="verifyMessage" class="success-message">
+            <div v-if="verifyMessage" class="alert alert-success">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -178,7 +236,7 @@ function goToAdminLogin() {
               {{ verifyMessage }}
             </div>
 
-            <div v-if="verifyError" class="error-message">
+            <div v-if="verifyError" class="alert alert-error">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                 <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -187,13 +245,9 @@ function goToAdminLogin() {
               {{ verifyError }}
             </div>
 
-            <button
-              @click="verifyAccount"
-              :disabled="verifyLoading"
-              class="btn btn-primary btn-full"
-            >
-              <span v-if="verifyLoading">Vérification en cours...</span>
-              <span v-else>Vérifier</span>
+            <button @click="verifyAccount" :disabled="verifyLoading" class="btn-verify">
+              <span v-if="verifyLoading" class="spinner"></span>
+              <span v-else>Verifier</span>
             </button>
           </div>
         </div>
@@ -203,331 +257,452 @@ function goToAdminLogin() {
 </template>
 
 <style scoped>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 .home-page {
-  height: 100vh;
+  min-height: 100vh;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  background: #050508;
 }
 
-/* Image de fond */
-.image-background {
+/* Animated Background */
+.bg-animated {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('/image-bg.jpg') center/cover;
-  z-index: 0;
-  animation: zoomImage 5s ease-in-out infinite alternate;
+  overflow: hidden;
 }
 
-.image-background::after {
-  content: '';
+.grid-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  background-image:
+    linear-gradient(rgba(242, 148, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(242, 148, 0, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: gridMove 20s linear infinite;
 }
 
-@keyframes zoomImage {
-  0% {
-    transform: scale(1);
-  }
-  100% {
-    transform: scale(1.1);
-  }
+@keyframes gridMove {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(60px); }
 }
 
-/* Contenu principal */
-.content {
-  position: relative;
-  z-index: 1;
-  text-align: center;
-  padding: 1.5rem 2rem;
-  max-width: 900px;
-  width: 100%;
-  animation: fadeInUp 0.8s ease-out;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 100vh;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Header Section */
-.header-section {
-  margin-bottom: 2rem;
-  color: white;
-}
-
-.logo-main {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 1rem;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  animation: pulse 3s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  }
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 15px 60px rgba(220, 38, 38, 0.6);
-  }
-}
-
-.logo-main svg {
-  width: 40px;
-  height: 40px;
-  color: white;
-}
-
-.header-section h1 {
-  font-size: 2.5rem;
-  font-weight: 900;
-  margin-bottom: 0.5rem;
-  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
-  letter-spacing: 2px;
-  background: linear-gradient(135deg, #fff 0%, #f97316 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.header-section h2 {
-  font-size: 1.35rem;
-  font-weight: 600;
-  margin-bottom: 0.4rem;
-  opacity: 0.95;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.subtitle {
-  font-size: 1rem;
-  opacity: 0.9;
-  font-weight: 300;
-}
-
-/* Boutons d'action */
-.action-buttons {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 2.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.btn-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.btn {
-  width: 100px;
-  height: 100px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.4s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  box-shadow:
-    0 0 8px rgba(255, 255, 255, 0.2),
-    0 0 15px rgba(255, 255, 255, 0.1),
-    0 4px 8px rgba(0, 0, 0, 0.3),
-    inset 0 -10px 20px rgba(0, 0, 0, 0.3),
-    inset 0 6px 20px rgba(255, 255, 255, 0.2);
-}
-
-.btn::before {
-  content: '';
+.gradient-orb {
   position: absolute;
-  top: -3px;
-  left: -3px;
-  right: -3px;
-  bottom: -3px;
   border-radius: 50%;
-  background: transparent;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.4s ease;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: orbFloat 8s ease-in-out infinite;
 }
 
-.btn svg {
-  width: 36px;
-  height: 36px;
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+.orb-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, #F29400 0%, transparent 70%);
+  top: -200px;
+  right: -200px;
+  animation-delay: 0s;
 }
 
-.btn-label {
-  color: white;
-  font-size: 0.95rem;
-  font-weight: 600;
-  text-align: center;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+.orb-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #008ecf 0%, transparent 70%);
+  bottom: -150px;
+  left: -150px;
+  animation-delay: 2s;
 }
 
-.btn-primary {
-  background: radial-gradient(circle at 30% 30%, #ef4444, #dc2626 50%, #991b1b);
-  color: white;
-  border-color: rgba(220, 38, 38, 0.5);
+.orb-3 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #a23882 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: 4s;
 }
 
-.btn-primary:hover {
-  background: radial-gradient(circle at 30% 30%, #f87171, #ef4444 50%, #b91c1c);
-  transform: translateY(-6px) scale(1.05);
-  border-color: rgba(239, 68, 68, 0.8);
-  box-shadow:
-    0 0 15px rgba(220, 38, 38, 0.6),
-    0 0 30px rgba(220, 38, 38, 0.4),
-    0 0 45px rgba(220, 38, 38, 0.2),
-    0 6px 12px rgba(0, 0, 0, 0.3),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.35),
-    inset 0 8px 16px rgba(255, 255, 255, 0.25);
+@keyframes orbFloat {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.4; }
+  50% { transform: scale(1.1) translate(20px, -20px); opacity: 0.6; }
 }
 
-.btn-secondary {
-  background: radial-gradient(circle at 30% 30%, #9ca3af, #6b7280 50%, #374151);
-  color: white;
-  border-color: rgba(107, 114, 128, 0.5);
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #F29400, transparent);
+  animation: scanMove 4s linear infinite;
 }
 
-.btn-secondary:hover {
-  background: radial-gradient(circle at 30% 30%, #d1d5db, #9ca3af 50%, #4b5563);
-  transform: translateY(-6px) scale(1.05);
-  border-color: rgba(156, 163, 175, 0.8);
-  box-shadow:
-    0 0 15px rgba(107, 114, 128, 0.6),
-    0 0 30px rgba(107, 114, 128, 0.4),
-    0 0 45px rgba(107, 114, 128, 0.2),
-    0 6px 12px rgba(0, 0, 0, 0.3),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.35),
-    inset 0 8px 16px rgba(255, 255, 255, 0.25);
+@keyframes scanMove {
+  0% { top: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
 }
 
-.btn-accent {
-  background: radial-gradient(circle at 30% 30%, #fb923c, #f97316 50%, #c2410c);
-  color: white;
-  border-color: rgba(249, 115, 22, 0.5);
-}
-
-.btn-accent:hover {
-  background: radial-gradient(circle at 30% 30%, #fdba74, #fb923c 50%, #ea580c);
-  transform: translateY(-6px) scale(1.05);
-  border-color: rgba(251, 146, 60, 0.8);
-  box-shadow:
-    0 0 15px rgba(249, 115, 22, 0.6),
-    0 0 30px rgba(249, 115, 22, 0.4),
-    0 0 45px rgba(249, 115, 22, 0.2),
-    0 6px 12px rgba(0, 0, 0, 0.3),
-    inset 0 -8px 16px rgba(0, 0, 0, 0.35),
-    inset 0 8px 16px rgba(255, 255, 255, 0.25);
-}
-
-/* Bouton Admin */
+/* Admin Button */
 .admin-btn {
   position: fixed;
   top: 2rem;
   right: 2rem;
   z-index: 100;
-  background: rgba(17, 24, 39, 0.9);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(249, 115, 22, 0.5);
+  background: rgba(10, 10, 15, 0.9);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(242, 148, 0, 0.3);
   border-radius: 12px;
-  padding: 0.75rem 1.25rem;
+  padding: 0.75rem 1.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: white;
+  color: #F29400;
+  font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
   font-size: 0.95rem;
-  box-shadow:
-    0 0 10px rgba(249, 115, 22, 0.3),
-    0 4px 12px rgba(0, 0, 0, 0.4),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
-    inset 0 2px 8px rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .admin-btn svg {
   width: 20px;
   height: 20px;
-  color: #f97316;
-  animation: rotate 8s linear infinite;
+  animation: rotate 10s linear infinite;
 }
 
 @keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .admin-btn:hover {
-  background: rgba(17, 24, 39, 1);
-  border-color: rgba(249, 115, 22, 0.8);
+  background: rgba(242, 148, 0, 0.1);
+  border-color: #F29400;
+  box-shadow: 0 0 30px rgba(242, 148, 0, 0.3);
   transform: translateY(-2px);
-  box-shadow:
-    0 0 20px rgba(249, 115, 22, 0.6),
-    0 0 40px rgba(249, 115, 22, 0.3),
-    0 6px 16px rgba(0, 0, 0, 0.5),
-    inset 0 -3px 6px rgba(0, 0, 0, 0.4),
-    inset 0 3px 6px rgba(255, 255, 255, 0.15);
 }
 
 .admin-btn:hover svg {
-  animation: rotate 2s linear infinite;
-  color: #fb923c;
+  animation-duration: 2s;
+}
+
+/* Content */
+.content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 2rem;
+  max-width: 1000px;
+  width: 100%;
+}
+
+/* Logo Section */
+.logo-section {
+  margin-bottom: 3rem;
+}
+
+.logo-container {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 2rem;
+}
+
+.logo-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+.ring-1 {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-color: rgba(242, 148, 0, 0.3);
+  animation: ringRotate 10s linear infinite;
+}
+
+.ring-2 {
+  top: 10px;
+  left: 10px;
+  width: calc(100% - 20px);
+  height: calc(100% - 20px);
+  border-color: rgba(0, 142, 207, 0.3);
+  animation: ringRotate 8s linear infinite reverse;
+}
+
+.ring-3 {
+  top: 20px;
+  left: 20px;
+  width: calc(100% - 40px);
+  height: calc(100% - 40px);
+  border-color: rgba(162, 56, 130, 0.3);
+  animation: ringRotate 6s linear infinite;
+}
+
+@keyframes ringRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.logo-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, rgba(242, 148, 0, 0.2) 0%, rgba(162, 56, 130, 0.2) 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(242, 148, 0, 0.3);
+}
+
+.logo-icon svg {
+  width: 40px;
+  height: 40px;
+  color: #F29400;
+}
+
+.title {
+  position: relative;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.5rem;
+}
+
+.title-main {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(135deg, #ffffff 0%, #F29400 50%, #008ecf 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.title-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  color: #F29400;
+  filter: blur(20px);
+  opacity: 0.5;
+  z-index: 0;
+}
+
+.subtitle {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #008ecf;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin-bottom: 0.5rem;
+}
+
+.tagline {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  color: #636362;
+  letter-spacing: 0.05em;
+}
+
+/* Action Grid */
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.action-card {
+  position: relative;
+  background: rgba(20, 20, 30, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 2rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  overflow: hidden;
+  text-align: center;
+}
+
+.card-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(242, 148, 0, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.card-glow.blue {
+  background: radial-gradient(circle at center, rgba(0, 142, 207, 0.1) 0%, transparent 70%);
+}
+
+.card-glow.magenta {
+  background: radial-gradient(circle at center, rgba(162, 56, 130, 0.1) 0%, transparent 70%);
+}
+
+.card-glow.green {
+  background: radial-gradient(circle at center, rgba(0, 207, 93, 0.1) 0%, transparent 70%);
+}
+
+.action-card:hover .card-glow {
+  opacity: 1;
+}
+
+.card-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  transition: all 0.4s ease;
+}
+
+.card-icon svg {
+  width: 32px;
+  height: 32px;
+  color: white;
+}
+
+.card-icon.orange {
+  background: linear-gradient(135deg, #F29400 0%, #cc7a00 100%);
+  box-shadow: 0 0 30px rgba(242, 148, 0, 0.4);
+}
+
+.card-icon.blue {
+  background: linear-gradient(135deg, #008ecf 0%, #006699 100%);
+  box-shadow: 0 0 30px rgba(0, 142, 207, 0.4);
+}
+
+.card-icon.magenta {
+  background: linear-gradient(135deg, #a23882 0%, #7a2962 100%);
+  box-shadow: 0 0 30px rgba(162, 56, 130, 0.4);
+}
+
+.card-icon.green {
+  background: linear-gradient(135deg, #00cf5d 0%, #00a648 100%);
+  box-shadow: 0 0 30px rgba(0, 207, 93, 0.4);
+}
+
+.card-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  z-index: 1;
+}
+
+.card-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: #636362;
+  position: relative;
+  z-index: 1;
+}
+
+.card-arrow {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.4s ease;
+}
+
+.card-arrow svg {
+  width: 16px;
+  height: 16px;
+  color: #F29400;
+}
+
+.action-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(242, 148, 0, 0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.action-card:hover .card-icon {
+  transform: scale(1.1);
+}
+
+.action-card:hover .card-arrow {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* Footer */
 .footer {
-  color: white;
-  font-size: 0.8rem;
-  opacity: 0.8;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-  margin-top: 0.75rem;
+  color: #636362;
+  font-size: 0.9rem;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(0, 207, 93, 0.1);
+  border: 1px solid rgba(0, 207, 93, 0.3);
+  border-radius: 20px;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: #00cf5d;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: #00cf5d;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
 }
 
 /* Modal */
@@ -537,12 +712,12 @@ function goToAdminLogin() {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 1000;
   padding: 1rem;
   animation: fadeIn 0.3s ease-out;
 }
@@ -553,33 +728,29 @@ function goToAdminLogin() {
 }
 
 .modal-content {
-  background: white;
+  background: linear-gradient(135deg, rgba(20, 20, 30, 0.95) 0%, rgba(10, 10, 15, 0.95) 100%);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(242, 148, 0, 0.2);
   border-radius: 24px;
   padding: 2.5rem;
-  max-width: 500px;
+  max-width: 450px;
   width: 100%;
   position: relative;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 60px rgba(242, 148, 0, 0.1);
   animation: slideUp 0.4s ease-out;
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-close {
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
-  background: #f3f4f6;
-  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -588,21 +759,19 @@ function goToAdminLogin() {
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
+  color: #636362;
 }
 
 .modal-close svg {
   width: 20px;
   height: 20px;
-  color: #6b7280;
 }
 
 .modal-close:hover {
-  background: #dc2626;
+  background: rgba(229, 50, 18, 0.2);
+  border-color: #e53212;
+  color: #e53212;
   transform: rotate(90deg);
-}
-
-.modal-close:hover svg {
-  color: white;
 }
 
 .modal-header {
@@ -614,11 +783,12 @@ function goToAdminLogin() {
   width: 80px;
   height: 80px;
   margin: 0 auto 1.5rem;
-  background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
-  border-radius: 50%;
+  background: linear-gradient(135deg, #a23882 0%, #7a2962 100%);
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 40px rgba(162, 56, 130, 0.4);
 }
 
 .modal-icon svg {
@@ -628,406 +798,214 @@ function goToAdminLogin() {
 }
 
 .modal-header h3 {
-  color: #111827;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 1.75rem;
-  margin-bottom: 0.75rem;
-  font-weight: 800;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .modal-header p {
-  color: #6b7280;
-  font-size: 1rem;
+  color: #636362;
+  font-size: 0.95rem;
 }
 
-.modal-body .form-group {
+.modal-body .input-group {
   margin-bottom: 1.5rem;
 }
 
-.modal-body label {
+.modal-body .input-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
-  color: #111827;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
   font-weight: 600;
-  font-size: 1rem;
+  color: #636362;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.modal-body label svg {
-  width: 20px;
-  height: 20px;
-  color: #f97316;
+.modal-body .input-label svg {
+  width: 18px;
+  height: 18px;
+  color: #a23882;
 }
 
-.modal-body input {
+.modal-body .input {
   width: 100%;
-  padding: 1.125rem;
-  border: 2px solid #e5e7eb;
+  padding: 1rem 1.25rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  font-size: 1.1rem;
+  outline: none;
   transition: all 0.3s ease;
-  background: #f9fafb;
   text-align: center;
   font-weight: 600;
-  letter-spacing: 1px;
+  letter-spacing: 0.1em;
 }
 
-.modal-body input:focus {
-  outline: none;
-  border-color: #f97316;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.1);
+.modal-body .input::placeholder {
+  color: #636362;
 }
 
-.modal-body input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.modal-body .input:focus {
+  border-color: #a23882;
+  background: rgba(162, 56, 130, 0.05);
+  box-shadow: 0 0 20px rgba(162, 56, 130, 0.2);
 }
 
-.success-message {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  border: 2px solid #34d399;
-  color: #065f46;
-  padding: 1rem;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
+.alert {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-weight: 600;
-}
-
-.success-message svg {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  color: #059669;
-}
-
-.error-message {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  border: 2px solid #f87171;
-  color: #991b1b;
   padding: 1rem;
   border-radius: 12px;
   margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 
-.error-message svg {
+.alert svg {
   width: 24px;
   height: 24px;
   flex-shrink: 0;
-  color: #dc2626;
 }
 
-.btn-full {
+.alert-success {
+  background: rgba(0, 207, 93, 0.1);
+  border: 1px solid rgba(0, 207, 93, 0.3);
+  color: #00cf5d;
+}
+
+.alert-error {
+  background: rgba(229, 50, 18, 0.1);
+  border: 1px solid rgba(229, 50, 18, 0.3);
+  color: #e53212;
+}
+
+.btn-verify {
   width: 100%;
-  border-radius: 16px;
-  height: auto;
-  padding: 1.125rem 2rem;
+  padding: 1rem 2rem;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 1.1rem;
-  font-weight: 600;
-  border: 2px solid rgba(220, 38, 38, 0.5);
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.3),
-    inset 0 -6px 12px rgba(0, 0, 0, 0.25),
-    inset 0 4px 12px rgba(255, 255, 255, 0.15);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: white;
+  background: linear-gradient(135deg, #a23882 0%, #7a2962 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.btn-full:hover:not(:disabled) {
+.btn-verify:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow:
-    0 0 12px rgba(220, 38, 38, 0.5),
-    0 0 25px rgba(220, 38, 38, 0.3),
-    0 0 35px rgba(220, 38, 38, 0.15),
-    0 6px 12px rgba(0, 0, 0, 0.3),
-    inset 0 -5px 10px rgba(0, 0, 0, 0.3),
-    inset 0 5px 10px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 30px rgba(162, 56, 130, 0.5);
 }
 
-.btn-full:disabled {
+.btn-verify:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: rotate 1s linear infinite;
 }
 
 /* Responsive */
-@media (max-width: 900px) and (max-height: 700px) {
-  .admin-btn {
-    top: 1.5rem;
-    right: 1.5rem;
-    padding: 0.65rem 1rem;
-    font-size: 0.9rem;
-  }
-
-  .admin-btn svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .content {
-    padding: 1rem 1.5rem;
-  }
-
-  .header-section {
-    margin-bottom: 1.5rem;
-  }
-
-  .header-section h1 {
-    font-size: 2rem;
-  }
-
-  .header-section h2 {
-    font-size: 1.15rem;
-  }
-
-  .logo-main {
-    width: 70px;
-    height: 70px;
-    margin-bottom: 0.75rem;
-  }
-
-  .logo-main svg {
-    width: 35px;
-    height: 35px;
-  }
-
-  .action-buttons {
-    gap: 2rem;
-    margin-bottom: 1rem;
-  }
-
-  .btn {
-    width: 85px;
-    height: 85px;
-  }
-
-  .btn svg {
-    width: 32px;
-    height: 32px;
-  }
-
-  .btn-label {
-    font-size: 0.85rem;
-  }
-
-  .footer {
-    font-size: 0.75rem;
-    margin-top: 0.5rem;
+@media (max-width: 900px) {
+  .action-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
   .admin-btn {
-    top: 1.25rem;
-    right: 1.25rem;
-    padding: 0.6rem 0.9rem;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.6rem 1rem;
     font-size: 0.85rem;
   }
 
-  .admin-btn svg {
-    width: 16px;
-    height: 16px;
+  .title {
+    font-size: 2.5rem;
   }
 
-  .content {
-    padding: 1.25rem 1.5rem;
+  .subtitle {
+    font-size: 1.2rem;
   }
 
-  .header-section {
-    margin-bottom: 1.5rem;
+  .logo-container {
+    width: 120px;
+    height: 120px;
   }
 
-  .header-section h1 {
-    font-size: 2rem;
+  .logo-icon {
+    width: 60px;
+    height: 60px;
   }
 
-  .header-section h2 {
-    font-size: 1.15rem;
-  }
-
-  .logo-main {
-    width: 70px;
-    height: 70px;
-    margin-bottom: 0.75rem;
-  }
-
-  .logo-main svg {
-    width: 35px;
-    height: 35px;
-  }
-
-  .action-buttons {
-    gap: 2rem;
-    margin-bottom: 1.25rem;
-  }
-
-  .btn {
-    width: 85px;
-    height: 85px;
-  }
-
-  .btn svg {
-    width: 32px;
-    height: 32px;
-  }
-
-  .btn-label {
-    font-size: 0.85rem;
-  }
-
-  .modal-content {
-    padding: 2rem 1.5rem;
+  .logo-icon svg {
+    width: 30px;
+    height: 30px;
   }
 }
 
 @media (max-width: 600px) {
-  .content {
-    padding: 1rem;
-  }
-
-  .header-section {
-    margin-bottom: 1.25rem;
-  }
-
-  .header-section h1 {
-    font-size: 1.75rem;
-  }
-
-  .header-section h2 {
-    font-size: 1rem;
-  }
-
-  .subtitle {
-    font-size: 0.85rem;
-  }
-
-  .logo-main {
-    width: 60px;
-    height: 60px;
-    margin-bottom: 0.6rem;
-  }
-
-  .logo-main svg {
-    width: 30px;
-    height: 30px;
-  }
-
-  .action-buttons {
-    gap: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .btn {
-    width: 75px;
-    height: 75px;
-  }
-
-  .btn svg {
-    width: 28px;
-    height: 28px;
-  }
-
-  .btn-label {
-    font-size: 0.8rem;
-  }
-
-  .footer {
-    font-size: 0.7rem;
-    margin-top: 0.5rem;
-  }
-}
-
-@media (max-width: 450px) {
-  .content {
-    padding: 0.75rem;
-  }
-
-  .header-section {
-    margin-bottom: 1rem;
-  }
-
-  .header-section h1 {
-    font-size: 1.5rem;
-    letter-spacing: 1px;
-  }
-
-  .header-section h2 {
-    font-size: 0.95rem;
-  }
-
-  .subtitle {
-    font-size: 0.8rem;
-  }
-
-  .logo-main {
-    width: 55px;
-    height: 55px;
-    margin-bottom: 0.5rem;
-  }
-
-  .logo-main svg {
-    width: 28px;
-    height: 28px;
-  }
-
-  .action-buttons {
-    gap: 1.25rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .btn {
-    width: 70px;
-    height: 70px;
-  }
-
-  .btn svg {
-    width: 26px;
-    height: 26px;
-  }
-
-  .btn-label {
-    font-size: 0.75rem;
-  }
-
-  .footer {
-    font-size: 0.65rem;
-  }
-}
-
-@media (max-width: 380px) {
-  .header-section h1 {
-    font-size: 1.35rem;
-  }
-
-  .header-section h2 {
-    font-size: 0.9rem;
-  }
-
-  .subtitle {
-    font-size: 0.75rem;
-  }
-
-  .action-buttons {
+  .action-grid {
+    grid-template-columns: 1fr;
     gap: 1rem;
   }
 
-  .btn {
-    width: 65px;
-    height: 65px;
+  .action-card {
+    flex-direction: row;
+    padding: 1.5rem;
+    text-align: left;
   }
 
-  .btn svg {
-    width: 24px;
-    height: 24px;
+  .card-icon {
+    width: 60px;
+    height: 60px;
   }
 
-  .btn-label {
-    font-size: 0.7rem;
+  .card-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+@media (max-width: 400px) {
+  .title {
+    font-size: 1.6rem;
+  }
+
+  .content {
+    padding: 1rem;
   }
 }
 </style>

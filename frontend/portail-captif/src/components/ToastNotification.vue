@@ -27,13 +27,16 @@ function getIcon(type: string) {
           :class="['toast', `toast-${notification.type}`]"
           @click="notificationStore.removeNotification(notification.id)"
         >
-          <svg
-            class="toast-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            v-html="getIcon(notification.type)"
-          ></svg>
+          <div class="toast-glow"></div>
+          <div class="toast-icon-wrapper">
+            <svg
+              class="toast-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              v-html="getIcon(notification.type)"
+            ></svg>
+          </div>
           <span class="toast-message">{{ notification.message }}</span>
           <button
             class="toast-close"
@@ -56,130 +59,186 @@ function getIcon(type: string) {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 .toast-container {
   position: fixed;
-  top: 1rem;
-  right: 1rem;
+  top: 1.5rem;
+  right: 1.5rem;
   z-index: 10000;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-width: 400px;
+  max-width: 420px;
   pointer-events: none;
 }
 
 .toast {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   padding: 1rem 1.25rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  background: rgba(15, 15, 25, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 14px;
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
   pointer-events: auto;
-  min-width: 300px;
+  min-width: 320px;
   transition: all 0.3s ease;
-  border-left: 4px solid;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.toast::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
 }
 
 .toast:hover {
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
-  transform: translateX(-4px);
+  transform: translateX(-8px);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.toast-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+.toast-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .toast-icon {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
 }
 
 .toast-message {
   flex: 1;
+  font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
   font-weight: 500;
   line-height: 1.4;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .toast-close {
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  transition: background 0.2s ease;
+  border-radius: 8px;
+  transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
 .toast-close svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .toast-close:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toast-close:hover svg {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* Toast types */
-.toast-success {
-  border-left-color: #10b981;
+.toast-success::before {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
 }
 
-.toast-success .toast-icon,
-.toast-success .toast-close {
+.toast-success .toast-icon-wrapper {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.toast-success .toast-icon {
   color: #10b981;
 }
 
-.toast-success .toast-message {
-  color: #065f46;
+.toast-success .toast-glow {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, transparent 100%);
 }
 
-.toast-error {
-  border-left-color: #dc2626;
+.toast-error::before {
+  background: linear-gradient(180deg, #e53212 0%, #dc2626 100%);
 }
 
-.toast-error .toast-icon,
-.toast-error .toast-close {
-  color: #dc2626;
+.toast-error .toast-icon-wrapper {
+  background: rgba(229, 50, 18, 0.15);
 }
 
-.toast-error .toast-message {
-  color: #991b1b;
+.toast-error .toast-icon {
+  color: #e53212;
 }
 
-.toast-warning {
-  border-left-color: #f59e0b;
+.toast-error .toast-glow {
+  background: linear-gradient(90deg, rgba(229, 50, 18, 0.2) 0%, transparent 100%);
 }
 
-.toast-warning .toast-icon,
-.toast-warning .toast-close {
-  color: #f59e0b;
+.toast-warning::before {
+  background: linear-gradient(180deg, #F29400 0%, #ea580c 100%);
 }
 
-.toast-warning .toast-message {
-  color: #92400e;
+.toast-warning .toast-icon-wrapper {
+  background: rgba(242, 148, 0, 0.15);
 }
 
-.toast-info {
-  border-left-color: #3b82f6;
+.toast-warning .toast-icon {
+  color: #F29400;
 }
 
-.toast-info .toast-icon,
-.toast-info .toast-close {
-  color: #3b82f6;
+.toast-warning .toast-glow {
+  background: linear-gradient(90deg, rgba(242, 148, 0, 0.2) 0%, transparent 100%);
 }
 
-.toast-info .toast-message {
-  color: #1e3a8a;
+.toast-info::before {
+  background: linear-gradient(180deg, #008ecf 0%, #0284c7 100%);
+}
+
+.toast-info .toast-icon-wrapper {
+  background: rgba(0, 142, 207, 0.15);
+}
+
+.toast-info .toast-icon {
+  color: #008ecf;
+}
+
+.toast-info .toast-glow {
+  background: linear-gradient(90deg, rgba(0, 142, 207, 0.2) 0%, transparent 100%);
 }
 
 /* Transitions */
 .toast-enter-active,
 .toast-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .toast-enter-from {
@@ -189,14 +248,14 @@ function getIcon(type: string) {
 
 .toast-leave-to {
   opacity: 0;
-  transform: translateX(100px) scale(0.8);
+  transform: translateX(100px) scale(0.9);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .toast-container {
-    right: 0.5rem;
-    left: 0.5rem;
+    right: 0.75rem;
+    left: 0.75rem;
     max-width: none;
   }
 
