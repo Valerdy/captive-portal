@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2024-01-06T10:00:00.000Z" agent="Mozilla/5.0" version="22.1.0" type="device">
+  <diagram name="Séquence - Portail Captif" id="sequence-captive-portal">
+    <mxGraphModel dx="1434" dy="838" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Titre Principal -->
+        <mxCell id="title1" value="&lt;b&gt;DIAGRAMME DE SÉQUENCE - PORTAIL CAPTIF&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontColor=#1a73e8;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="500" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- SECTION 1: GESTION DES UTILISATEURS -->
+        <!-- ============================================ -->
+
+        <mxCell id="section1" value="&lt;b&gt;1. GESTION DES UTILISATEURS&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#e3f2fd;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontColor=#1565c0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="50" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Acteurs Section 1 -->
+        <mxCell id="admin1" value="Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dcedc8;strokeColor=#33691e;" vertex="1" parent="1">
+          <mxGeometry x="50" y="90" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="django1" value="Django&#xa;(Backend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="150" y="90" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="radius1" value="FreeRADIUS&#xa;(radcheck)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c2185b;" vertex="1" parent="1">
+          <mxGeometry x="280" y="90" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mikrotik1" value="MikroTik&#xa;(Hotspot)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="410" y="90" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Lignes de vie -->
+        <mxCell id="lifeline1a" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="65" y="150" as="sourcePoint" />
+            <mxPoint x="65" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline1b" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="190" y="140" as="sourcePoint" />
+            <mxPoint x="190" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline1c" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="320" y="140" as="sourcePoint" />
+            <mxPoint x="320" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline1d" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="140" as="sourcePoint" />
+            <mxPoint x="450" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Messages Section 1 -->
+        <mxCell id="msg1" value="1. Créer utilisateur" style="endArrow=classic;html=1;strokeColor=#1565c0;fontColor=#1565c0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="70" y="165" as="sourcePoint" />
+            <mxPoint x="180" y="165" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg2" value="2. Sauvegarder User (is_radius_activated=false)" style="endArrow=classic;html=1;strokeColor=#1565c0;dashed=1;fontColor=#1565c0;" edge="1" parent="1">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint x="180" y="190" as="sourcePoint" />
+            <mxPoint x="70" y="190" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3" value="3. Activer RADIUS" style="endArrow=classic;html=1;strokeColor=#c2185b;fontColor=#c2185b;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="70" y="220" as="sourcePoint" />
+            <mxPoint x="180" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4" value="4. Créer entrée radcheck (password)" style="endArrow=classic;html=1;strokeColor=#c2185b;fontColor=#c2185b;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="245" as="sourcePoint" />
+            <mxPoint x="310" y="245" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg5" value="5. Créer entrée radusergroup (groupe profil)" style="endArrow=classic;html=1;strokeColor=#c2185b;fontColor=#c2185b;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="270" as="sourcePoint" />
+            <mxPoint x="310" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg6" value="6. is_radius_activated = true" style="endArrow=classic;html=1;strokeColor=#c2185b;dashed=1;fontColor=#c2185b;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="295" as="sourcePoint" />
+            <mxPoint x="70" y="295" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg7" value="7. Utilisateur se connecte WiFi" style="endArrow=classic;html=1;strokeColor=#2e7d32;fontColor=#2e7d32;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="325" as="sourcePoint" />
+            <mxPoint x="330" y="325" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg8" value="8. Access-Accept (attributs profil)" style="endArrow=classic;html=1;strokeColor=#2e7d32;dashed=1;fontColor=#2e7d32;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="330" y="355" as="sourcePoint" />
+            <mxPoint x="450" y="355" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- SECTION 2: GESTION DES PROFILS -->
+        <!-- ============================================ -->
+
+        <mxCell id="section2" value="&lt;b&gt;2. GESTION DES PROFILS&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#fff3e0;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="530" y="50" width="250" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Acteurs Section 2 -->
+        <mxCell id="admin2" value="Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dcedc8;strokeColor=#33691e;" vertex="1" parent="1">
+          <mxGeometry x="560" y="90" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="django2" value="Django&#xa;(Profile)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="660" y="90" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="radius2" value="FreeRADIUS&#xa;(radgroup)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c2185b;" vertex="1" parent="1">
+          <mxGeometry x="790" y="90" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Lignes de vie Section 2 -->
+        <mxCell id="lifeline2a" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="575" y="150" as="sourcePoint" />
+            <mxPoint x="575" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline2b" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="140" as="sourcePoint" />
+            <mxPoint x="700" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline2c" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="830" y="140" as="sourcePoint" />
+            <mxPoint x="830" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Messages Section 2 -->
+        <mxCell id="msg2_1" value="1. Créer/Modifier profil" style="endArrow=classic;html=1;strokeColor=#e65100;fontColor=#e65100;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="165" as="sourcePoint" />
+            <mxPoint x="690" y="165" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg2_2" value="2. Sauvegarder (bandwidth, quota, timeout)" style="endArrow=classic;html=1;strokeColor=#e65100;dashed=1;fontColor=#e65100;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="690" y="190" as="sourcePoint" />
+            <mxPoint x="580" y="190" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg2_3" value="3. Activer dans RADIUS" style="endArrow=classic;html=1;strokeColor=#c2185b;fontColor=#c2185b;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="220" as="sourcePoint" />
+            <mxPoint x="690" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg2_4" value="4. Créer radgroupreply&#xa;(Mikrotik-Rate-Limit, Session-Timeout...)" style="endArrow=classic;html=1;strokeColor=#c2185b;fontColor=#c2185b;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="710" y="255" as="sourcePoint" />
+            <mxPoint x="820" y="255" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg2_5" value="5. Créer radgroupcheck&#xa;(Simultaneous-Use)" style="endArrow=classic;html=1;strokeColor=#c2185b;fontColor=#c2185b;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="710" y="290" as="sourcePoint" />
+            <mxPoint x="820" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg2_6" value="6. Profil synchronisé" style="endArrow=classic;html=1;strokeColor=#c2185b;dashed=1;fontColor=#c2185b;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="690" y="320" as="sourcePoint" />
+            <mxPoint x="580" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- SECTION 3: GESTION DES PROMOTIONS -->
+        <!-- ============================================ -->
+
+        <mxCell id="section3" value="&lt;b&gt;3. GESTION DES PROMOTIONS&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#e8f5e9;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="20" y="400" width="280" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Acteurs Section 3 -->
+        <mxCell id="admin3" value="Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dcedc8;strokeColor=#33691e;" vertex="1" parent="1">
+          <mxGeometry x="50" y="440" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="django3" value="Django&#xa;(Promotion)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="150" y="440" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="profile3" value="Profile&#xa;(existant)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="280" y="440" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="users3" value="Utilisateurs&#xa;(membres)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;" vertex="1" parent="1">
+          <mxGeometry x="410" y="440" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Lignes de vie Section 3 -->
+        <mxCell id="lifeline3a" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="65" y="500" as="sourcePoint" />
+            <mxPoint x="65" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline3b" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="190" y="490" as="sourcePoint" />
+            <mxPoint x="190" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline3c" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="320" y="490" as="sourcePoint" />
+            <mxPoint x="320" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline3d" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="490" as="sourcePoint" />
+            <mxPoint x="450" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Messages Section 3 -->
+        <mxCell id="msg3_1" value="1. Créer promotion" style="endArrow=classic;html=1;strokeColor=#2e7d32;fontColor=#2e7d32;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="70" y="515" as="sourcePoint" />
+            <mxPoint x="180" y="515" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3_2" value="2. Assigner profil à la promotion" style="endArrow=classic;html=1;strokeColor=#2e7d32;fontColor=#2e7d32;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="545" as="sourcePoint" />
+            <mxPoint x="310" y="545" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3_3" value="3. Promotion.profile = Profile" style="endArrow=classic;html=1;strokeColor=#2e7d32;dashed=1;fontColor=#2e7d32;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="310" y="570" as="sourcePoint" />
+            <mxPoint x="200" y="570" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3_4" value="4. Ajouter utilisateurs" style="endArrow=classic;html=1;strokeColor=#1565c0;fontColor=#1565c0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="70" y="600" as="sourcePoint" />
+            <mxPoint x="180" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3_5" value="5. User.promotion = Promotion" style="endArrow=classic;html=1;strokeColor=#1565c0;fontColor=#1565c0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="625" as="sourcePoint" />
+            <mxPoint x="440" y="625" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg3_6" value="6. Héritage: User.get_effective_profile() = Promotion.profile" style="endArrow=classic;html=1;strokeColor=#1565c0;dashed=1;fontColor=#1565c0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="660" as="sourcePoint" />
+            <mxPoint x="200" y="660" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- SECTION 4: BLOCAGE DE SITES -->
+        <!-- ============================================ -->
+
+        <mxCell id="section4" value="&lt;b&gt;4. BLOCAGE DE SITES&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#ffebee;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=14;fontColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="530" y="400" width="250" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Acteurs Section 4 -->
+        <mxCell id="admin4" value="Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dcedc8;strokeColor=#33691e;" vertex="1" parent="1">
+          <mxGeometry x="560" y="440" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="django4" value="Django&#xa;(BlockedSite)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="660" y="440" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mikrotik4" value="MikroTik&#xa;(DNS static)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="790" y="440" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="user4" value="Utilisateur&#xa;WiFi" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#e3f2fd;strokeColor=#1565c0;" vertex="1" parent="1">
+          <mxGeometry x="920" y="440" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Lignes de vie Section 4 -->
+        <mxCell id="lifeline4a" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="575" y="500" as="sourcePoint" />
+            <mxPoint x="575" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline4b" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="490" as="sourcePoint" />
+            <mxPoint x="700" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline4c" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="830" y="490" as="sourcePoint" />
+            <mxPoint x="830" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lifeline4d" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#9e9e9e;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="935" y="500" as="sourcePoint" />
+            <mxPoint x="935" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Messages Section 4 -->
+        <mxCell id="msg4_1" value="1. Bloquer domaine (ex: facebook.com)" style="endArrow=classic;html=1;strokeColor=#c62828;fontColor=#c62828;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="515" as="sourcePoint" />
+            <mxPoint x="690" y="515" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4_2" value="2. Créer BlockedSite (type, category, scope)" style="endArrow=classic;html=1;strokeColor=#c62828;dashed=1;fontColor=#c62828;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="690" y="540" as="sourcePoint" />
+            <mxPoint x="580" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4_3" value="3. Sync: Créer DNS static entry" style="endArrow=classic;html=1;strokeColor=#2e7d32;fontColor=#2e7d32;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="710" y="570" as="sourcePoint" />
+            <mxPoint x="820" y="570" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4_4" value="4. Domaine → 127.0.0.1" style="endArrow=classic;html=1;strokeColor=#2e7d32;dashed=1;fontColor=#2e7d32;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="820" y="595" as="sourcePoint" />
+            <mxPoint x="710" y="595" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4_5" value="5. Tentative accès facebook.com" style="endArrow=classic;html=1;strokeColor=#1565c0;fontColor=#1565c0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="625" as="sourcePoint" />
+            <mxPoint x="840" y="625" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="msg4_6" value="6. DNS: 127.0.0.1 (bloqué)" style="endArrow=classic;html=1;strokeColor=#c62828;dashed=1;fontColor=#c62828;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="840" y="655" as="sourcePoint" />
+            <mxPoint x="930" y="655" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Légende -->
+        <mxCell id="legend" value="&lt;b&gt;LÉGENDE&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="20" y="720" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="endArrow=classic;html=1;strokeColor=#1565c0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="20" y="750" as="sourcePoint" />
+            <mxPoint x="80" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg1t" value="Requête" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#1565c0;" vertex="1" parent="1">
+          <mxGeometry x="90" y="742" width="60" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="endArrow=classic;html=1;strokeColor=#1565c0;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="750" as="sourcePoint" />
+            <mxPoint x="220" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg2t" value="Réponse" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#1565c0;" vertex="1" parent="1">
+          <mxGeometry x="230" y="742" width="60" height="16" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

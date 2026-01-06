@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2024-01-06T10:00:00.000Z" agent="Mozilla/5.0" version="22.1.0" type="device">
+  <diagram name="Classes - Portail Captif" id="class-captive-portal">
+    <mxGraphModel dx="1434" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Titre Principal -->
+        <mxCell id="title" value="&lt;b&gt;DIAGRAMME DE CLASSES - PORTAIL CAPTIF&lt;/b&gt;&#xa;Architecture Django + FreeRADIUS + MikroTik" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontColor=#1a73e8;" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="500" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- CLASSE USER -->
+        <!-- ============================================ -->
+        <mxCell id="user_class" value="&lt;b&gt;User&lt;/b&gt;&#xa;(Django AbstractUser)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e3f2fd;strokeColor=#1565c0;rounded=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="120" width="260" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="user_attrs" value="+ username: CharField(150)&#xa;+ email: EmailField&#xa;+ matricule: CharField(50)&#xa;+ phone_number: CharField(20)&#xa;─────── RADIUS ───────&#xa;+ is_radius_activated: Boolean = false&#xa;+ is_radius_enabled: Boolean = true&#xa;+ cleartext_password: CharField(128)&#xa;─────── Relations ───────&#xa;+ promotion: FK → Promotion (nullable)&#xa;+ profile: FK → Profile (nullable)&#xa;─────── Statut ───────&#xa;+ is_active: Boolean = true&#xa;+ role: CharField ('admin'|'user')&#xa;+ is_voucher_user: Boolean&#xa;+ voucher_code: CharField(50)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=10;" vertex="1" parent="user_class">
+          <mxGeometry y="40" width="260" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="user_methods" value="+ can_access_radius(): Boolean&#xa;+ get_effective_profile(): Profile&#xa;+ is_pending_radius_activation(): Boolean&#xa;+ get_radius_status_display(): String" style="text;strokeColor=none;fillColor=#bbdefb;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=10;fontStyle=2" vertex="1" parent="user_class">
+          <mxGeometry y="260" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- CLASSE PROFILE -->
+        <!-- ============================================ -->
+        <mxCell id="profile_class" value="&lt;b&gt;Profile&lt;/b&gt;&#xa;(Profil de service)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#fff3e0;strokeColor=#e65100;rounded=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="80" width="260" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="profile_attrs" value="+ id: AutoField (PK)&#xa;+ name: CharField(100) UNIQUE&#xa;+ description: TextField&#xa;+ is_active: Boolean = true&#xa;─────── Bande passante ───────&#xa;+ bandwidth_upload: Integer (Mbps)&#xa;+ bandwidth_download: Integer (Mbps)&#xa;─────── Quota ───────&#xa;+ quota_type: 'unlimited'|'limited'&#xa;+ data_volume: BigInteger (bytes)&#xa;+ validity_duration: Integer (jours)&#xa;+ daily_limit: BigInteger (bytes)&#xa;─────── RADIUS ───────&#xa;+ session_timeout: Integer (sec)&#xa;+ idle_timeout: Integer (sec)&#xa;+ simultaneous_use: Integer = 1&#xa;─────── Sync ───────&#xa;+ is_radius_enabled: Boolean = false&#xa;+ radius_group_name: Char(64)&#xa;+ last_radius_sync: DateTime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=10;" vertex="1" parent="profile_class">
+          <mxGeometry y="40" width="260" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="profile_methods" value="+ sync_to_radius(): void&#xa;+ remove_from_radius(): void&#xa;+ is_synced_to_radius: Boolean (property)&#xa;+ can_sync_to_radius(): Boolean" style="text;strokeColor=none;fillColor=#ffe0b2;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=10;fontStyle=2" vertex="1" parent="profile_class">
+          <mxGeometry y="310" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- CLASSE PROMOTION -->
+        <!-- ============================================ -->
+        <mxCell id="promotion_class" value="&lt;b&gt;Promotion&lt;/b&gt;&#xa;(Groupe d'utilisateurs)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e8f5e9;strokeColor=#2e7d32;rounded=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="500" width="220" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="promotion_attrs" value="+ id: AutoField (PK)&#xa;+ name: CharField(100) UNIQUE&#xa;+ is_active: Boolean = true&#xa;─────── Relation ───────&#xa;+ profile: FK → Profile (nullable)&#xa;+ created_at: DateTime&#xa;+ updated_at: DateTime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=10;" vertex="1" parent="promotion_class">
+          <mxGeometry y="40" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- CLASSE BLOCKEDSITE -->
+        <!-- ============================================ -->
+        <mxCell id="blocked_class" value="&lt;b&gt;BlockedSite&lt;/b&gt;&#xa;(Sites bloqués)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#ffebee;strokeColor=#c62828;rounded=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="500" width="260" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="blocked_attrs" value="+ id: AutoField (PK)&#xa;+ domain: CharField(255) UNIQUE&#xa;+ type: 'blacklist'|'whitelist'&#xa;+ category: 'social'|'streaming'|'gaming'...&#xa;+ reason: CharField(255)&#xa;+ is_active: Boolean = true&#xa;─────── Scope (optionnel) ───────&#xa;+ profile: FK → Profile (nullable)&#xa;+ promotion: FK → Promotion (nullable)&#xa;─────── MikroTik Sync ───────&#xa;+ mikrotik_id: CharField(50)&#xa;+ sync_status: 'pending'|'synced'|'error'&#xa;+ last_sync_at: DateTime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=10;" vertex="1" parent="blocked_class">
+          <mxGeometry y="40" width="260" height="190" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- ZONE FREERADIUS -->
+        <!-- ============================================ -->
+        <mxCell id="radius_zone" value="&lt;b&gt;FREERADIUS DATABASE&lt;/b&gt;&#xa;(Tables standards FreeRADIUS)" style="swimlane;fontStyle=0;horizontal=1;startSize=35;horizontalStack=0;resizeParent=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#fce4ec;strokeColor=#c2185b;rounded=1;fontSize=12;dashed=1;dashPattern=8 8;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="680" y="80" width="680" height="650" as="geometry" />
+        </mxCell>
+
+        <!-- RadCheck -->
+        <mxCell id="radcheck_class" value="&lt;b&gt;radcheck&lt;/b&gt;&#xa;(Authentification)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=35;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#f8bbd9;strokeColor=#c2185b;rounded=1;fontSize=10;" vertex="1" parent="radius_zone">
+          <mxGeometry x="20" y="50" width="200" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="radcheck_attrs" value="+ id: Integer (PK)&#xa;+ username: VARCHAR(64) INDEX&#xa;+ attribute: VARCHAR(64)&#xa;  → 'Cleartext-Password'&#xa;+ op: VARCHAR(2) → ':='&#xa;+ value: VARCHAR(253)&#xa;  → mot de passe utilisateur&#xa;+ statut: Boolean (actif/désactivé)&#xa;+ quota: BigInteger (bytes)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=9;" vertex="1" parent="radcheck_class">
+          <mxGeometry y="35" width="200" height="105" as="geometry" />
+        </mxCell>
+
+        <!-- RadReply -->
+        <mxCell id="radreply_class" value="&lt;b&gt;radreply&lt;/b&gt;&#xa;(Réponse par utilisateur)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=35;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#f8bbd9;strokeColor=#c2185b;rounded=1;fontSize=10;" vertex="1" parent="radius_zone">
+          <mxGeometry x="20" y="210" width="200" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="radreply_attrs" value="+ id: Integer (PK)&#xa;+ username: VARCHAR(64) INDEX&#xa;+ attribute: VARCHAR(64)&#xa;+ op: VARCHAR(2)&#xa;+ value: VARCHAR(253)&#xa;Attributs individuels par user" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=9;" vertex="1" parent="radreply_class">
+          <mxGeometry y="35" width="200" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- RadUserGroup -->
+        <mxCell id="radusergroup_class" value="&lt;b&gt;radusergroup&lt;/b&gt;&#xa;(User → Groupe)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=35;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#e1bee7;strokeColor=#7b1fa2;rounded=1;fontSize=10;" vertex="1" parent="radius_zone">
+          <mxGeometry x="240" y="100" width="200" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="radusergroup_attrs" value="+ username: VARCHAR(64) INDEX&#xa;+ groupname: VARCHAR(64) INDEX&#xa;  → 'profile_5_etudiant'&#xa;+ priority: Integer&#xa;  → 5 (direct) ou 10 (promotion)&#xa;Lien User → Groupe du Profile" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=9;" vertex="1" parent="radusergroup_class">
+          <mxGeometry y="35" width="200" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- RadGroupReply -->
+        <mxCell id="radgroupreply_class" value="&lt;b&gt;radgroupreply&lt;/b&gt;&#xa;(Attributs du Profil)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=35;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#d1c4e9;strokeColor=#512da8;rounded=1;fontSize=10;" vertex="1" parent="radius_zone">
+          <mxGeometry x="460" y="50" width="200" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="radgroupreply_attrs" value="+ id: Integer (PK)&#xa;+ groupname: VARCHAR(64) INDEX&#xa;  → 'profile_5_etudiant'&#xa;+ attribute: VARCHAR(64)&#xa;+ op: VARCHAR(2) → ':='&#xa;+ value: VARCHAR(253)&#xa;─────── Exemples ───────&#xa;Mikrotik-Rate-Limit: '10M/5M'&#xa;Session-Timeout: '28800'&#xa;Idle-Timeout: '600'" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=9;" vertex="1" parent="radgroupreply_class">
+          <mxGeometry y="35" width="200" height="125" as="geometry" />
+        </mxCell>
+
+        <!-- RadGroupCheck -->
+        <mxCell id="radgroupcheck_class" value="&lt;b&gt;radgroupcheck&lt;/b&gt;&#xa;(Vérifications Profil)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=35;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#d1c4e9;strokeColor=#512da8;rounded=1;fontSize=10;" vertex="1" parent="radius_zone">
+          <mxGeometry x="460" y="230" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="radgroupcheck_attrs" value="+ id: Integer (PK)&#xa;+ groupname: VARCHAR(64) INDEX&#xa;+ attribute: VARCHAR(64)&#xa;  → 'Simultaneous-Use'&#xa;+ op: VARCHAR(2)&#xa;+ value: VARCHAR(253) → '1'" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=9;" vertex="1" parent="radgroupcheck_class">
+          <mxGeometry y="35" width="200" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- RadAcct -->
+        <mxCell id="radacct_class" value="&lt;b&gt;radacct&lt;/b&gt;&#xa;(Comptabilité sessions)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=35;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#b2dfdb;strokeColor=#00796b;rounded=1;fontSize=10;" vertex="1" parent="radius_zone">
+          <mxGeometry x="20" y="340" width="200" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="radacct_attrs" value="+ radacctid: BigInteger (PK)&#xa;+ acctsessionid: VARCHAR(64)&#xa;+ username: VARCHAR(64) INDEX&#xa;+ acctstarttime: DateTime&#xa;+ acctstoptime: DateTime&#xa;+ acctsessiontime: Integer (sec)&#xa;+ acctinputoctets: BigInteger&#xa;+ acctoutputoctets: BigInteger&#xa;→ Consommation données" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=9;" vertex="1" parent="radacct_class">
+          <mxGeometry y="35" width="200" height="105" as="geometry" />
+        </mxCell>
+
+        <!-- RadPostAuth -->
+        <mxCell id="radpostauth_class" value="&lt;b&gt;radpostauth&lt;/b&gt;&#xa;(Logs authentification)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=35;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#b2dfdb;strokeColor=#00796b;rounded=1;fontSize=10;" vertex="1" parent="radius_zone">
+          <mxGeometry x="240" y="340" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="radpostauth_attrs" value="+ id: Integer (PK)&#xa;+ username: VARCHAR(64) INDEX&#xa;+ pass: VARCHAR(64)&#xa;+ reply: VARCHAR(32)&#xa;  → 'Accept'|'Reject'&#xa;+ authdate: DateTime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=9;" vertex="1" parent="radpostauth_class">
+          <mxGeometry y="35" width="200" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Note Flux -->
+        <mxCell id="flux_note" value="&lt;b&gt;FLUX D'AUTHENTIFICATION&lt;/b&gt;&#xa;&#xa;1. MikroTik envoie requête RADIUS&#xa;2. FreeRADIUS vérifie radcheck (mot de passe)&#xa;3. FreeRADIUS cherche groupname dans radusergroup&#xa;4. FreeRADIUS récupère attributs de radgroupreply&#xa;5. Access-Accept envoyé avec les attributs&#xa;6. MikroTik applique la QoS (bande passante, timeout)" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingTop=10;spacingLeft=10;fillColor=#fff9c4;strokeColor=#f9a825;fontSize=10;" vertex="1" parent="radius_zone">
+          <mxGeometry x="460" y="360" width="200" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- ZONE MIKROTIK -->
+        <!-- ============================================ -->
+        <mxCell id="mikrotik_zone" value="&lt;b&gt;MIKROTIK&lt;/b&gt;&#xa;(Routeur/Hotspot)" style="swimlane;fontStyle=0;horizontal=1;startSize=35;horizontalStack=0;resizeParent=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#e8f5e9;strokeColor=#2e7d32;rounded=1;fontSize=12;dashed=1;dashPattern=8 8;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="500" width="200" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="mikrotik_dns" value="&lt;b&gt;DNS Static&lt;/b&gt;&#xa;(Blocage sites)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#c8e6c9;strokeColor=#2e7d32;rounded=1;fontSize=10;" vertex="1" parent="mikrotik_zone">
+          <mxGeometry x="20" y="50" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="mikrotik_dns_attrs" value="name: facebook.com&#xa;address: 127.0.0.1&#xa;→ Bloque le domaine" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=9;" vertex="1" parent="mikrotik_dns">
+          <mxGeometry y="30" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mikrotik_hotspot" value="&lt;b&gt;Hotspot Server&lt;/b&gt;&#xa;(Auth RADIUS)" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#c8e6c9;strokeColor=#2e7d32;rounded=1;fontSize=10;" vertex="1" parent="mikrotik_zone">
+          <mxGeometry x="20" y="140" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="mikrotik_hotspot_attrs" value="Authentification via RADIUS&#xa;Application de la QoS&#xa;Gestion des sessions" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=0;fontSize=9;" vertex="1" parent="mikrotik_hotspot">
+          <mxGeometry y="30" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- RELATIONS / ASSOCIATIONS -->
+        <!-- ============================================ -->
+
+        <!-- User → Profile (profil direct) -->
+        <mxCell id="rel_user_profile" value="0..1" style="endArrow=open;html=1;strokeColor=#1565c0;strokeWidth=2;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.2;exitDx=0;exitDy=0;" edge="1" parent="1" source="user_attrs" target="profile_attrs">
+          <mxGeometry x="0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel_user_profile_label" value="profile&#xa;(individuel)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#1565c0;" vertex="1" parent="1">
+          <mxGeometry x="295" y="170" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- User → Promotion -->
+        <mxCell id="rel_user_promo" value="0..1" style="endArrow=open;html=1;strokeColor=#2e7d32;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user_class" target="promotion_class">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_user_promo_label" value="promotion" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="110" y="465" width="60" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Promotion → Profile -->
+        <mxCell id="rel_promo_profile" value="0..1" style="endArrow=open;html=1;strokeColor=#e65100;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="promotion_attrs" target="profile_class">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_promo_profile_label" value="profile&#xa;(hérité)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="270" y="480" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- BlockedSite → Profile (scope optionnel) -->
+        <mxCell id="rel_blocked_profile" value="0..1" style="endArrow=open;html=1;strokeColor=#c62828;strokeWidth=1;dashed=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="blocked_class" target="profile_class">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_blocked_profile_label" value="scope&#xa;(optionnel)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="495" y="475" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- BlockedSite → Promotion (scope optionnel) -->
+        <mxCell id="rel_blocked_promo" value="0..1" style="endArrow=open;html=1;strokeColor=#c62828;strokeWidth=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="blocked_attrs" target="promotion_attrs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- BlockedSite → MikroTik DNS -->
+        <mxCell id="rel_blocked_mikrotik" value="sync" style="endArrow=classic;html=1;strokeColor=#2e7d32;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="blocked_class" target="mikrotik_zone">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Profile → radgroupreply -->
+        <mxCell id="rel_profile_radgroup" value="sync" style="endArrow=classic;html=1;strokeColor=#512da8;strokeWidth=2;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="profile_class" target="radgroupreply_class">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_profile_radgroup_label" value="Profile.sync_to_radius()&#xa;→ radgroupreply + radgroupcheck" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=8;fontColor=#512da8;" vertex="1" parent="1">
+          <mxGeometry x="610" y="145" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- User → radcheck -->
+        <mxCell id="rel_user_radcheck" value="provision" style="endArrow=classic;html=1;strokeColor=#c2185b;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="user_attrs" target="radcheck_class">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="270" />
+              <mxPoint x="650" y="195" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- User → radusergroup -->
+        <mxCell id="rel_user_radusergroup" value="" style="endArrow=classic;html=1;strokeColor=#7b1fa2;strokeWidth=2;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="user_attrs" target="radusergroup_class">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="314" />
+              <mxPoint x="660" y="235" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- MikroTik → RADIUS -->
+        <mxCell id="rel_mikrotik_radius" value="Auth&#xa;RADIUS" style="endArrow=classic;endFill=1;html=1;strokeColor=#00796b;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="mikrotik_hotspot" target="radacct_class">
+          <mxGeometry x="-0.5" relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="700" y="640" />
+              <mxPoint x="700" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ============================================ -->
+        <!-- LÉGENDE -->
+        <!-- ============================================ -->
+        <mxCell id="legend" value="&lt;b&gt;LÉGENDE&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#424242;" vertex="1" parent="1">
+          <mxGeometry x="30" y="760" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;" vertex="1" parent="1">
+          <mxGeometry x="30" y="785" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1t" value="User (Django)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="55" y="782" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="140" y="785" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2t" value="Profile (Django)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="165" y="782" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="250" y="785" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3t" value="Promotion (Django)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="275" y="782" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="380" y="785" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4t" value="BlockedSite (Django)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="405" y="782" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c2185b;" vertex="1" parent="1">
+          <mxGeometry x="510" y="785" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5t" value="FreeRADIUS" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="535" y="782" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;dashed=1;dashPattern=8 8;" vertex="1" parent="1">
+          <mxGeometry x="610" y="785" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6t" value="MikroTik" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="635" y="782" width="60" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
