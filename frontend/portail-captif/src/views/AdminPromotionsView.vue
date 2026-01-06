@@ -636,9 +636,9 @@ async function togglePromotionExpand(promotion: Promotion) {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
-/* Contenu spécifique à la page promotions */
+/* Contenu spécifique à la page promotions - Thème Futuriste Sombre */
 .content-header {
   display: flex;
   justify-content: space-between;
@@ -654,15 +654,18 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .page-title {
+  font-family: 'Orbitron', sans-serif;
   font-size: 1.875rem;
-  font-weight: 800;
-  color: #1F2937;
+  font-weight: 700;
+  color: #ffffff;
   margin-bottom: 0.5rem;
+  text-shadow: 0 0 20px rgba(242, 148, 0, 0.3);
 }
 
 .page-subtitle {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 1rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .btn-primary {
@@ -670,14 +673,15 @@ async function togglePromotionExpand(promotion: Promotion) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
+  background: linear-gradient(135deg, #e53212 0%, #F29400 100%);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(242, 148, 0, 0.3);
   white-space: nowrap;
 }
 
@@ -688,7 +692,7 @@ async function togglePromotionExpand(promotion: Promotion) {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 8px 25px rgba(242, 148, 0, 0.4);
 }
 
 /* Statistiques */
@@ -700,11 +704,18 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .stat-box {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
-  border-left: 4px solid #6B7280;
+  border-left: 4px solid #636362;
+  transition: all 0.3s ease;
+}
+
+.stat-box:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .stat-box.success {
@@ -712,35 +723,40 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .stat-box.danger {
-  border-left-color: #DC2626;
+  border-left-color: #e53212;
 }
 
 .stat-box.info {
-  border-left-color: #3B82F6;
+  border-left-color: #008ecf;
 }
 
 .stat-box.warning {
-  border-left-color: #F59E0B;
+  border-left-color: #F29400;
 }
 
 .stat-value {
+  font-family: 'Orbitron', sans-serif;
   font-size: 2rem;
-  font-weight: 800;
-  color: #1F2937;
+  font-weight: 700;
+  color: #ffffff;
   margin-bottom: 0.25rem;
 }
 
 .stat-label {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.875rem;
-  color: #6B7280;
-  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* Filtres */
 .filters-section {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   display: flex;
@@ -762,22 +778,30 @@ async function togglePromotionExpand(promotion: Promotion) {
   left: 1rem;
   width: 20px;
   height: 20px;
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .search-input {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 3rem;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
-  transition: all 0.2s;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #F97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  border-color: #008ecf;
+  background: rgba(0, 142, 207, 0.1);
+  box-shadow: 0 0 20px rgba(0, 142, 207, 0.2);
 }
 
 .filter-group {
@@ -788,28 +812,35 @@ async function togglePromotionExpand(promotion: Promotion) {
 
 .filter-select {
   padding: 0.75rem 1rem;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #1F2937;
-  background: white;
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   min-width: 180px;
+}
+
+.filter-select option {
+  background: #0f0f19;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #F97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  border-color: #008ecf;
+  box-shadow: 0 0 20px rgba(0, 142, 207, 0.2);
 }
 
 /* Table */
 .table-container {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -819,25 +850,27 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .data-table thead {
-  background: #F9FAFB;
-  border-bottom: 1px solid #E5E7EB;
+  background: rgba(0, 142, 207, 0.1);
+  border-bottom: 1px solid rgba(0, 142, 207, 0.2);
 }
 
 .data-table th {
   padding: 1rem 1.5rem;
   text-align: left;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #6B7280;
+  color: #008ecf;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 
 .data-table td {
   padding: 1rem 1.5rem;
+  font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
-  color: #1F2937;
-  border-bottom: 1px solid #F3F4F6;
+  color: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .data-table tbody tr:last-child td {
@@ -845,28 +878,30 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .data-table tbody tr:hover {
-  background: #F9FAFB;
+  background: rgba(0, 142, 207, 0.08);
 }
 
 .id-badge {
   display: inline-block;
   padding: 0.25rem 0.625rem;
-  background: #F3F4F6;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .code-badge {
   display: inline-block;
   padding: 0.375rem 0.75rem;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
+  background: linear-gradient(135deg, #e53212 0%, #F29400 100%);
   color: white;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.025em;
+  box-shadow: 0 2px 10px rgba(242, 148, 0, 0.3);
 }
 
 .name-cell {
@@ -877,19 +912,20 @@ async function togglePromotionExpand(promotion: Promotion) {
 
 .name-text {
   font-weight: 600;
-  color: #1F2937;
+  color: #ffffff;
 }
 
 .description-text {
   font-size: 0.75rem;
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .year-badge {
   display: inline-block;
   padding: 0.375rem 0.75rem;
-  background: #EFF6FF;
-  color: #3B82F6;
+  background: rgba(0, 142, 207, 0.15);
+  color: #008ecf;
+  border: 1px solid rgba(0, 142, 207, 0.3);
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -898,20 +934,22 @@ async function togglePromotionExpand(promotion: Promotion) {
 .count-badge {
   display: inline-block;
   padding: 0.375rem 0.75rem;
-  background: #F3F4F6;
-  color: #6B7280;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 600;
 }
 
 .count-badge.active {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.15);
   color: #10B981;
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .text-gray {
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .badge {
@@ -923,13 +961,15 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .badge-success {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.15);
   color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .badge-gray {
-  background: #F3F4F6;
-  color: #6B7280;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .action-buttons {
@@ -943,27 +983,28 @@ async function togglePromotionExpand(promotion: Promotion) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #E5E7EB;
-  border-radius: 6px;
-  background: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .action-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .action-btn svg {
   width: 16px;
   height: 16px;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .action-btn.radius-enable:hover:not(:disabled) {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.15);
   border-color: #10B981;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
 }
 
 .action-btn.radius-enable:hover:not(:disabled) svg {
@@ -971,26 +1012,29 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .action-btn.radius-disable:hover:not(:disabled) {
-  background: #FEF3C7;
-  border-color: #F59E0B;
+  background: rgba(242, 148, 0, 0.15);
+  border-color: #F29400;
+  box-shadow: 0 0 15px rgba(242, 148, 0, 0.3);
 }
 
 .action-btn.radius-disable:hover:not(:disabled) svg {
-  color: #F59E0B;
+  color: #F29400;
 }
 
 .action-btn.edit:hover {
-  background: #EFF6FF;
-  border-color: #3B82F6;
+  background: rgba(0, 142, 207, 0.15);
+  border-color: #008ecf;
+  box-shadow: 0 0 15px rgba(0, 142, 207, 0.3);
 }
 
 .action-btn.edit:hover svg {
-  color: #3B82F6;
+  color: #008ecf;
 }
 
 .action-btn.success:hover {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.15);
   border-color: #10B981;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
 }
 
 .action-btn.success:hover svg {
@@ -998,21 +1042,23 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .action-btn.danger:hover {
-  background: #FEE2E2;
-  border-color: #DC2626;
+  background: rgba(229, 50, 18, 0.15);
+  border-color: #e53212;
+  box-shadow: 0 0 15px rgba(229, 50, 18, 0.3);
 }
 
 .action-btn.danger:hover svg {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .action-btn.delete:hover {
-  background: #FEE2E2;
-  border-color: #DC2626;
+  background: rgba(229, 50, 18, 0.15);
+  border-color: #e53212;
+  box-shadow: 0 0 15px rgba(229, 50, 18, 0.3);
 }
 
 .action-btn.delete:hover svg {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .empty-state {
@@ -1023,20 +1069,22 @@ async function togglePromotionExpand(promotion: Promotion) {
 .empty-state svg {
   width: 64px;
   height: 64px;
-  color: #D1D5DB;
+  color: rgba(255, 255, 255, 0.2);
   margin-bottom: 1rem;
 }
 
 .empty-state h3 {
+  font-family: 'Orbitron', sans-serif;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.5rem;
 }
 
 .empty-state p {
+  font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* Modal */
@@ -1046,7 +1094,8 @@ async function togglePromotionExpand(promotion: Promotion) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1055,54 +1104,60 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .modal-content {
-  background: white;
-  border-radius: 16px;
+  background: rgba(15, 15, 25, 0.95);
+  border: 1px solid rgba(0, 142, 207, 0.2);
+  border-radius: 20px;
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(0, 142, 207, 0.1);
 }
 
 .modal-header {
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .modal-header h3 {
+  font-family: 'Orbitron', sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1F2937;
+  color: #ffffff;
 }
 
 .modal-close {
   width: 36px;
   height: 36px;
-  border: none;
-  background: #F3F4F6;
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .modal-close svg {
   width: 20px;
   height: 20px;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .modal-close:hover {
-  background: #FEE2E2;
+  background: rgba(229, 50, 18, 0.2);
+  border-color: #e53212;
+  transform: rotate(90deg);
 }
 
 .modal-close:hover svg {
-  color: #DC2626;
+  color: #e53212;
 }
 
 .modal-body {
@@ -1122,33 +1177,51 @@ async function togglePromotionExpand(promotion: Promotion) {
 
 .form-group label {
   display: block;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: rgba(255, 255, 255, 0.7);
   margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .form-group input[type="text"],
 .form-group input[type="number"],
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
-  transition: all 0.2s;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
 }
 
 .form-group textarea {
   resize: vertical;
-  font-family: inherit;
+}
+
+.form-group select option {
+  background: #0f0f19;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
   outline: none;
-  border-color: #F97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  border-color: #008ecf;
+  background: rgba(0, 142, 207, 0.1);
+  box-shadow: 0 0 20px rgba(0, 142, 207, 0.2);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .checkbox-group {
@@ -1167,7 +1240,7 @@ async function togglePromotionExpand(promotion: Promotion) {
   height: 20px;
   margin-top: 2px;
   cursor: pointer;
-  accent-color: #DC2626;
+  accent-color: #F29400;
 }
 
 .checkbox-text {
@@ -1177,14 +1250,15 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .checkbox-text strong {
+  font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .checkbox-text small {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .info-note {
@@ -1192,30 +1266,31 @@ async function togglePromotionExpand(promotion: Promotion) {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem;
-  background: #EFF6FF;
-  border: 1px solid #DBEAFE;
-  border-left: 4px solid #3B82F6;
-  border-radius: 8px;
+  background: rgba(0, 142, 207, 0.1);
+  border: 1px solid rgba(0, 142, 207, 0.2);
+  border-left: 4px solid #008ecf;
+  border-radius: 10px;
   margin-top: 1rem;
 }
 
 .info-note svg {
   width: 20px;
   height: 20px;
-  color: #3B82F6;
+  color: #008ecf;
   flex-shrink: 0;
   margin-top: 2px;
 }
 
 .info-note p {
+  font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
-  color: #1F2937;
+  color: rgba(255, 255, 255, 0.8);
   margin: 0;
 }
 
 .modal-footer {
   padding: 1.5rem 2rem;
-  border-top: 1px solid #E5E7EB;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
@@ -1223,17 +1298,20 @@ async function togglePromotionExpand(promotion: Promotion) {
 
 .btn-secondary {
   padding: 0.75rem 1.5rem;
-  background: #F3F4F6;
-  color: #374151;
-  border: none;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .btn-secondary:hover {
-  background: #E5E7EB;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 .loading-container {
@@ -1295,7 +1373,7 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .expanded-row {
-  background: #F9FAFB;
+  background: rgba(0, 142, 207, 0.05);
 }
 
 .users-container {
@@ -1308,7 +1386,7 @@ async function togglePromotionExpand(promotion: Promotion) {
   align-items: center;
   gap: 1rem;
   padding: 3rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .no-users {
@@ -1317,22 +1395,23 @@ async function togglePromotionExpand(promotion: Promotion) {
   align-items: center;
   gap: 1rem;
   padding: 3rem;
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .no-users svg {
   width: 48px;
   height: 48px;
-  color: #D1D5DB;
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .users-list h4 {
+  font-family: 'Orbitron', sans-serif;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1F2937;
+  color: #ffffff;
   margin-bottom: 1.5rem;
   padding-bottom: 0.75rem;
-  border-bottom: 2px solid #E5E7EB;
+  border-bottom: 2px solid rgba(0, 142, 207, 0.3);
 }
 
 .users-grid {
@@ -1346,29 +1425,32 @@ async function togglePromotionExpand(promotion: Promotion) {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: white;
-  border: 1px solid #E5E7EB;
-  border-radius: 10px;
-  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: all 0.3s ease;
 }
 
 .user-card:hover {
-  border-color: #F97316;
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.1);
+  border-color: #008ecf;
+  background: rgba(0, 142, 207, 0.08);
+  box-shadow: 0 0 20px rgba(0, 142, 207, 0.2);
 }
 
 .user-avatar {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #DC2626 0%, #F97316 100%);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #008ecf 0%, #a23882 100%);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: 'Orbitron', sans-serif;
   font-weight: 700;
   font-size: 0.875rem;
   flex-shrink: 0;
+  box-shadow: 0 0 15px rgba(0, 142, 207, 0.3);
 }
 
 .user-info {
@@ -1377,8 +1459,9 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .user-name {
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
-  color: #1F2937;
+  color: #ffffff;
   font-size: 0.875rem;
   white-space: nowrap;
   overflow: hidden;
@@ -1387,13 +1470,13 @@ async function togglePromotionExpand(promotion: Promotion) {
 
 .user-username {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.5);
   margin-top: 0.125rem;
 }
 
 .user-matricule {
   font-size: 0.75rem;
-  color: #9CA3AF;
+  color: rgba(255, 255, 255, 0.4);
   margin-top: 0.125rem;
 }
 
@@ -1406,7 +1489,7 @@ async function togglePromotionExpand(promotion: Promotion) {
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
@@ -1418,21 +1501,46 @@ async function togglePromotionExpand(promotion: Promotion) {
 }
 
 .status-badge.active {
-  background: #D1FAE5;
+  background: rgba(16, 185, 129, 0.15);
   color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .status-badge.inactive {
-  background: #FEE2E2;
-  color: #DC2626;
+  background: rgba(229, 50, 18, 0.15);
+  color: #e53212;
+  border: 1px solid rgba(229, 50, 18, 0.3);
 }
 
 /* Texte d'aide pour les formulaires */
 .form-help {
   display: block;
   font-size: 0.75rem;
-  color: #6B7280;
+  color: rgba(255, 255, 255, 0.4);
   margin-top: 0.375rem;
   line-height: 1.4;
+}
+
+/* Scrollbar dark */
+.modal-content::-webkit-scrollbar,
+.table-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.modal-content::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 142, 207, 0.3);
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover,
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 142, 207, 0.5);
 }
 </style>
