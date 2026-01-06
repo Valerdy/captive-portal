@@ -8,7 +8,6 @@ import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
 import { useProfileStore } from '@/stores/profile'
 import AdminLayout from '@/layouts/AdminLayout.vue'
-import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import VueApexCharts from 'vue3-apexcharts'
 
 const router = useRouter()
@@ -371,9 +370,7 @@ onMounted(async () => {
 
 <template>
   <AdminLayout activePage="dashboard">
-    <LoadingSpinner v-if="isLoading" />
-
-      <div v-else class="content-wrapper">
+      <div class="content-wrapper">
         <!-- Cartes de statistiques -->
         <div class="stats-grid">
           <div class="stat-card">
