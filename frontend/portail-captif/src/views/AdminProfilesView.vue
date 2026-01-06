@@ -9,6 +9,7 @@ import { useNotificationStore } from '@/stores/notification'
 import { profileService, type ProfileVerificationResult, type VerificationResult } from '@/services/profile.service'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import Pagination from '@/components/Pagination.vue'
 import type { Profile } from '@/types'
 
 const router = useRouter()
@@ -29,6 +30,26 @@ const searchQuery = ref('')
 const filterStatus = ref('all')
 const filterQuotaType = ref('all')
 const isDeleting = ref(false)
+
+// Pagination
+const currentPage = ref(1)
+const itemsPerPage = ref(10)
+
+// View toggle for usage (users/promotions)
+const usageViewMode = ref<Record<number, 'users' | 'promotions'>>({})
+
+function toggleUsageView(profileId: number, mode: 'users' | 'promotions') {
+  usageViewMode.value[profileId] = mode
+}
+
+function getUsageView(profileId: number): 'users' | 'promotions' {
+  return usageViewMode.value[profileId] || 'users'
+}
+
+function resetPagination() {
+  currentPage.value = 1
+}
+
 const isSyncingRadius = ref<number | null>(null) // ID du profil en cours de sync
 
 // Variables pour les détails du profil (utilisateurs et promotions)
@@ -114,6 +135,13 @@ const filteredProfiles = computed(() => {
 
   // Filtrer les valeurs null ou undefined
   return filtered.filter(p => p != null)
+})
+
+// Pagination des profils filtrés
+const paginatedProfiles = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return filteredProfiles.value.slice(start, end)
 })
 
 // Statistiques
@@ -513,17 +541,27 @@ function getStatusLabel(status: string): string {
       </div>
 
       <div class="filter-group">
-        <select v-model="filterStatus" class="filter-select">
-          <option value="all">Tous les statuts</option>
-          <option value="active">Actifs</option>
-          <option value="inactive">Inactifs</option>
-        </select>
+        <div class="select-wrapper">
+          <select v-model="filterStatus" class="filter-select futuristic" @change="resetPagination">
+            <option value="all">Tous les statuts</option>
+            <option value="active">Actifs</option>
+            <option value="inactive">Inactifs</option>
+          </select>
+          <svg class="select-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
 
-        <select v-model="filterQuotaType" class="filter-select">
-          <option value="all">Tous les quotas</option>
-          <option value="limited">Quota limité</option>
-          <option value="unlimited">Quota illimité</option>
-        </select>
+        <div class="select-wrapper">
+          <select v-model="filterQuotaType" class="filter-select futuristic" @change="resetPagination">
+            <option value="all">Tous les quotas</option>
+            <option value="limited">Quota limité</option>
+            <option value="unlimited">Quota illimité</option>
+          </select>
+          <svg class="select-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
       </div>
     </div>
 
@@ -543,7 +581,7 @@ function getStatusLabel(status: string): string {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="profile in filteredProfiles" :key="profile.id">
+          <tr v-for="profile in paginatedProfiles" :key="profile.id">
             <td><span class="id-badge">{{ profile.id }}</span></td>
             <td>
               <div class="name-cell">
@@ -571,9 +609,33 @@ function getStatusLabel(status: string): string {
               <span class="duration-badge">{{ profile.validity_duration }} jours</span>
             </td>
             <td>
-              <div class="usage-cell">
-                <span class="usage-badge">{{ profile.users_count || 0 }} utilisateurs</span>
-                <span class="usage-badge">{{ profile.promotions_count || 0 }} promotions</span>
+              <div class="usage-toggle-cell">
+                <div class="toggle-buttons">
+                  <button
+                    @click="toggleUsageView(profile.id, 'users')"
+                    :class="['toggle-btn', { active: getUsageView(profile.id) === 'users' }]"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    {{ profile.users_count || 0 }}
+                  </button>
+                  <button
+                    @click="toggleUsageView(profile.id, 'promotions')"
+                    :class="['toggle-btn', { active: getUsageView(profile.id) === 'promotions' }]"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    {{ profile.promotions_count || 0 }}
+                  </button>
+                </div>
+                <div class="usage-label">
+                  {{ getUsageView(profile.id) === 'users' ? 'utilisateurs' : 'promotions' }}
+                </div>
               </div>
             </td>
             <td>
@@ -646,6 +708,15 @@ function getStatusLabel(status: string): string {
         <h3>Aucun profil trouvé</h3>
         <p>Aucun profil ne correspond à vos critères de recherche</p>
       </div>
+
+      <!-- Pagination -->
+      <Pagination
+        v-if="filteredProfiles.length > 0"
+        :current-page="currentPage"
+        :total-items="filteredProfiles.length"
+        :items-per-page="itemsPerPage"
+        @update:current-page="currentPage = $event"
+      />
     </div>
 
     <!-- Modal Ajout -->
@@ -1374,6 +1445,58 @@ function getStatusLabel(status: string): string {
   box-shadow: 0 0 20px rgba(0, 142, 207, 0.2);
 }
 
+/* Futuristic Select Wrapper */
+.select-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.filter-select.futuristic {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 0.875rem 2.75rem 0.875rem 1rem;
+  background: linear-gradient(135deg, rgba(15, 15, 25, 0.9) 0%, rgba(25, 25, 45, 0.9) 100%);
+  border: 1px solid rgba(242, 148, 0, 0.2);
+  border-radius: 12px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 180px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.filter-select.futuristic:hover {
+  border-color: rgba(242, 148, 0, 0.5);
+  background: linear-gradient(135deg, rgba(20, 20, 35, 0.95) 0%, rgba(35, 35, 60, 0.95) 100%);
+  box-shadow: 0 4px 20px rgba(242, 148, 0, 0.15);
+}
+
+.filter-select.futuristic:focus {
+  outline: none;
+  border-color: #F29400;
+  box-shadow: 0 0 25px rgba(242, 148, 0, 0.3), inset 0 0 15px rgba(242, 148, 0, 0.05);
+}
+
+.select-icon {
+  position: absolute;
+  right: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #F29400;
+  pointer-events: none;
+  transition: transform 0.3s ease;
+}
+
+.filter-select.futuristic:focus + .select-icon {
+  transform: translateY(-50%) rotate(180deg);
+}
+
 /* Table */
 .table-container {
   background: rgba(15, 15, 25, 0.8);
@@ -1524,6 +1647,68 @@ function getStatusLabel(status: string): string {
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+/* Usage Toggle Cell */
+.usage-toggle-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  align-items: flex-start;
+}
+
+.toggle-buttons {
+  display: flex;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  padding: 0.25rem;
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.toggle-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.toggle-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.toggle-btn.active {
+  background: linear-gradient(135deg, #F29400 0%, #e53212 100%);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 2px 10px rgba(242, 148, 0, 0.3);
+}
+
+.toggle-btn.active svg {
+  color: white;
+}
+
+.usage-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 0.25rem;
 }
 
 .badge {

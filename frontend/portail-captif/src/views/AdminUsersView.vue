@@ -10,6 +10,7 @@ import { userService } from '@/services/user.service'
 import { type VerificationResult } from '@/services/profile.service'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import Pagination from '@/components/Pagination.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -26,10 +27,14 @@ const showEditModal = ref(false)
 const showActivationModal = ref(false)
 const selectedUser = ref<any>(null)
 const searchQuery = ref('')
-const filterRole = ref('all')
+const filterPromotion = ref('all')
 const filterStatus = ref('all')
 const filterRadiusStatus = ref('all')
 const isDeleting = ref(false)
+
+// Pagination
+const currentPage = ref(1)
+const itemsPerPage = ref(10)
 const isActivating = ref(false)
 const isDeactivating = ref(false)
 
@@ -89,13 +94,9 @@ const filteredUsers = computed(() => {
     )
   }
 
-  // Filtre par rôle
-  if (filterRole.value !== 'all') {
-    if (filterRole.value === 'admin') {
-      filtered = filtered.filter(u => u.is_staff || u.is_superuser)
-    } else {
-      filtered = filtered.filter(u => !u.is_staff && !u.is_superuser)
-    }
+  // Filtre par promotion
+  if (filterPromotion.value !== 'all') {
+    filtered = filtered.filter(u => u.promotion === Number(filterPromotion.value))
   }
 
   // Filtre par statut Django
@@ -118,6 +119,18 @@ const filteredUsers = computed(() => {
 
   return filtered
 })
+
+// Pagination des utilisateurs filtrés
+const paginatedUsers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return filteredUsers.value.slice(start, end)
+})
+
+// Reset pagination when filters change
+function resetPagination() {
+  currentPage.value = 1
+}
 
 // Utilisateurs en attente d'activation RADIUS
 const pendingActivationUsers = computed(() =>
@@ -574,27 +587,44 @@ function getStatusLabel(status: string): string {
             type="text"
             placeholder="Rechercher un utilisateur (nom, email, promotion, matricule)..."
             class="search-input"
+            @input="resetPagination"
           />
         </div>
 
         <div class="filter-group">
-          <select v-model="filterRole" class="filter-select">
-            <option value="all">Tous les rôles</option>
-            <option value="admin">Administrateurs</option>
-            <option value="user">Utilisateurs</option>
-          </select>
+          <div class="select-wrapper">
+            <select v-model="filterPromotion" class="filter-select futuristic" @change="resetPagination">
+              <option value="all">Toutes les promotions</option>
+              <option v-for="promo in allPromotions" :key="promo.id" :value="promo.id">
+                {{ promo.name }}
+              </option>
+            </select>
+            <svg class="select-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
 
-          <select v-model="filterStatus" class="filter-select">
-            <option value="all">Tous les statuts Django</option>
-            <option value="active">Actifs</option>
-            <option value="inactive">Inactifs</option>
-          </select>
+          <div class="select-wrapper">
+            <select v-model="filterStatus" class="filter-select futuristic" @change="resetPagination">
+              <option value="all">Tous les statuts Django</option>
+              <option value="active">Actifs</option>
+              <option value="inactive">Inactifs</option>
+            </select>
+            <svg class="select-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
 
-          <select v-model="filterRadiusStatus" class="filter-select">
-            <option value="all">Tous les statuts RADIUS</option>
-            <option value="activated">Activés RADIUS</option>
-            <option value="pending">En attente RADIUS</option>
-          </select>
+          <div class="select-wrapper">
+            <select v-model="filterRadiusStatus" class="filter-select futuristic" @change="resetPagination">
+              <option value="all">Tous les statuts RADIUS</option>
+              <option value="activated">Activés RADIUS</option>
+              <option value="pending">En attente RADIUS</option>
+            </select>
+            <svg class="select-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -649,7 +679,7 @@ function getStatusLabel(status: string): string {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user.id">
+            <tr v-for="user in paginatedUsers" :key="user.id">
               <td>
                 <input
                   type="checkbox"
@@ -782,6 +812,15 @@ function getStatusLabel(status: string): string {
           <h3>Aucun utilisateur trouvé</h3>
           <p>Aucun utilisateur ne correspond à vos critères de recherche</p>
         </div>
+
+        <!-- Pagination -->
+        <Pagination
+          v-if="filteredUsers.length > 0"
+          :current-page="currentPage"
+          :total-items="filteredUsers.length"
+          :items-per-page="itemsPerPage"
+          @update:current-page="currentPage = $event"
+        />
       </div>
 
     <!-- Modal Résultat d'activation -->

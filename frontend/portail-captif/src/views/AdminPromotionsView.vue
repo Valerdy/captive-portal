@@ -7,6 +7,7 @@ import { useProfileStore } from '@/stores/profile'
 import { useNotificationStore } from '@/stores/notification'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import Pagination from '@/components/Pagination.vue'
 import type { Promotion } from '@/types'
 
 const router = useRouter()
@@ -24,14 +25,18 @@ const isLoading = computed(() => promotionStore.isLoading)
 
 const showAddModal = ref(false)
 const showEditModal = ref(false)
+const showUsersModal = ref(false)
 const selectedPromotion = ref<Promotion | null>(null)
 const searchQuery = ref('')
 const filterStatus = ref('all')
 const isDeleting = ref(false)
 const isActivating = ref(false)
-const expandedPromotion = ref<number | null>(null)
 const promotionUsers = ref<any[]>([])
 const isLoadingUsers = ref(false)
+
+// Pagination
+const currentPage = ref(1)
+const itemsPerPage = ref(10)
 
 const newPromotion = ref({
   name: '',
@@ -64,6 +69,18 @@ const filteredPromotions = computed(() => {
 
   return filtered.filter(p => p != null)
 })
+
+// Pagination des promotions filtrées
+const paginatedPromotions = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return filteredPromotions.value.slice(start, end)
+})
+
+// Reset pagination when filters change
+function resetPagination() {
+  currentPage.value = 1
+}
 
 // Statistiques
 const stats = computed(() => ({
@@ -249,25 +266,27 @@ async function handleDeactivatePromotionUsers(promotion: Promotion) {
   }
 }
 
-async function togglePromotionExpand(promotion: Promotion) {
-  if (expandedPromotion.value === promotion.id) {
-    // Fermer si déjà ouvert
-    expandedPromotion.value = null
-    promotionUsers.value = []
-  } else {
-    // Ouvrir et charger les utilisateurs
-    expandedPromotion.value = promotion.id
-    isLoadingUsers.value = true
-    try {
-      const data = await promotionStore.getPromotionUsers(promotion.id)
-      promotionUsers.value = data.users || []
-    } catch (error: any) {
-      notificationStore.error('Erreur lors du chargement des utilisateurs')
-      console.error(error)
-    } finally {
-      isLoadingUsers.value = false
-    }
+async function handleViewUsers(promotion: Promotion) {
+  selectedPromotion.value = promotion
+  showUsersModal.value = true
+  isLoadingUsers.value = true
+  promotionUsers.value = []
+
+  try {
+    const data = await promotionStore.getPromotionUsers(promotion.id)
+    promotionUsers.value = data.users || []
+  } catch (error: any) {
+    notificationStore.error('Erreur lors du chargement des utilisateurs')
+    console.error(error)
+  } finally {
+    isLoadingUsers.value = false
   }
+}
+
+function closeUsersModal() {
+  showUsersModal.value = false
+  selectedPromotion.value = null
+  promotionUsers.value = []
 }
 </script>
 
@@ -326,15 +345,21 @@ async function togglePromotionExpand(promotion: Promotion) {
           type="text"
           placeholder="Rechercher une promotion (code, nom, année)..."
           class="search-input"
+          @input="resetPagination"
         />
       </div>
 
       <div class="filter-group">
-        <select v-model="filterStatus" class="filter-select">
-          <option value="all">Tous les statuts</option>
-          <option value="active">Actives</option>
-          <option value="inactive">Inactives</option>
-        </select>
+        <div class="select-wrapper">
+          <select v-model="filterStatus" class="filter-select futuristic" @change="resetPagination">
+            <option value="all">Tous les statuts</option>
+            <option value="active">Actives</option>
+            <option value="inactive">Inactives</option>
+          </select>
+          <svg class="select-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
       </div>
     </div>
 
@@ -354,9 +379,7 @@ async function togglePromotionExpand(promotion: Promotion) {
           </tr>
         </thead>
         <tbody>
-          <template v-for="promotion in filteredPromotions" :key="promotion.id">
-            <tr @click="togglePromotionExpand(promotion)"
-                class="cursor-pointer hover:bg-gray-50">
+          <tr v-for="promotion in paginatedPromotions" :key="promotion.id">
               <td><span class="id-badge">{{ promotion.id }}</span></td>
               <td>
                 <span class="code-badge">{{ promotion.code }}</span>
@@ -386,8 +409,18 @@ async function togglePromotionExpand(promotion: Promotion) {
               <td>
                 <div class="action-buttons">
                   <button
+                    @click="handleViewUsers(promotion)"
+                    class="action-btn view"
+                    title="Voir les utilisateurs">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                  </button>
+
+                  <button
                     v-if="promotion.user_count && promotion.user_count > 0"
-                    @click.stop="handleActivatePromotionUsers(promotion)"
+                    @click="handleActivatePromotionUsers(promotion)"
                     class="action-btn radius-enable"
                     title="Activer tous les utilisateurs dans RADIUS"
                     :disabled="isActivating">
@@ -399,7 +432,7 @@ async function togglePromotionExpand(promotion: Promotion) {
 
                   <button
                     v-if="promotion.user_count && promotion.user_count > 0"
-                    @click.stop="handleDeactivatePromotionUsers(promotion)"
+                    @click="handleDeactivatePromotionUsers(promotion)"
                     class="action-btn radius-disable"
                     title="Désactiver tous les utilisateurs dans RADIUS"
                     :disabled="isActivating">
@@ -409,7 +442,7 @@ async function togglePromotionExpand(promotion: Promotion) {
                     </svg>
                   </button>
 
-                  <button @click.stop="handleEdit(promotion)" class="action-btn edit" title="Modifier">
+                  <button @click="handleEdit(promotion)" class="action-btn edit" title="Modifier">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -417,7 +450,7 @@ async function togglePromotionExpand(promotion: Promotion) {
                   </button>
 
                   <button
-                    @click.stop="handleToggleStatus(promotion)"
+                    @click="handleToggleStatus(promotion)"
                     :class="['action-btn', promotion.is_active ? 'danger' : 'success']"
                     :title="promotion.is_active ? 'Désactiver' : 'Activer'">
                     <svg v-if="promotion.is_active" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -430,7 +463,7 @@ async function togglePromotionExpand(promotion: Promotion) {
                     </svg>
                   </button>
 
-                  <button @click.stop="handleDelete(promotion)" class="action-btn delete" title="Supprimer">
+                  <button @click="handleDelete(promotion)" class="action-btn delete" title="Supprimer">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -439,60 +472,6 @@ async function togglePromotionExpand(promotion: Promotion) {
                 </div>
               </td>
             </tr>
-
-            <!-- Rangée déroulable pour les utilisateurs -->
-            <tr v-if="expandedPromotion === promotion.id" class="expanded-row">
-              <td colspan="8" class="users-container">
-                <div v-if="isLoadingUsers" class="loading-users">
-                  <LoadingSpinner />
-                  <p>Chargement des utilisateurs...</p>
-                </div>
-
-                <div v-else-if="promotionUsers.length === 0" class="no-users">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                  </svg>
-                  <p>Aucun utilisateur dans cette promotion</p>
-                </div>
-
-                <div v-else class="users-list">
-                  <h4>Utilisateurs de la promotion {{ promotion.name }} ({{ promotionUsers.length }})</h4>
-
-                  <div class="users-grid">
-                    <div v-for="user in promotionUsers" :key="user.id" class="user-card">
-                      <div class="user-avatar">
-                        {{ user.first_name?.charAt(0) || 'U' }}{{ user.last_name?.charAt(0) || '?' }}
-                      </div>
-
-                      <div class="user-info">
-                        <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
-                        <div class="user-username">@{{ user.username }}</div>
-                        <div v-if="user.matricule" class="user-matricule">{{ user.matricule }}</div>
-                      </div>
-
-                      <div class="user-status">
-                        <span v-if="user.can_access_radius" class="status-badge active">
-                          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          </svg>
-                          Accès WiFi actif
-                        </span>
-                        <span v-else class="status-badge inactive">
-                          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                          </svg>
-                          {{ user.radius_status }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </template>
         </tbody>
       </table>
 
@@ -504,6 +483,92 @@ async function togglePromotionExpand(promotion: Promotion) {
         </svg>
         <h3>Aucune promotion trouvée</h3>
         <p>Aucune promotion ne correspond à vos critères de recherche</p>
+      </div>
+
+      <!-- Pagination -->
+      <Pagination
+        v-if="filteredPromotions.length > 0"
+        :current-page="currentPage"
+        :total-items="filteredPromotions.length"
+        :items-per-page="itemsPerPage"
+        @update:current-page="currentPage = $event"
+      />
+    </div>
+
+    <!-- Modal Utilisateurs de la promotion -->
+    <div v-if="showUsersModal && selectedPromotion" class="modal-overlay" @click.self="closeUsersModal">
+      <div class="modal-content modal-large">
+        <div class="modal-header">
+          <h3>Utilisateurs de {{ selectedPromotion.name }}</h3>
+          <button @click="closeUsersModal" class="modal-close">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div v-if="isLoadingUsers" class="loading-container">
+            <LoadingSpinner />
+            <p>Chargement des utilisateurs...</p>
+          </div>
+
+          <div v-else-if="promotionUsers.length === 0" class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+              <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <h4>Aucun utilisateur</h4>
+            <p>Cette promotion ne contient aucun utilisateur</p>
+          </div>
+
+          <div v-else class="users-modal-content">
+            <div class="users-count-badge">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              <span>{{ promotionUsers.length }} utilisateur(s)</span>
+            </div>
+
+            <div class="users-grid">
+              <div v-for="user in promotionUsers" :key="user.id" class="user-card">
+                <div class="user-avatar">
+                  {{ user.first_name?.charAt(0) || 'U' }}{{ user.last_name?.charAt(0) || '?' }}
+                </div>
+
+                <div class="user-info">
+                  <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                  <div class="user-username">@{{ user.username }}</div>
+                  <div v-if="user.matricule" class="user-matricule">{{ user.matricule }}</div>
+                </div>
+
+                <div class="user-status">
+                  <span v-if="user.can_access_radius" class="status-badge active">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Accès WiFi actif
+                  </span>
+                  <span v-else class="status-badge inactive">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    {{ user.radius_status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="closeUsersModal" class="btn-secondary">Fermer</button>
+        </div>
       </div>
     </div>
 
