@@ -1,5 +1,6 @@
 import api from './api'
 import type { User, PaginatedResponse, RadiusActivationResponse } from '@/types'
+import type { VerificationResult } from './profile.service'
 
 export const userService = {
   /**
@@ -58,20 +59,6 @@ export const userService = {
   },
 
   /**
-   * Activer un utilisateur (statut=1) dans RADIUS
-   */
-  async activateUserRadius(userId: number): Promise<void> {
-    await api.post(`/api/core/users/${userId}/activate_radius/`)
-  },
-
-  /**
-   * Désactiver un utilisateur (statut=0) dans RADIUS
-   */
-  async deactivateUserRadius(userId: number): Promise<void> {
-    await api.post(`/api/core/users/${userId}/deactivate_radius/`)
-  },
-
-  /**
    * Activer un ou plusieurs utilisateurs dans RADIUS (admin only)
    * L'utilisateur reste dans la table users (Django) ET est copié dans radcheck (RADIUS)
    */
@@ -98,6 +85,15 @@ export const userService = {
    */
   async deactivateUserRadius(userId: number): Promise<any> {
     const response = await api.post(`/api/core/users/${userId}/deactivate_radius/`)
+    return response.data
+  },
+
+  /**
+   * Vérifie l'application du profil RADIUS pour un utilisateur spécifique.
+   * Compare les attributs attendus (FreeRADIUS) avec les attributs réels (MikroTik).
+   */
+  async verifyRadiusProfile(userId: number): Promise<VerificationResult> {
+    const response = await api.get(`/api/radius/sync/verify/user/${userId}/`)
     return response.data
   }
 }

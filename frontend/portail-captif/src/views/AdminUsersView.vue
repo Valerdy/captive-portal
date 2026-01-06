@@ -7,6 +7,7 @@ import { usePromotionStore } from '@/stores/promotion'
 import { useProfileStore } from '@/stores/profile'
 import { useNotificationStore } from '@/stores/notification'
 import { userService } from '@/services/user.service'
+import { type VerificationResult } from '@/services/profile.service'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 
@@ -38,6 +39,12 @@ const selectAll = ref(false)
 
 // Résultat d'activation
 const activationResult = ref<any>(null)
+
+// Variables pour la vérification RADIUS
+const showUserVerificationModal = ref(false)
+const isVerifyingUser = ref(false)
+const userVerificationResult = ref<VerificationResult | null>(null)
+const verifyingUserId = ref<number | null>(null)
 
 const newUser = ref({
   password: '',
@@ -423,6 +430,82 @@ async function handleDeactivateRadiusIndividual(userId: number) {
     isActivating.value = false
   }
 }
+
+// Vérification RADIUS pour un utilisateur individuel
+async function handleVerifyUserRadius(user: any) {
+  if (isVerifyingUser.value) return
+
+  selectedUser.value = user
+  verifyingUserId.value = user.id
+  isVerifyingUser.value = true
+  showUserVerificationModal.value = true
+  userVerificationResult.value = null
+
+  try {
+    const result = await userService.verifyRadiusProfile(user.id)
+    userVerificationResult.value = result
+
+    if (result.success) {
+      if (result.status === 'OK') {
+        notificationStore.success('Profil RADIUS vérifié avec succès')
+      } else if (result.status === 'WARNING') {
+        notificationStore.warning('Différences détectées dans le profil RADIUS')
+      } else if (result.status === 'ERROR') {
+        notificationStore.error('Erreurs dans l\'application du profil RADIUS')
+      } else if (result.status === 'NOT_CONNECTED') {
+        notificationStore.info('Utilisateur non connecté au hotspot')
+      }
+    } else {
+      notificationStore.error(result.error || 'Erreur lors de la vérification')
+    }
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || 'Erreur inconnue'
+    notificationStore.error(`Erreur lors de la vérification: ${message}`)
+    console.error('Erreur vérification RADIUS:', error)
+    userVerificationResult.value = {
+      success: false,
+      error: message
+    }
+  } finally {
+    isVerifyingUser.value = false
+    verifyingUserId.value = null
+  }
+}
+
+function closeUserVerificationModal() {
+  showUserVerificationModal.value = false
+  userVerificationResult.value = null
+}
+
+function getStatusBadgeClass(status: string): string {
+  switch (status) {
+    case 'OK':
+      return 'badge-success'
+    case 'WARNING':
+      return 'badge-warning'
+    case 'ERROR':
+      return 'badge-danger'
+    case 'NOT_CONNECTED':
+      return 'badge-gray'
+    default:
+      return 'badge-gray'
+  }
+}
+
+function getStatusLabel(status: string): string {
+  switch (status) {
+    case 'OK':
+      return 'OK'
+    case 'WARNING':
+      return 'Avertissement'
+    case 'ERROR':
+      return 'Erreur'
+    case 'NOT_CONNECTED':
+      return 'Non connecté'
+    default:
+      return status
+  }
+}
 </script>
 
 <template>
@@ -637,8 +720,26 @@ async function handleDeactivateRadiusIndividual(userId: number) {
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
                     </svg>
                   </button>
+                  <!-- Verification button for RADIUS activated users -->
                   <button
-                    v-else-if="user.is_radius_activated"
+                    v-if="user.is_radius_activated"
+                    @click="handleVerifyUserRadius(user)"
+                    class="action-btn verify"
+                    :class="{ verifying: verifyingUserId === user.id }"
+                    :disabled="isVerifyingUser"
+                    title="Vérifier l'application du profil RADIUS"
+                  >
+                    <svg v-if="verifyingUserId === user.id" class="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="32" stroke-dashoffset="32"/>
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.5 0 2.91.37 4.15 1.02" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M22 4L12 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 3"/>
+                    </svg>
+                  </button>
+                  <button
+                    v-if="user.is_radius_activated"
                     @click="handleDeactivateRadius(user.id)"
                     class="action-btn danger"
                     title="Désactiver dans RADIUS"
@@ -963,6 +1064,141 @@ async function handleDeactivateRadiusIndividual(userId: number) {
         <div class="modal-footer">
           <button @click="closeEditModal" class="btn-secondary">Annuler</button>
           <button @click="handleUpdateUser" class="btn-primary">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Vérification RADIUS Utilisateur -->
+    <div v-if="showUserVerificationModal" class="modal-overlay" @click.self="closeUserVerificationModal">
+      <div class="modal-content modal-large">
+        <div class="modal-header">
+          <h3>Vérification RADIUS : {{ selectedUser?.username }}</h3>
+          <button @click="closeUserVerificationModal" class="modal-close">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Loading -->
+          <div v-if="isVerifyingUser" class="loading-container">
+            <LoadingSpinner />
+            <p class="loading-text">Vérification en cours...</p>
+          </div>
+
+          <!-- Error -->
+          <div v-else-if="userVerificationResult && !userVerificationResult.success" class="error-container">
+            <div class="error-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h4>Erreur lors de la vérification</h4>
+            <p>{{ userVerificationResult.error }}</p>
+          </div>
+
+          <!-- Results -->
+          <div v-else-if="userVerificationResult && userVerificationResult.success">
+            <!-- Status Badge -->
+            <div class="verification-status-header">
+              <span class="badge large" :class="getStatusBadgeClass(userVerificationResult.status || '')">
+                {{ getStatusLabel(userVerificationResult.status || '') }}
+              </span>
+            </div>
+
+            <!-- User Info -->
+            <div class="verification-info">
+              <p><strong>Utilisateur :</strong> {{ userVerificationResult.username }}</p>
+              <p><strong>Profil :</strong> {{ userVerificationResult.profile_name || 'Non défini' }}</p>
+              <p v-if="userVerificationResult.message"><strong>Message :</strong> {{ userVerificationResult.message }}</p>
+              <p v-if="userVerificationResult.verified_at"><strong>Vérifié à :</strong> {{ new Date(userVerificationResult.verified_at).toLocaleString('fr-FR') }}</p>
+            </div>
+
+            <!-- Not Connected Message -->
+            <div v-if="userVerificationResult.status === 'NOT_CONNECTED'" class="not-connected-message">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <p>Cet utilisateur n'est pas actuellement connecté au hotspot. La vérification ne peut être effectuée que pour les utilisateurs connectés.</p>
+            </div>
+
+            <!-- Attributes Comparison -->
+            <div v-if="userVerificationResult.expected_attributes || userVerificationResult.actual_attributes" class="attributes-section">
+              <h4 class="section-title">Comparaison des attributs</h4>
+
+              <div class="attributes-grid">
+                <!-- Expected Attributes -->
+                <div class="attributes-card">
+                  <h5>Attributs attendus (FreeRADIUS)</h5>
+                  <div v-if="userVerificationResult.expected_attributes && Object.keys(userVerificationResult.expected_attributes).length > 0">
+                    <div v-for="(value, key) in userVerificationResult.expected_attributes" :key="key" class="attribute-item">
+                      <code>{{ key }}</code>
+                      <span>{{ value }}</span>
+                    </div>
+                  </div>
+                  <div v-else class="empty-attributes">Aucun attribut</div>
+                </div>
+
+                <!-- Actual Attributes -->
+                <div class="attributes-card">
+                  <h5>Attributs réels (MikroTik)</h5>
+                  <div v-if="userVerificationResult.actual_attributes && Object.keys(userVerificationResult.actual_attributes).length > 0">
+                    <div v-for="(value, key) in userVerificationResult.actual_attributes" :key="key" class="attribute-item">
+                      <code>{{ key }}</code>
+                      <span>{{ value }}</span>
+                    </div>
+                  </div>
+                  <div v-else class="empty-attributes">Aucun attribut (utilisateur non connecté)</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Differences Table -->
+            <div v-if="userVerificationResult.differences && userVerificationResult.differences.length > 0" class="differences-section">
+              <h4 class="section-title">Différences détectées</h4>
+              <div class="differences-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Attribut</th>
+                      <th>Attendu</th>
+                      <th>Actuel</th>
+                      <th>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="diff in userVerificationResult.differences" :key="diff.attribute" :class="diff.status">
+                      <td><code>{{ diff.attribute }}</code></td>
+                      <td>{{ diff.expected ?? '-' }}</td>
+                      <td>{{ diff.actual ?? '-' }}</td>
+                      <td>
+                        <span class="diff-status" :class="diff.status">
+                          {{ diff.status === 'match' ? '✓' : diff.status === 'mismatch' ? '✗' : '?' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="closeUserVerificationModal" class="btn-secondary">Fermer</button>
+          <button
+            v-if="userVerificationResult?.success && selectedUser"
+            @click="handleVerifyUserRadius(selectedUser)"
+            class="btn-primary"
+            :disabled="isVerifyingUser"
+          >
+            Actualiser
+          </button>
         </div>
       </div>
     </div>
@@ -1831,7 +2067,254 @@ async function handleDeactivateRadiusIndividual(userId: number) {
 .loading-container {
   padding: 4rem 0;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+}
+
+.loading-text {
+  margin-top: 1rem;
+  color: #6B7280;
+  font-size: 0.875rem;
+}
+
+/* Verification Button */
+.action-btn.verify:hover:not(:disabled) {
+  background: #DBEAFE;
+  border-color: #3B82F6;
+}
+
+.action-btn.verify:hover:not(:disabled) svg {
+  color: #3B82F6;
+}
+
+.action-btn.verify.verifying {
+  background: #DBEAFE;
+  border-color: #3B82F6;
+}
+
+.action-btn .spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Verification Modal Styles */
+.error-container {
+  text-align: center;
+  padding: 2rem;
+}
+
+.error-icon svg {
+  width: 48px;
+  height: 48px;
+  color: #DC2626;
+  margin-bottom: 1rem;
+}
+
+.error-container h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #DC2626;
+  margin-bottom: 0.5rem;
+}
+
+.error-container p {
+  color: #6B7280;
+}
+
+.verification-status-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.badge.large {
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+}
+
+.verification-info {
+  background: #F9FAFB;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.verification-info p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #4B5563;
+}
+
+.not-connected-message {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  border-left: 4px solid #9CA3AF;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+}
+
+.not-connected-message svg {
+  width: 24px;
+  height: 24px;
+  color: #6B7280;
+  flex-shrink: 0;
+}
+
+.not-connected-message p {
+  font-size: 0.875rem;
+  color: #4B5563;
+  margin: 0;
+}
+
+.attributes-section {
+  margin-top: 1.5rem;
+}
+
+.section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #E5E7EB;
+}
+
+.attributes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.attributes-card {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.attributes-card h5 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.attribute-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.attribute-item:last-child {
+  border-bottom: none;
+}
+
+.attribute-item code {
+  background: #E5E7EB;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #4B5563;
+}
+
+.attribute-item span {
+  font-size: 0.8125rem;
+  color: #1F2937;
+  font-weight: 500;
+}
+
+.empty-attributes {
+  color: #9CA3AF;
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
+.differences-section {
+  margin-top: 1.5rem;
+}
+
+.differences-table {
+  overflow-x: auto;
+}
+
+.differences-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.differences-table th,
+.differences-table td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.differences-table th {
+  background: rgba(0, 0, 0, 0.03);
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+}
+
+.differences-table tr.match {
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.differences-table tr.mismatch {
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.differences-table tr.missing {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.differences-table code {
+  background: #E5E7EB;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+.diff-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.diff-status.match {
+  background: #D1FAE5;
+  color: #10B981;
+}
+
+.diff-status.mismatch {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.diff-status.missing {
+  background: #FEF3C7;
+  color: #D97706;
 }
 
 /* Responsive */
@@ -1882,6 +2365,10 @@ async function handleDeactivateRadiusIndividual(userId: number) {
   }
 
   .user-details {
+    grid-template-columns: 1fr;
+  }
+
+  .attributes-grid {
     grid-template-columns: 1fr;
   }
 }
