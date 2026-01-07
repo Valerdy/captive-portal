@@ -167,20 +167,6 @@ onMounted(async () => {
   }
 })
 
-async function handleTogglePromotion(promo: any) {
-  try {
-    if (promo.is_active) {
-      await promotionStore.deactivatePromotion(promo.id)
-      notificationStore.success(`Promotion ${promo.name} désactivée (RADIUS)`)
-    } else {
-      await promotionStore.activatePromotion(promo.id)
-      notificationStore.success(`Promotion ${promo.name} activée (RADIUS)`)
-    }
-  } catch (error) {
-    notificationStore.error(promotionStore.error || 'Erreur lors du changement de statut promotion')
-  }
-}
-
 // Gestion de la sélection multiple
 function toggleSelectAll() {
   if (selectAll.value) {
@@ -628,32 +614,6 @@ function getStatusLabel(status: string): string {
         </div>
       </div>
 
-      <!-- Promotions -->
-      <div class="promo-card">
-        <div class="promo-header">
-          <h3>Promotions</h3>
-          <p class="text-gray">Activer/Désactiver l'accès RADIUS par promotion</p>
-        </div>
-        <div class="promo-list">
-          <div v-for="promo in allPromotions" :key="promo.id" class="promo-item">
-            <div>
-              <div class="promo-name">{{ promo.name }}</div>
-              <div class="promo-status" :class="promo.is_active ? 'active' : 'inactive'">
-                {{ promo.is_active ? 'Active' : 'Désactivée' }}
-              </div>
-            </div>
-            <button
-              class="btn-ghost"
-              :class="promo.is_active ? 'danger' : 'success'"
-              @click="handleTogglePromotion(promo)"
-            >
-              {{ promo.is_active ? 'Désactiver' : 'Activer' }}
-            </button>
-          </div>
-          <div v-if="allPromotions.length === 0" class="text-gray">Aucune promotion trouvée</div>
-        </div>
-      </div>
-
       <!-- Table -->
       <div class="table-container">
         <table class="data-table">
@@ -670,8 +630,8 @@ function getStatusLabel(status: string): string {
               <th>ID</th>
               <th>Utilisateur</th>
               <th>Email</th>
-              <th>Promotion/Matricule</th>
-              <th>Rôle</th>
+              <th>Promotion</th>
+              <th>Matricule</th>
               <th>Statut Django</th>
               <th>Statut RADIUS</th>
               <th>Date d'inscription</th>
@@ -702,15 +662,12 @@ function getStatusLabel(status: string): string {
               </td>
               <td>{{ user.email }}</td>
               <td>
-                <div v-if="user.promotion_name || user.matricule" class="info-cell">
-                  <span v-if="user.promotion_name" class="badge badge-light">{{ user.promotion_name }}</span>
-                  <span v-if="user.matricule" class="badge badge-light">{{ user.matricule }}</span>
-                </div>
+                <span v-if="user.promotion_name" class="badge badge-promo">{{ user.promotion_name }}</span>
                 <span v-else class="text-gray">-</span>
               </td>
               <td>
-                <span v-if="user.is_staff || user.is_superuser" class="badge badge-danger">Admin</span>
-                <span v-else class="badge badge-info">Utilisateur</span>
+                <span v-if="user.matricule" class="badge badge-matricule">{{ user.matricule }}</span>
+                <span v-else class="text-gray">-</span>
               </td>
               <td>
                 <span v-if="user.is_active" class="badge badge-success">Actif</span>
@@ -1371,66 +1328,6 @@ function getStatusLabel(status: string): string {
   border-left-color: #F29400;
 }
 
-.promo-card {
-  background: rgba(15, 15, 25, 0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 1rem;
-  margin: 1.5rem 0;
-}
-
-.promo-header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.promo-header h3 {
-  font-family: 'Orbitron', monospace;
-  color: #008ecf;
-}
-
-.promo-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.promo-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.2);
-  transition: all 0.3s;
-}
-
-.promo-item:hover {
-  border-color: rgba(0, 142, 207, 0.3);
-}
-
-.promo-name {
-  font-family: 'Rajdhani', sans-serif;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.promo-status {
-  font-size: 12px;
-}
-
-.promo-status.active {
-  color: #10B981;
-}
-
-.promo-status.inactive {
-  color: #e53212;
-}
-
 .stat-value {
   font-family: 'Orbitron', monospace;
   font-size: 2rem;
@@ -1659,6 +1556,22 @@ function getStatusLabel(status: string): string {
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
+}
+
+.badge-promo {
+  background: rgba(162, 56, 130, 0.2);
+  color: #a23882;
+  border: 1px solid rgba(162, 56, 130, 0.3);
+  font-weight: 600;
+}
+
+.badge-matricule {
+  background: rgba(0, 142, 207, 0.15);
+  color: #008ecf;
+  border: 1px solid rgba(0, 142, 207, 0.3);
+  font-weight: 600;
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 0.05em;
 }
 
 .action-buttons {
