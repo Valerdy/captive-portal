@@ -1426,11 +1426,12 @@ function getStatusLabel(status: string): string {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .data-table {
   width: 100%;
+  min-width: 900px;
   border-collapse: collapse;
 }
 
