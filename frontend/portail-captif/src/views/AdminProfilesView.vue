@@ -38,12 +38,47 @@ const itemsPerPage = ref(10)
 // View toggle for usage (users/promotions)
 const usageViewMode = ref<Record<number, 'users' | 'promotions'>>({})
 
+// Usage modal
+const showUsageModal = ref(false)
+const usageModalType = ref<'users' | 'promotions'>('users')
+const usageModalProfile = ref<Profile | null>(null)
+const usageModalData = ref<any[]>([])
+const isLoadingUsage = ref(false)
+
 function toggleUsageView(profileId: number, mode: 'users' | 'promotions') {
   usageViewMode.value[profileId] = mode
 }
 
 function getUsageView(profileId: number): 'users' | 'promotions' {
   return usageViewMode.value[profileId] || 'users'
+}
+
+async function handleShowUsage(profile: Profile, type: 'users' | 'promotions') {
+  usageModalProfile.value = profile
+  usageModalType.value = type
+  isLoadingUsage.value = true
+  showUsageModal.value = true
+  usageModalData.value = []
+
+  try {
+    if (type === 'users') {
+      const result = await profileStore.getProfileUsers(profile.id)
+      usageModalData.value = result.users || []
+    } else {
+      const result = await profileStore.getProfilePromotions(profile.id)
+      usageModalData.value = result.promotions || []
+    }
+  } catch (error) {
+    notificationStore.error('Erreur lors du chargement des données')
+  } finally {
+    isLoadingUsage.value = false
+  }
+}
+
+function closeUsageModal() {
+  showUsageModal.value = false
+  usageModalProfile.value = null
+  usageModalData.value = []
 }
 
 function resetPagination() {
@@ -612,8 +647,9 @@ function getStatusLabel(status: string): string {
               <div class="usage-toggle-cell">
                 <div class="toggle-buttons">
                   <button
-                    @click="toggleUsageView(profile.id, 'users')"
-                    :class="['toggle-btn', { active: getUsageView(profile.id) === 'users' }]"
+                    @click="handleShowUsage(profile, 'users')"
+                    class="toggle-btn clickable"
+                    title="Voir les utilisateurs assignés"
                   >
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -624,8 +660,9 @@ function getStatusLabel(status: string): string {
                     {{ profile.users_count || 0 }}
                   </button>
                   <button
-                    @click="toggleUsageView(profile.id, 'promotions')"
-                    :class="['toggle-btn', { active: getUsageView(profile.id) === 'promotions' }]"
+                    @click="handleShowUsage(profile, 'promotions')"
+                    class="toggle-btn clickable"
+                    title="Voir les promotions assignées"
                   >
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -633,9 +670,7 @@ function getStatusLabel(status: string): string {
                     {{ profile.promotions_count || 0 }}
                   </button>
                 </div>
-                <div class="usage-label">
-                  {{ getUsageView(profile.id) === 'users' ? 'utilisateurs' : 'promotions' }}
-                </div>
+                <div class="usage-label">Cliquer pour détails</div>
               </div>
             </td>
             <td>
@@ -1236,6 +1271,95 @@ function getStatusLabel(status: string): string {
         </div>
       </div>
     </div>
+
+    <!-- Modal Utilisation (Users/Promotions) -->
+    <div v-if="showUsageModal && usageModalProfile" class="modal-overlay" @click.self="closeUsageModal">
+      <div class="modal-content modal-medium">
+        <div class="modal-header">
+          <h3>
+            <span v-if="usageModalType === 'users'">Utilisateurs du profil</span>
+            <span v-else>Promotions du profil</span>
+            : {{ usageModalProfile.name }}
+          </h3>
+          <button @click="closeUsageModal" class="modal-close">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div v-if="isLoadingUsage" class="loading-container">
+            <LoadingSpinner />
+          </div>
+
+          <div v-else-if="usageModalData.length === 0" class="empty-state-modal">
+            <div class="empty-icon">
+              <svg v-if="usageModalType === 'users'" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p v-if="usageModalType === 'users'">Aucun utilisateur n'utilise ce profil</p>
+            <p v-else>Aucune promotion n'utilise ce profil</p>
+          </div>
+
+          <div v-else class="usage-list">
+            <!-- Liste des utilisateurs -->
+            <div v-if="usageModalType === 'users'" class="usage-items">
+              <div v-for="user in usageModalData" :key="user.id" class="usage-item user-item">
+                <div class="usage-item-avatar">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div class="usage-item-info">
+                  <div class="usage-item-name">{{ user.first_name }} {{ user.last_name }}</div>
+                  <div class="usage-item-meta">
+                    <span class="username">@{{ user.username }}</span>
+                    <span v-if="user.matricule" class="matricule">{{ user.matricule }}</span>
+                  </div>
+                </div>
+                <div v-if="user.promotion" class="usage-item-badge">
+                  {{ user.promotion.name }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Liste des promotions -->
+            <div v-else class="usage-items">
+              <div v-for="promo in usageModalData" :key="promo.id" class="usage-item promo-item">
+                <div class="usage-item-avatar promo-avatar">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="usage-item-info">
+                  <div class="usage-item-name">{{ promo.name }}</div>
+                  <div class="usage-item-meta">
+                    <span v-if="promo.description" class="description">{{ promo.description }}</span>
+                  </div>
+                </div>
+                <div class="usage-item-badge users-count">
+                  {{ promo.user_count || 0 }} utilisateurs
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="closeUsageModal" class="btn-secondary">Fermer</button>
+        </div>
+      </div>
+    </div>
   </AdminLayout>
 </template>
 
@@ -1702,10 +1826,27 @@ function getStatusLabel(status: string): string {
   color: white;
 }
 
+.toggle-btn.clickable {
+  background: rgba(0, 142, 207, 0.1);
+  border: 1px solid rgba(0, 142, 207, 0.2);
+  color: #008ecf;
+}
+
+.toggle-btn.clickable:hover {
+  background: rgba(0, 142, 207, 0.2);
+  border-color: rgba(0, 142, 207, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 142, 207, 0.2);
+}
+
+.toggle-btn.clickable svg {
+  color: #008ecf;
+}
+
 .usage-label {
   font-family: 'Inter', sans-serif;
   font-size: 0.6875rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(0, 142, 207, 0.6);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding-left: 0.25rem;
@@ -1879,6 +2020,148 @@ function getStatusLabel(status: string): string {
 
 .modal-content.modal-large {
   max-width: 800px;
+}
+
+.modal-content.modal-medium {
+  max-width: 550px;
+}
+
+/* Usage Modal Styles */
+.empty-state-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.empty-state-modal .empty-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 1rem;
+}
+
+.empty-state-modal .empty-icon svg {
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.empty-state-modal p {
+  font-family: 'Inter', sans-serif;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9375rem;
+}
+
+.usage-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.usage-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.usage-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.usage-item:hover {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(0, 142, 207, 0.2);
+}
+
+.usage-item-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(0, 142, 207, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.usage-item-avatar svg {
+  width: 20px;
+  height: 20px;
+  color: #008ecf;
+}
+
+.usage-item-avatar.promo-avatar {
+  background: rgba(162, 56, 130, 0.15);
+}
+
+.usage-item-avatar.promo-avatar svg {
+  color: #a23882;
+}
+
+.usage-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.usage-item-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: white;
+  margin-bottom: 0.25rem;
+}
+
+.usage-item-meta {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.usage-item-meta .username {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  color: rgba(0, 142, 207, 0.8);
+}
+
+.usage-item-meta .matricule {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0.125rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.usage-item-meta .description {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.usage-item-badge {
+  padding: 0.375rem 0.75rem;
+  background: rgba(162, 56, 130, 0.15);
+  border: 1px solid rgba(162, 56, 130, 0.2);
+  border-radius: 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #a23882;
+  white-space: nowrap;
+}
+
+.usage-item-badge.users-count {
+  background: rgba(0, 142, 207, 0.15);
+  border-color: rgba(0, 142, 207, 0.2);
+  color: #008ecf;
 }
 
 .modal-header {
