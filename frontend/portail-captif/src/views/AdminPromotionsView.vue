@@ -223,7 +223,7 @@ async function handleToggleStatus(promotion: Promotion) {
 async function handleDelete(promotion: Promotion) {
   if (isDeleting.value) return
 
-  if (!confirm(`Voulez-vous vraiment supprimer la promotion "${promotion.code}" ?\n\nAttention: Cette action peut affecter ${promotion.user_count || 0} utilisateur(s).`)) {
+  if (!confirm(`Voulez-vous vraiment supprimer la promotion "${promotion.name}" ?\n\nAttention: Cette action peut affecter ${promotion.user_count || 0} utilisateur(s).`)) {
     return
   }
 
@@ -241,7 +241,7 @@ async function handleDelete(promotion: Promotion) {
 async function handleActivatePromotionUsers(promotion: Promotion) {
   if (isActivating.value) return
 
-  if (!confirm(`Activer l'accès Internet pour tous les utilisateurs de "${promotion.code}" ?\n\nCela activera ${promotion.user_count || 0} utilisateur(s) dans RADIUS.`)) {
+  if (!confirm(`Activer l'accès Internet pour tous les utilisateurs de "${promotion.name}" ?\n\nCela activera ${promotion.user_count || 0} utilisateur(s) dans RADIUS.`)) {
     return
   }
 
@@ -251,8 +251,8 @@ async function handleActivatePromotionUsers(promotion: Promotion) {
     notificationStore.success(`${result.users_enabled || 0} utilisateur(s) activé(s) dans RADIUS`)
     await promotionStore.fetchPromotions() // Rafraîchir pour mettre à jour les compteurs
 
-    // Rafraîchir la liste des utilisateurs si la promotion est ouverte
-    if (expandedPromotion.value === promotion.id) {
+    // Rafraîchir la liste des utilisateurs si le modal est ouvert pour cette promotion
+    if (showUsersModal.value && selectedPromotion.value?.id === promotion.id) {
       const data = await promotionStore.getPromotionUsers(promotion.id)
       promotionUsers.value = data.users || []
     }
@@ -267,7 +267,7 @@ async function handleActivatePromotionUsers(promotion: Promotion) {
 async function handleDeactivatePromotionUsers(promotion: Promotion) {
   if (isActivating.value) return
 
-  if (!confirm(`Désactiver l'accès Internet pour tous les utilisateurs de "${promotion.code}" ?\n\nCela désactivera ${promotion.user_count || 0} utilisateur(s) dans RADIUS.`)) {
+  if (!confirm(`Désactiver l'accès Internet pour tous les utilisateurs de "${promotion.name}" ?\n\nCela désactivera ${promotion.user_count || 0} utilisateur(s) dans RADIUS.`)) {
     return
   }
 
@@ -277,8 +277,8 @@ async function handleDeactivatePromotionUsers(promotion: Promotion) {
     notificationStore.success(`${result.users_disabled || 0} utilisateur(s) désactivé(s) dans RADIUS`)
     await promotionStore.fetchPromotions() // Rafraîchir pour mettre à jour les compteurs
 
-    // Rafraîchir la liste des utilisateurs si la promotion est ouverte
-    if (expandedPromotion.value === promotion.id) {
+    // Rafraîchir la liste des utilisateurs si le modal est ouvert pour cette promotion
+    if (showUsersModal.value && selectedPromotion.value?.id === promotion.id) {
       const data = await promotionStore.getPromotionUsers(promotion.id)
       promotionUsers.value = data.users || []
     }

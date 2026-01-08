@@ -15,6 +15,8 @@ const blockedSites = computed(() => siteStore.sites)
 const isLoading = computed(() => siteStore.isLoading)
 
 const showAddModal = ref(false)
+const showEditModal = ref(false)
+const selectedSite = ref<any>(null)
 const searchQuery = ref('')
 const filterType = ref('all')
 const filterStatus = ref('all')
@@ -102,6 +104,38 @@ async function handleAddSite() {
     closeAddModal()
   } catch (error) {
     notificationStore.error(siteStore.error || 'Erreur lors de l\'ajout')
+  }
+}
+
+function handleEdit(site: any) {
+  selectedSite.value = { ...site }
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  selectedSite.value = null
+}
+
+async function handleUpdateSite() {
+  if (!selectedSite.value) return
+
+  if (!selectedSite.value.url) {
+    notificationStore.warning('Veuillez entrer une URL')
+    return
+  }
+
+  try {
+    await siteStore.updateSite(selectedSite.value.id, {
+      url: selectedSite.value.url,
+      type: selectedSite.value.type,
+      reason: selectedSite.value.reason || null,
+      is_active: selectedSite.value.is_active
+    })
+    notificationStore.success('Site modifié avec succès')
+    closeEditModal()
+  } catch (error) {
+    notificationStore.error(siteStore.error || 'Erreur lors de la modification')
   }
 }
 
@@ -243,6 +277,12 @@ async function handleDelete(site: any) {
               <td>{{ new Date(site.added_date).toLocaleDateString('fr-FR') }}</td>
               <td>
                 <div class="action-buttons">
+                  <button @click="handleEdit(site)" class="action-btn edit" title="Modifier">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
                   <button @click="handleToggleActive(site)" :class="['action-btn', site.is_active ? 'danger' : 'success']" :title="site.is_active ? 'Désactiver' : 'Activer'">
                     <svg v-if="site.is_active" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
@@ -312,6 +352,57 @@ async function handleDelete(site: any) {
         <div class="modal-footer">
           <button @click="closeAddModal" class="btn-secondary">Annuler</button>
           <button @click="handleAddSite" class="btn-primary">Ajouter</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Édition -->
+    <div v-if="showEditModal && selectedSite" class="modal-overlay" @click.self="closeEditModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Modifier le site</h3>
+          <button @click="closeEditModal" class="modal-close">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label>URL du site *</label>
+            <input v-model="selectedSite.url" type="text" placeholder="example.com" />
+            <small>Entrez le domaine sans http:// ou https://</small>
+          </div>
+
+          <div class="form-group">
+            <label>Type de liste *</label>
+            <select v-model="selectedSite.type" class="form-select">
+              <option value="blacklist">Liste noire (bloquer)</option>
+              <option value="whitelist">Liste blanche (autoriser)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Raison (optionnel)</label>
+            <textarea v-model="selectedSite.reason" rows="3" placeholder="Expliquez pourquoi ce site est ajouté..."></textarea>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input v-model="selectedSite.is_active" type="checkbox" />
+              <span class="checkbox-text">
+                <strong>Site actif</strong>
+                <small>Si désactivé, le blocage/autorisation ne sera pas appliqué</small>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="closeEditModal" class="btn-secondary">Annuler</button>
+          <button @click="handleUpdateSite" class="btn-primary">Enregistrer</button>
         </div>
       </div>
     </div>
@@ -632,6 +723,15 @@ async function handleDelete(site: any) {
   color: #e53212;
 }
 
+.action-btn.edit:hover {
+  background: rgba(0, 142, 207, 0.2);
+  border-color: #008ecf;
+}
+
+.action-btn.edit:hover svg {
+  color: #008ecf;
+}
+
 .action-btn.delete:hover {
   background: rgba(229, 50, 18, 0.2);
   border-color: #e53212;
@@ -784,6 +884,42 @@ async function handleDelete(site: any) {
 .form-group textarea {
   resize: vertical;
   font-family: inherit;
+}
+
+.checkbox-group {
+  margin-top: 1rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #F29400;
+}
+
+.checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.checkbox-text strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.checkbox-text small {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .modal-footer {
