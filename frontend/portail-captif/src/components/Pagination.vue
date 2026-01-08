@@ -147,6 +147,7 @@ function nextPage() {
 .pagination-info strong {
   color: #F29400;
   font-weight: 600;
+  text-shadow: 0 0 8px rgba(242, 148, 0, 0.4);
 }
 
 .pagination {
@@ -154,10 +155,23 @@ function nextPage() {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem;
-  background: rgba(15, 15, 25, 0.9);
+  background: rgba(15, 15, 25, 0.95);
   border: 2px solid rgba(0, 142, 207, 0.4);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 142, 207, 0.1);
+  box-shadow:
+    0 4px 20px rgba(0, 142, 207, 0.15),
+    0 0 30px rgba(0, 142, 207, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.pagination:hover {
+  border-color: rgba(0, 142, 207, 0.6);
+  box-shadow:
+    0 4px 25px rgba(0, 142, 207, 0.25),
+    0 0 40px rgba(0, 142, 207, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .pagination-btn,
@@ -177,22 +191,36 @@ function nextPage() {
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  position: relative;
 }
 
 .pagination-btn svg {
   width: 18px;
   height: 18px;
+  transition: all 0.3s ease;
 }
 
 .page-btn {
   min-width: 40px;
   padding: 0.5rem;
   border-radius: 6px;
+  border: 1px solid transparent;
 }
 
-.pagination-btn:hover:not(:disabled),
+.pagination-btn:hover:not(:disabled) {
+  color: #F29400;
+  text-shadow: 0 0 10px rgba(242, 148, 0, 0.5);
+}
+
+.pagination-btn:hover:not(:disabled) svg {
+  filter: drop-shadow(0 0 6px rgba(242, 148, 0, 0.6));
+}
+
 .page-btn:hover:not(.active) {
   color: #F29400;
+  background: rgba(242, 148, 0, 0.1);
+  border-color: rgba(242, 148, 0, 0.3);
+  text-shadow: 0 0 8px rgba(242, 148, 0, 0.4);
 }
 
 .pagination-btn:disabled {
@@ -203,7 +231,19 @@ function nextPage() {
 .page-btn.active {
   background: linear-gradient(135deg, #008ecf 0%, #00b4d8 100%);
   color: white;
-  box-shadow: 0 2px 10px rgba(0, 142, 207, 0.4);
+  border-color: rgba(0, 180, 216, 0.5);
+  box-shadow:
+    0 2px 15px rgba(0, 142, 207, 0.5),
+    0 0 20px rgba(0, 142, 207, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.page-btn.active:hover {
+  box-shadow:
+    0 2px 20px rgba(0, 142, 207, 0.6),
+    0 0 30px rgba(0, 142, 207, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .page-numbers {

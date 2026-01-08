@@ -1426,13 +1426,13 @@ function getStatusLabel(status: string): string {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .data-table {
   width: 100%;
-  min-width: 900px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .data-table thead {
@@ -1441,21 +1441,36 @@ function getStatusLabel(status: string): string {
 }
 
 .data-table th {
-  padding: 1rem 1.5rem;
+  padding: 0.875rem 0.75rem;
   text-align: left;
-  font-family: 'Orbitron', monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
   color: #008ecf;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
+/* Column widths */
+.data-table th:nth-child(1) { width: 36px; } /* Checkbox */
+.data-table th:nth-child(2) { width: 50px; } /* ID */
+.data-table th:nth-child(3) { width: 14%; } /* Utilisateur */
+.data-table th:nth-child(4) { width: 18%; } /* Email */
+.data-table th:nth-child(5) { width: 10%; } /* Promotion */
+.data-table th:nth-child(6) { width: 9%; } /* Matricule */
+.data-table th:nth-child(7) { width: 8%; } /* Statut Django */
+.data-table th:nth-child(8) { width: 9%; } /* Statut RADIUS */
+.data-table th:nth-child(9) { width: 10%; } /* Date */
+.data-table th:nth-child(10) { width: auto; } /* Actions */
+
 .data-table td {
-  padding: 1rem 1.5rem;
-  font-size: 0.875rem;
+  padding: 0.75rem;
+  font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-table tbody tr:last-child td {
@@ -1483,16 +1498,16 @@ function getStatusLabel(status: string): string {
 }
 
 .user-avatar-sm {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   background: linear-gradient(135deg, #F29400 0%, #008ecf 100%);
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   flex-shrink: 0;
 }
 
