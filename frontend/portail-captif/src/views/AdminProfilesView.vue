@@ -745,16 +745,16 @@ function getStatusLabel(status: string): string {
         <h3>Aucun profil trouvé</h3>
         <p>Aucun profil ne correspond à vos critères de recherche</p>
       </div>
-
-      <!-- Pagination -->
-      <Pagination
-        v-if="filteredProfiles.length > 0"
-        :current-page="currentPage"
-        :total-items="filteredProfiles.length"
-        :items-per-page="itemsPerPage"
-        @update:current-page="currentPage = $event"
-      />
     </div>
+
+    <!-- Pagination (outside table container) -->
+    <Pagination
+      v-if="filteredProfiles.length > 0"
+      :current-page="currentPage"
+      :total-items="filteredProfiles.length"
+      :items-per-page="itemsPerPage"
+      @update:current-page="currentPage = $event"
+    />
 
     <!-- Modal Ajout -->
     <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">

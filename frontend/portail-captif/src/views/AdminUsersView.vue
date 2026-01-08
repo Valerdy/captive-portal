@@ -34,7 +34,7 @@ const isDeleting = ref(false)
 
 // Pagination
 const currentPage = ref(1)
-const itemsPerPage = ref(10)
+const itemsPerPage = ref(15)
 const isActivating = ref(false)
 const isDeactivating = ref(false)
 
@@ -769,16 +769,16 @@ function getStatusLabel(status: string): string {
           <h3>Aucun utilisateur trouvé</h3>
           <p>Aucun utilisateur ne correspond à vos critères de recherche</p>
         </div>
-
-        <!-- Pagination -->
-        <Pagination
-          v-if="filteredUsers.length > 0"
-          :current-page="currentPage"
-          :total-items="filteredUsers.length"
-          :items-per-page="itemsPerPage"
-          @update:current-page="currentPage = $event"
-        />
       </div>
+
+    <!-- Pagination (outside table container) -->
+    <Pagination
+      v-if="filteredUsers.length > 0"
+      :current-page="currentPage"
+      :total-items="filteredUsers.length"
+      :items-per-page="itemsPerPage"
+      @update:current-page="currentPage = $event"
+    />
 
     <!-- Modal Résultat d'activation -->
     <div v-if="showActivationModal && activationResult" class="modal-overlay" @click.self="closeActivationModal">
