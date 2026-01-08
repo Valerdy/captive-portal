@@ -471,12 +471,29 @@ async function handleVerifyProfile(profile: Profile) {
       notificationStore.error(result.error || 'Erreur lors de la vérification')
     }
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || 'Erreur inconnue'
-    notificationStore.error(`Erreur lors de la vérification: ${message}`)
+    let message = 'Erreur inconnue'
+    let userMessage = 'Erreur lors de la vérification'
+
+    // Détection du type d'erreur pour un message plus clair
+    if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+      message = 'Délai d\'attente dépassé'
+      userMessage = 'L\'Agent MikroTik ne répond pas. Vérifiez qu\'il est en cours d\'exécution sur le port 3001.'
+    } else if (error?.code === 'ERR_NETWORK' || error?.message?.includes('Network Error')) {
+      message = 'Erreur de connexion'
+      userMessage = 'Impossible de se connecter au serveur. Vérifiez votre connexion réseau.'
+    } else if (error?.response?.status === 503) {
+      message = 'Service indisponible'
+      userMessage = 'L\'Agent MikroTik n\'est pas disponible. Veuillez le démarrer avant de continuer.'
+    } else {
+      message = error?.response?.data?.error || error?.message || 'Erreur inconnue'
+      userMessage = message
+    }
+
+    notificationStore.error(userMessage)
     console.error('Erreur vérification RADIUS:', error)
     verificationResult.value = {
       success: false,
-      error: message
+      error: userMessage
     }
   } finally {
     isVerifying.value = false
