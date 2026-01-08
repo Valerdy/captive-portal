@@ -201,10 +201,10 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Mikrotik Configuration
 MIKROTIK_CONFIG = {
-    'HOST': env('MIKROTIK_HOST', default='192.168.88.1'),
+    'HOST': env('MIKROTIK_HOST', default='10.242.18.6'),
     'PORT': env.int('MIKROTIK_PORT', default=8728),
     'USERNAME': env('MIKROTIK_USERNAME', default='admin'),
-    'PASSWORD': env('MIKROTIK_PASSWORD', default=''),
+    'PASSWORD': env('MIKROTIK_PASSWORD', default='Admins_ucac2018'),
     'USE_SSL': env.bool('MIKROTIK_USE_SSL', default=False),
 }
 
