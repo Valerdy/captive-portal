@@ -63,10 +63,12 @@ async function handleShowUsage(profile: Profile, type: 'users' | 'promotions') {
   try {
     if (type === 'users') {
       const result = await profileStore.getProfileUsers(profile.id)
-      usageModalData.value = result.users || []
+      // Handle paginated response: data is in result.results.users
+      usageModalData.value = result.results?.users || result.users || []
     } else {
       const result = await profileStore.getProfilePromotions(profile.id)
-      usageModalData.value = result.promotions || []
+      // Handle paginated response: data is in result.results.promotions
+      usageModalData.value = result.results?.promotions || result.promotions || []
     }
   } catch (error) {
     notificationStore.error('Erreur lors du chargement des données')
