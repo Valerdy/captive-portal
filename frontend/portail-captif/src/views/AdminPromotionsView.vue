@@ -395,7 +395,6 @@ function closeUsersModal() {
         <thead>
           <tr>
             <th>ID</th>
-            <th>Code</th>
             <th>Nom</th>
             <th>Année</th>
             <th>Utilisateurs</th>
@@ -407,9 +406,6 @@ function closeUsersModal() {
         <tbody>
           <tr v-for="promotion in paginatedPromotions" :key="promotion.id">
               <td><span class="id-badge">{{ promotion.id }}</span></td>
-              <td>
-                <span class="code-badge">{{ promotion.code }}</span>
-              </td>
               <td>
                 <div class="name-cell">
                   <div class="name-text">{{ promotion.name }}</div>
