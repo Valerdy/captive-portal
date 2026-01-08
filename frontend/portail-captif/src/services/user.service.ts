@@ -91,9 +91,12 @@ export const userService = {
   /**
    * Vérifie l'application du profil RADIUS pour un utilisateur spécifique.
    * Compare les attributs attendus (FreeRADIUS) avec les attributs réels (MikroTik).
+   * Timeout augmenté car cette opération dépend de services externes (MikroTik Agent).
    */
   async verifyRadiusProfile(userId: number): Promise<VerificationResult> {
-    const response = await api.get(`/api/radius/sync/verify/user/${userId}/`)
+    const response = await api.get(`/api/radius/sync/verify/user/${userId}/`, {
+      timeout: 60000 // 60 secondes pour les opérations de vérification
+    })
     return response.data
   }
 }

@@ -258,25 +258,34 @@ export const profileService = {
   /**
    * Vérifie l'application du profil RADIUS pour un utilisateur spécifique.
    * Compare les attributs attendus (FreeRADIUS) avec les attributs réels (MikroTik).
+   * Timeout augmenté car cette opération dépend de services externes (MikroTik Agent).
    */
   async verifyUser(userId: number): Promise<VerificationResult> {
-    const response = await api.get(`/api/radius/sync/verify/user/${userId}/`)
+    const response = await api.get(`/api/radius/sync/verify/user/${userId}/`, {
+      timeout: 60000 // 60 secondes pour les opérations de vérification
+    })
     return response.data
   },
 
   /**
    * Vérifie l'application du profil RADIUS pour tous les utilisateurs d'un profil.
+   * Timeout augmenté car cette opération dépend de services externes (MikroTik Agent).
    */
   async verifyProfile(profileId: number): Promise<ProfileVerificationResult> {
-    const response = await api.get(`/api/radius/sync/verify/profile/${profileId}/`)
+    const response = await api.get(`/api/radius/sync/verify/profile/${profileId}/`, {
+      timeout: 60000 // 60 secondes pour les opérations de vérification
+    })
     return response.data
   },
 
   /**
    * Vérifie l'application des profils RADIUS pour tous les utilisateurs connectés.
+   * Timeout augmenté car cette opération dépend de services externes (MikroTik Agent).
    */
   async verifyAllConnected(): Promise<BulkVerificationResult> {
-    const response = await api.get('/api/radius/sync/verify/all/')
+    const response = await api.get('/api/radius/sync/verify/all/', {
+      timeout: 60000 // 60 secondes pour les opérations de vérification
+    })
     return response.data
   }
 }
