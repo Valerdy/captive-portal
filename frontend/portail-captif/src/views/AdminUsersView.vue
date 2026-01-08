@@ -141,8 +141,13 @@ const pendingActivationUsers = computed(() =>
 const stats = computed(() => ({
   total: users.value.length,
   active: users.value.filter(u => u.is_active).length,
-  radius_activated: users.value.filter(u => u.is_radius_activated).length,
-  pending_activation: pendingActivationUsers.value.length,
+  // Activés RADIUS = provisionné ET accès actif
+  radius_activated: users.value.filter(u => u.is_radius_activated && u.is_radius_enabled).length,
+  // En attente = non provisionné OU provisionné mais désactivé
+  pending_activation: users.value.filter(u =>
+    (u.is_active && !u.is_radius_activated) ||
+    (u.is_radius_activated && !u.is_radius_enabled)
+  ).length,
   admins: users.value.filter(u => u.is_staff || u.is_superuser).length,
   regular: users.value.filter(u => !u.is_staff && !u.is_superuser).length
 }))
@@ -691,13 +696,23 @@ function getStatusLabel(status: string): string {
                 <span v-else class="badge badge-gray">Inactif</span>
               </td>
               <td>
-                <span v-if="user.is_radius_activated" class="badge badge-success">
+                <!-- Activé: provisionné ET accès actif -->
+                <span v-if="user.is_radius_activated && user.is_radius_enabled" class="badge badge-success">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px; display: inline; margin-right: 4px;">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
                   </svg>
                   Activé
                 </span>
-                <span v-else-if="user.is_active" class="badge badge-warning">
+                <!-- En attente: provisionné mais accès désactivé -->
+                <span v-else-if="user.is_radius_activated && !user.is_radius_enabled" class="badge badge-warning">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px; display: inline; margin-right: 4px;">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  En attente
+                </span>
+                <!-- En attente: non provisionné mais actif -->
+                <span v-else-if="user.is_active && !user.is_radius_activated" class="badge badge-warning">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px; display: inline; margin-right: 4px;">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                     <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -738,8 +753,9 @@ function getStatusLabel(status: string): string {
                       <path d="M22 4L12 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 3"/>
                     </svg>
                   </button>
+                  <!-- Bouton désactiver RADIUS (seulement si activé ET enabled) -->
                   <button
-                    v-if="user.is_radius_activated"
+                    v-if="user.is_radius_activated && user.is_radius_enabled"
                     @click="handleDeactivateRadius(user.id)"
                     class="action-btn danger"
                     title="Désactiver dans RADIUS"
@@ -747,6 +763,18 @@ function getStatusLabel(status: string): string {
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                       <line x1="7" y1="12" x2="17" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <!-- Bouton réactiver RADIUS (seulement si activé mais disabled) -->
+                  <button
+                    v-if="user.is_radius_activated && !user.is_radius_enabled"
+                    @click="handleActivateRadiusIndividual(user.id)"
+                    class="action-btn success"
+                    title="Réactiver dans RADIUS"
+                    :disabled="isActivating">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                   </button>
                   <button @click="handleEdit(user)" class="action-btn edit" title="Modifier">

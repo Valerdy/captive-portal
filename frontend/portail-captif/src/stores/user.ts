@@ -169,7 +169,10 @@ export const useUserStore = defineStore('user', () => {
     try {
       await userService.activateUserRadius(userId)
       const index = users.value.findIndex(u => u.id === userId)
-      if (index !== -1) users.value[index].is_radius_activated = true
+      if (index !== -1) {
+        users.value[index].is_radius_activated = true
+        users.value[index].is_radius_enabled = true
+      }
     } catch (err) {
       error.value = getErrorMessage(err)
       throw err
@@ -184,7 +187,8 @@ export const useUserStore = defineStore('user', () => {
     try {
       await userService.deactivateUserRadius(userId)
       const index = users.value.findIndex(u => u.id === userId)
-      if (index !== -1) users.value[index].is_radius_activated = false
+      // Désactiver l'accès mais garder is_radius_activated = true (toujours provisionné)
+      if (index !== -1) users.value[index].is_radius_enabled = false
     } catch (err) {
       error.value = getErrorMessage(err)
       throw err
