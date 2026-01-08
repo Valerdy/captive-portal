@@ -33,10 +33,34 @@ const isDeleting = ref(false)
 const isActivating = ref(false)
 const promotionUsers = ref<any[]>([])
 const isLoadingUsers = ref(false)
+const userSearchQuery = ref('')
+const usersModalPage = ref(1)
+const usersPerPage = 10
+
+// Filtered and paginated users for modal
+const filteredPromotionUsers = computed(() => {
+  if (!userSearchQuery.value) return promotionUsers.value
+  const query = userSearchQuery.value.toLowerCase()
+  return promotionUsers.value.filter(u =>
+    u.username?.toLowerCase().includes(query) ||
+    u.email?.toLowerCase().includes(query) ||
+    u.first_name?.toLowerCase().includes(query) ||
+    u.last_name?.toLowerCase().includes(query) ||
+    u.matricule?.toLowerCase().includes(query)
+  )
+})
+
+const paginatedPromotionUsers = computed(() => {
+  const start = (usersModalPage.value - 1) * usersPerPage
+  const end = start + usersPerPage
+  return filteredPromotionUsers.value.slice(start, end)
+})
+
+const totalUsersPages = computed(() => Math.ceil(filteredPromotionUsers.value.length / usersPerPage))
 
 // Pagination
 const currentPage = ref(1)
-const itemsPerPage = ref(10)
+const itemsPerPage = ref(15)
 
 const newPromotion = ref({
   name: '',
@@ -287,6 +311,8 @@ function closeUsersModal() {
   showUsersModal.value = false
   selectedPromotion.value = null
   promotionUsers.value = []
+  userSearchQuery.value = ''
+  usersModalPage.value = 1
 }
 </script>
 
@@ -484,20 +510,20 @@ function closeUsersModal() {
         <h3>Aucune promotion trouvée</h3>
         <p>Aucune promotion ne correspond à vos critères de recherche</p>
       </div>
-
-      <!-- Pagination -->
-      <Pagination
-        v-if="filteredPromotions.length > 0"
-        :current-page="currentPage"
-        :total-items="filteredPromotions.length"
-        :items-per-page="itemsPerPage"
-        @update:current-page="currentPage = $event"
-      />
     </div>
+
+    <!-- Pagination (outside table container) -->
+    <Pagination
+      v-if="filteredPromotions.length > 0"
+      :current-page="currentPage"
+      :total-items="filteredPromotions.length"
+      :items-per-page="itemsPerPage"
+      @update:current-page="currentPage = $event"
+    />
 
     <!-- Modal Utilisateurs de la promotion -->
     <div v-if="showUsersModal && selectedPromotion" class="modal-overlay" @click.self="closeUsersModal">
-      <div class="modal-content modal-large">
+      <div class="modal-content modal-xlarge">
         <div class="modal-header">
           <h3>Utilisateurs de {{ selectedPromotion.name }}</h3>
           <button @click="closeUsersModal" class="modal-close">
@@ -524,44 +550,102 @@ function closeUsersModal() {
           </div>
 
           <div v-else class="users-modal-content">
-            <div class="users-count-badge">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
-                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
-              </svg>
-              <span>{{ promotionUsers.length }} utilisateur(s)</span>
+            <!-- Search filter -->
+            <div class="modal-filters">
+              <div class="users-count-badge">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                <span>{{ filteredPromotionUsers.length }} utilisateur(s)</span>
+              </div>
+              <div class="search-box modal-search">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                  <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <input
+                  v-model="userSearchQuery"
+                  type="text"
+                  placeholder="Rechercher un utilisateur..."
+                  class="search-input"
+                  @input="usersModalPage = 1"
+                />
+              </div>
             </div>
 
-            <div class="users-grid">
-              <div v-for="user in promotionUsers" :key="user.id" class="user-card">
-                <div class="user-avatar">
-                  {{ user.first_name?.charAt(0) || 'U' }}{{ user.last_name?.charAt(0) || '?' }}
-                </div>
+            <!-- Users table -->
+            <div class="users-table-container">
+              <table class="data-table users-table">
+                <thead>
+                  <tr>
+                    <th>Utilisateur</th>
+                    <th>Email</th>
+                    <th>Matricule</th>
+                    <th>Statut RADIUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="user in paginatedPromotionUsers" :key="user.id">
+                    <td>
+                      <div class="user-cell">
+                        <div class="user-avatar-small">
+                          {{ user.first_name?.charAt(0) || 'U' }}{{ user.last_name?.charAt(0) || '?' }}
+                        </div>
+                        <div>
+                          <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                          <div class="user-username">@{{ user.username }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{{ user.email || '-' }}</td>
+                    <td>
+                      <span v-if="user.matricule" class="matricule-badge">{{ user.matricule }}</span>
+                      <span v-else class="text-gray">-</span>
+                    </td>
+                    <td>
+                      <span v-if="user.can_access_radius" class="badge badge-success">
+                        Actif
+                      </span>
+                      <span v-else class="badge badge-warning">
+                        {{ user.radius_status || 'En attente' }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
-                <div class="user-info">
-                  <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
-                  <div class="user-username">@{{ user.username }}</div>
-                  <div v-if="user.matricule" class="user-matricule">{{ user.matricule }}</div>
-                </div>
-
-                <div class="user-status">
-                  <span v-if="user.can_access_radius" class="status-badge active">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Accès WiFi actif
-                  </span>
-                  <span v-else class="status-badge inactive">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    {{ user.radius_status }}
-                  </span>
-                </div>
+              <div v-if="filteredPromotionUsers.length === 0 && userSearchQuery" class="empty-state-small">
+                <p>Aucun utilisateur ne correspond à votre recherche</p>
               </div>
+            </div>
+
+            <!-- Modal pagination -->
+            <div v-if="totalUsersPages > 1" class="modal-pagination">
+              <button
+                @click="usersModalPage--"
+                :disabled="usersModalPage === 1"
+                class="pagination-btn nav-btn"
+              >
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Précédent</span>
+              </button>
+              <span class="pagination-info-text">
+                Page {{ usersModalPage }} sur {{ totalUsersPages }}
+              </span>
+              <button
+                @click="usersModalPage++"
+                :disabled="usersModalPage === totalUsersPages"
+                class="pagination-btn nav-btn"
+              >
+                <span>Suivant</span>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -1177,6 +1261,10 @@ function closeUsersModal() {
     0 0 40px rgba(0, 142, 207, 0.1);
 }
 
+.modal-content.modal-xlarge {
+  max-width: 900px;
+}
+
 .modal-header {
   padding: 1.5rem 2rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -1603,5 +1691,136 @@ function closeUsersModal() {
 .modal-content::-webkit-scrollbar-thumb:hover,
 .table-container::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 142, 207, 0.5);
+}
+
+/* Modal filters and users table */
+.modal-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.modal-search {
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.users-table-container {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.users-table {
+  width: 100%;
+}
+
+.users-table th {
+  padding: 0.875rem 1rem;
+  font-size: 0.7rem;
+}
+
+.users-table td {
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar-small {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #008ecf 0%, #a23882 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.matricule-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 142, 207, 0.15);
+  color: #008ecf;
+  border: 1px solid rgba(0, 142, 207, 0.3);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-warning {
+  background: rgba(242, 148, 0, 0.15);
+  color: #F29400;
+  border: 1px solid rgba(242, 148, 0, 0.3);
+}
+
+.empty-state-small {
+  padding: 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.875rem;
+}
+
+/* Modal pagination */
+.modal-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: rgba(242, 148, 0, 0.1);
+  border-color: rgba(242, 148, 0, 0.5);
+  color: #F29400;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pagination-info-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
 }
 </style>

@@ -627,35 +627,41 @@ tr:hover {
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(15, 15, 25, 0.9);
+  border: 2px solid rgba(0, 142, 207, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 142, 207, 0.1);
 }
 
 .btn-page {
   padding: 0.5rem 1rem;
-  background: rgba(15, 15, 25, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  background: transparent;
+  border: none;
   cursor: pointer;
   font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  color: rgba(0, 142, 207, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   transition: all 0.3s;
 }
 
 .btn-page:hover:not(:disabled) {
-  background: rgba(0, 142, 207, 0.2);
-  border-color: #008ecf;
-  color: #008ecf;
+  color: #F29400;
 }
 
 .btn-page:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .page-info {
   font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  color: rgba(0, 142, 207, 0.8);
 }
 </style>

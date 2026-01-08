@@ -136,8 +136,6 @@ function nextPage() {
   align-items: center;
   gap: 1rem;
   margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .pagination-info {
@@ -154,7 +152,12 @@ function nextPage() {
 .pagination {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(15, 15, 25, 0.9);
+  border: 2px solid rgba(0, 142, 207, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 142, 207, 0.1);
 }
 
 .pagination-btn,
@@ -163,16 +166,17 @@ function nextPage() {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: rgba(255, 255, 255, 0.7);
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  color: rgba(0, 142, 207, 0.8);
   font-family: 'Rajdhani', sans-serif;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .pagination-btn svg {
@@ -181,14 +185,13 @@ function nextPage() {
 }
 
 .page-btn {
-  min-width: 42px;
-  padding: 0.625rem;
+  min-width: 40px;
+  padding: 0.5rem;
+  border-radius: 6px;
 }
 
 .pagination-btn:hover:not(:disabled),
 .page-btn:hover:not(.active) {
-  background: rgba(242, 148, 0, 0.1);
-  border-color: rgba(242, 148, 0, 0.5);
   color: #F29400;
 }
 
@@ -198,10 +201,9 @@ function nextPage() {
 }
 
 .page-btn.active {
-  background: linear-gradient(135deg, #F29400 0%, #e53212 100%);
-  border-color: transparent;
+  background: linear-gradient(135deg, #008ecf 0%, #00b4d8 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(242, 148, 0, 0.4);
+  box-shadow: 0 2px 10px rgba(0, 142, 207, 0.4);
 }
 
 .page-numbers {
@@ -212,7 +214,7 @@ function nextPage() {
 
 .ellipsis {
   padding: 0.5rem;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(0, 142, 207, 0.5);
   font-family: 'Inter', sans-serif;
 }
 
@@ -222,11 +224,13 @@ function nextPage() {
   }
 
   .pagination {
-    gap: 0.25rem;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
   }
 
   .pagination-btn {
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
   }
 
   .btn-text {
@@ -234,8 +238,8 @@ function nextPage() {
   }
 
   .page-btn {
-    min-width: 36px;
-    padding: 0.5rem;
+    min-width: 34px;
+    padding: 0.4rem;
     font-size: 0.85rem;
   }
 
