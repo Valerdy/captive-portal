@@ -403,14 +403,20 @@ class VoucherValidationSerializer(serializers.Serializer):
 class BlockedSiteSerializer(serializers.ModelSerializer):
     """Serializer for BlockedSite model"""
     added_by_username = serializers.CharField(source='added_by.username', read_only=True)
+    # Alias 'url' pour compatibilité frontend (le modèle utilise 'domain')
+    url = serializers.CharField(source='domain')
 
     class Meta:
         model = BlockedSite
         fields = [
-            'id', 'url', 'type', 'reason', 'is_active',
+            'id', 'url', 'domain', 'type', 'category', 'reason', 'is_active',
+            'sync_status', 'mikrotik_id', 'last_sync_at', 'last_sync_error',
             'added_by', 'added_by_username', 'added_date', 'updated_at'
         ]
-        read_only_fields = ['id', 'added_by', 'added_by_username', 'added_date', 'updated_at']
+        read_only_fields = [
+            'id', 'added_by', 'added_by_username', 'added_date', 'updated_at',
+            'sync_status', 'mikrotik_id', 'last_sync_at', 'last_sync_error'
+        ]
 
     def create(self, validated_data):
         # Add the current user as the creator
