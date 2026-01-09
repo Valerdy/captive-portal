@@ -162,6 +162,10 @@ class ProfileRadiusService:
         """
         Synchronise un utilisateur vers FreeRADIUS avec son profil effectif.
 
+        IMPORTANT: Utilise le système de GROUPES pour les attributs reply.
+        Les attributs individuels (radreply) ne sont plus créés.
+        Seuls radcheck (password, simultaneous-use) et radusergroup sont mis à jour.
+
         Args:
             user: L'utilisateur à synchroniser
             profile: Profil à appliquer (si None, utilise get_effective_profile())
@@ -183,16 +187,25 @@ class ProfileRadiusService:
         username = user.username
 
         try:
-            # 1. Mettre à jour radcheck avec le quota et Simultaneous-Use
+            # 1. Mettre à jour radcheck avec le mot de passe et Simultaneous-Use
             cls._update_radcheck(user, effective_profile)
 
-            # 2. Mettre à jour radreply avec les attributs du profil
-            cls._update_radreply(username, effective_profile)
+            # 2. NE PAS créer d'entrées radreply individuelles
+            # Les attributs reply (bandwidth, timeouts, quota) sont gérés via radgroupreply
+            # Supprimer les anciennes entrées individuelles si présentes
+            RadReply.objects.filter(
+                username=username,
+                attribute__in=cls.MANAGED_RADREPLY_ATTRIBUTES
+            ).delete()
 
-            # 3. Mettre à jour radusergroup
+            # 3. Mettre à jour radusergroup - groupe de rôle avec priorité basse
             cls._update_radusergroup(username, user.role)
 
-            logger.info(f"Successfully synced user {username} with profile {effective_profile.name}")
+            # 4. Assigner au groupe de profil via RadiusProfileGroupService
+            # C'est ce groupe qui contient les attributs dans radgroupreply
+            RadiusProfileGroupService.sync_user_profile_group(user)
+
+            logger.info(f"Successfully synced user {username} with profile group {effective_profile.name}")
             return True
 
         except Exception as e:
@@ -304,16 +317,24 @@ class ProfileRadiusService:
     @classmethod
     def _update_radusergroup(cls, username: str, role: str) -> None:
         """
-        Met à jour l'appartenance aux groupes RADIUS.
-        """
-        # Supprimer les anciennes appartenances
-        RadUserGroup.objects.filter(username=username).delete()
+        Met à jour l'appartenance au groupe de rôle RADIUS (admin/user).
 
-        # Créer la nouvelle appartenance
-        RadUserGroup.objects.create(
+        IMPORTANT: Ne supprime PAS les groupes de profil (profile_*).
+        Le groupe de rôle a une priorité basse (10) pour que les groupes
+        de profil (priorité 5) prennent le dessus pour les attributs reply.
+        """
+        # Supprimer uniquement les anciennes appartenances aux groupes de rôle
+        # Ne PAS supprimer les groupes de profil (profile_*)
+        RadUserGroup.objects.filter(
+            username=username,
+            groupname__in=['admin', 'user', 'staff']
+        ).delete()
+
+        # Créer l'appartenance au groupe de rôle avec priorité basse
+        RadUserGroup.objects.update_or_create(
             username=username,
             groupname=role,
-            priority=1
+            defaults={'priority': 10}  # Priorité basse pour laisser le profil prendre le dessus
         )
 
     @classmethod
