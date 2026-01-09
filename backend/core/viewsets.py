@@ -1340,7 +1340,8 @@ class UserViewSet(viewsets.ModelViewSet):
                     # Validation des valeurs de bande passante
                     upload_mbps = max(1, int(profile.bandwidth_upload))
                     download_mbps = max(1, int(profile.bandwidth_download))
-                    bandwidth_value = f"{upload_mbps}M/{download_mbps}M"
+                    # Format MikroTik: download/upload (rx/tx du point de vue client)
+                    bandwidth_value = f"{download_mbps}M/{upload_mbps}M"
                 else:
                     bandwidth_value = '10M/10M'
 
