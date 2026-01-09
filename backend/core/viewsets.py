@@ -1280,9 +1280,10 @@ class UserViewSet(viewsets.ModelViewSet):
     def activate_radius(self, request, pk=None):
         """
         Active l'utilisateur dans FreeRADIUS avec les paramètres de son profil.
-        Utilise select_for_update() pour éviter les race conditions.
+        Utilise le système de groupes RADIUS (radgroupreply) pour les attributs.
         """
-        from radius.models import RadCheck, RadReply, RadUserGroup
+        from radius.models import RadCheck, RadUserGroup
+        from radius.services import RadiusProfileGroupService
 
         try:
             with transaction.atomic():
@@ -1308,7 +1309,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 # Récupérer le profil effectif (individuel ou de promotion)
                 profile = user.get_effective_profile()
 
-                # 1. radcheck - Mot de passe en clair
+                # 1. radcheck - Mot de passe en clair (SEULE entrée individuelle nécessaire)
                 RadCheck.objects.update_or_create(
                     username=user.username,
                     attribute='Cleartext-Password',
@@ -1319,57 +1320,42 @@ class UserViewSet(viewsets.ModelViewSet):
                     }
                 )
 
-                # 2. radreply - Session timeout (du profil ou valeur par défaut)
-                session_timeout = profile.session_timeout if profile else (86400 if user.is_staff else 3600)
-                RadReply.objects.update_or_create(
+                # 2. radcheck - Simultaneous-Use (limite de connexions)
+                simultaneous_use = profile.simultaneous_use if profile else 1
+                RadCheck.objects.update_or_create(
                     username=user.username,
-                    attribute='Session-Timeout',
-                    defaults={'op': '=', 'value': str(session_timeout)}
+                    attribute='Simultaneous-Use',
+                    defaults={
+                        'op': ':=',
+                        'value': str(simultaneous_use),
+                        'statut': True
+                    }
                 )
 
-                # 3. radreply - Idle timeout (du profil)
-                if profile:
-                    RadReply.objects.update_or_create(
-                        username=user.username,
-                        attribute='Idle-Timeout',
-                        defaults={'op': '=', 'value': str(profile.idle_timeout)}
-                    )
-
-                # 4. radreply - Limite de bande passante (du profil ou valeur par défaut)
-                if profile:
-                    # Validation des valeurs de bande passante
-                    upload_mbps = max(1, int(profile.bandwidth_upload))
-                    download_mbps = max(1, int(profile.bandwidth_download))
-                    # Format MikroTik: download/upload (rx/tx du point de vue client)
-                    bandwidth_value = f"{download_mbps}M/{upload_mbps}M"
-                else:
-                    bandwidth_value = '10M/10M'
-
-                RadReply.objects.update_or_create(
-                    username=user.username,
-                    attribute='Mikrotik-Rate-Limit',
-                    defaults={'op': '=', 'value': bandwidth_value}
-                )
-
-                # 5. radcheck - Quota de données (si le profil a un quota limité)
-                if profile and profile.quota_type == 'limited':
-                    RadCheck.objects.update_or_create(
-                        username=user.username,
-                        attribute='ChilliSpot-Max-Total-Octets',
-                        defaults={'op': ':=', 'value': str(profile.data_volume), 'statut': True}
-                    )
-
-                # 6. radusergroup - Groupe utilisateur
+                # 3. radusergroup - Groupe de rôle (admin/user) avec priorité basse
                 RadUserGroup.objects.update_or_create(
                     username=user.username,
                     groupname=user.role,
-                    defaults={'priority': 0}
+                    defaults={'priority': 10}  # Priorité basse pour le rôle
                 )
+
+                # 4. Assigner au groupe de profil via le service dédié
+                # Le groupe de profil contient tous les attributs reply (bandwidth, timeouts, quota)
+                if profile:
+                    RadiusProfileGroupService.sync_user_profile_group(user)
 
                 # Mettre à jour les statuts
                 user.is_radius_activated = True
                 user.is_radius_enabled = True
                 user.save(update_fields=['is_radius_activated', 'is_radius_enabled'])
+
+                # Calculer les valeurs pour la réponse
+                if profile:
+                    bandwidth_value = f"{profile.bandwidth_download}M/{profile.bandwidth_upload}M"
+                    session_timeout = profile.session_timeout
+                else:
+                    bandwidth_value = '10M/10M'
+                    session_timeout = 86400 if user.is_staff else 3600
 
                 return Response(format_api_success(
                     f'Utilisateur {user.username} activé avec succès dans RADIUS.',
