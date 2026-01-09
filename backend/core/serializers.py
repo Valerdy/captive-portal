@@ -403,13 +403,12 @@ class VoucherValidationSerializer(serializers.Serializer):
 class BlockedSiteSerializer(serializers.ModelSerializer):
     """Serializer for BlockedSite model"""
     added_by_username = serializers.CharField(source='added_by.username', read_only=True)
-    # Alias 'url' pour compatibilité frontend (le modèle utilise 'domain')
-    url = serializers.CharField(source='domain')
+    added_by = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = BlockedSite
         fields = [
-            'id', 'url', 'domain', 'type', 'category', 'reason', 'is_active',
+            'id', 'domain', 'type', 'category', 'reason', 'is_active',
             'sync_status', 'mikrotik_id', 'last_sync_at', 'last_sync_error',
             'added_by', 'added_by_username', 'added_date', 'updated_at'
         ]
@@ -418,7 +417,16 @@ class BlockedSiteSerializer(serializers.ModelSerializer):
             'sync_status', 'mikrotik_id', 'last_sync_at', 'last_sync_error'
         ]
 
+    def to_representation(self, instance):
+        """Add 'url' alias for frontend compatibility"""
+        data = super().to_representation(instance)
+        data['url'] = data['domain']  # Alias for frontend
+        return data
+
     def create(self, validated_data):
+        # Handle 'url' field from frontend (map to 'domain')
+        if 'url' in self.initial_data and 'domain' not in validated_data:
+            validated_data['domain'] = self.initial_data['url']
         # Add the current user as the creator
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
