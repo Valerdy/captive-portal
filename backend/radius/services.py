@@ -54,14 +54,15 @@ class ProfileRadiusService:
         Génère la valeur Mikrotik-Rate-Limit au format MikroTik Hotspot.
 
         Format MikroTik: rx-rate/tx-rate
-        - rx = ce que l'utilisateur reçoit = download
-        - tx = ce que l'utilisateur envoie = upload
+        - rx = données reçues DU client par le routeur = UPLOAD du client
+        - tx = données envoyées AU client par le routeur = DOWNLOAD du client
 
-        Exemple: "10M/5M" pour 10 Mbps download / 5 Mbps upload
+        Donc le format est: upload/download (rx/tx)
+        Exemple: "5M/10M" pour 5 Mbps upload / 10 Mbps download
         """
         download = profile.bandwidth_download
         upload = profile.bandwidth_upload
-        return f"{download}M/{upload}M"
+        return f"{upload}M/{download}M"
 
     @classmethod
     def get_radius_attributes_for_profile(cls, profile: Profile) -> List[Dict[str, str]]:
@@ -1171,8 +1172,11 @@ class RadiusProfileGroupService:
         # =====================================================================
 
         # 1. Mikrotik-Rate-Limit: Bande passante
-        # Format MikroTik: "download/upload" (rx/tx du point de vue client)
-        rate_limit = f"{profile.bandwidth_download}M/{profile.bandwidth_upload}M"
+        # Format MikroTik: rx-rate/tx-rate
+        # - rx = données reçues DU client = UPLOAD du client
+        # - tx = données envoyées AU client = DOWNLOAD du client
+        # Donc le format est: upload/download
+        rate_limit = f"{profile.bandwidth_upload}M/{profile.bandwidth_download}M"
         reply_attrs.append({
             'groupname': groupname,
             'attribute': 'Mikrotik-Rate-Limit',
