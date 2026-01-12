@@ -300,6 +300,164 @@ app.put('/api/mikrotik/hotspot/users/:username', async (req, res) => {
     }
 });
 
+// ============================================================================
+// DNS STATIC ENTRIES - For site blocking functionality
+// ============================================================================
+
+// Get all DNS static entries
+app.get('/api/mikrotik/dns/static', async (req, res) => {
+    try {
+        const conn = await connectToMikrotik();
+        const entries = await conn.write('/ip/dns/static/print');
+        await conn.close();
+
+        res.json({
+            success: true,
+            data: entries
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Add DNS static entry (for blocking a domain)
+app.post('/api/mikrotik/dns/static', async (req, res) => {
+    try {
+        const { name, address, regexp, comment, disabled, ttl } = req.body;
+
+        if (!name && !regexp) {
+            return res.status(400).json({
+                success: false,
+                error: 'Either name or regexp is required'
+            });
+        }
+
+        const conn = await connectToMikrotik();
+
+        const params = [];
+
+        if (name) params.push(`=name=${name}`);
+        if (regexp) params.push(`=regexp=${regexp}`);
+        if (address) params.push(`=address=${address}`);
+        if (comment) params.push(`=comment=${comment}`);
+        if (ttl) params.push(`=ttl=${ttl}`);
+        if (disabled !== undefined) {
+            params.push(`=disabled=${disabled ? 'yes' : 'no'}`);
+        }
+
+        const result = await conn.write('/ip/dns/static/add', params);
+        await conn.close();
+
+        // Extract the ID from the result
+        const entryId = result && result.length > 0 ? result[0].ret : null;
+
+        res.json({
+            success: true,
+            message: 'DNS entry added successfully',
+            data: { id: entryId }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Update DNS static entry
+app.put('/api/mikrotik/dns/static/:id', async (req, res) => {
+    try {
+        const entryId = req.params.id;
+        const { name, address, regexp, comment, disabled, ttl } = req.body;
+
+        const conn = await connectToMikrotik();
+
+        const params = [`=.id=${entryId}`];
+
+        if (name !== undefined) params.push(`=name=${name}`);
+        if (regexp !== undefined) params.push(`=regexp=${regexp}`);
+        if (address !== undefined) params.push(`=address=${address}`);
+        if (comment !== undefined) params.push(`=comment=${comment}`);
+        if (ttl !== undefined) params.push(`=ttl=${ttl}`);
+        if (disabled !== undefined) {
+            params.push(`=disabled=${disabled ? 'yes' : 'no'}`);
+        }
+
+        await conn.write('/ip/dns/static/set', params);
+        await conn.close();
+
+        res.json({
+            success: true,
+            message: 'DNS entry updated successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Delete DNS static entry
+app.delete('/api/mikrotik/dns/static/:id', async (req, res) => {
+    try {
+        const entryId = req.params.id;
+
+        const conn = await connectToMikrotik();
+        await conn.write('/ip/dns/static/remove', [
+            `=.id=${entryId}`
+        ]);
+        await conn.close();
+
+        res.json({
+            success: true,
+            message: 'DNS entry removed successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Find DNS static entry by name or comment
+app.get('/api/mikrotik/dns/static/find', async (req, res) => {
+    try {
+        const { name, comment } = req.query;
+
+        const conn = await connectToMikrotik();
+
+        let entries;
+        if (name) {
+            entries = await conn.write('/ip/dns/static/print', [
+                `?name=${name}`
+            ]);
+        } else if (comment) {
+            entries = await conn.write('/ip/dns/static/print', [
+                `?comment=${comment}`
+            ]);
+        } else {
+            entries = await conn.write('/ip/dns/static/print');
+        }
+
+        await conn.close();
+
+        res.json({
+            success: true,
+            data: entries
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err);

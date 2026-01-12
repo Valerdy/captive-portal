@@ -24,7 +24,7 @@ import threading
 import logging
 import traceback
 
-from .models import User, Profile, Promotion, ProfileHistory, UserProfileUsage
+from .models import User, Profile, Promotion, ProfileHistory, UserProfileUsage, BlockedSite
 
 logger = logging.getLogger(__name__)
 
@@ -849,3 +849,106 @@ def retry_pending_syncs():
             failure.schedule_retry()
 
     return results
+
+
+# =============================================================================
+# BlockedSite DNS Synchronization
+# =============================================================================
+
+@receiver(post_save, sender=BlockedSite)
+def sync_blocked_site_to_mikrotik(sender, instance, created, **kwargs):
+    """
+    Synchronise un BlockedSite vers MikroTik DNS après création/modification.
+
+    Cette fonction est un filet de sécurité pour les modifications effectuées
+    en dehors de l'API (admin Django, management commands, etc.).
+
+    Le ViewSet gère déjà la synchronisation pour les requêtes API.
+    """
+    if is_syncing() or not get_sync_enabled():
+        return
+
+    # Ne synchroniser que les blacklist actifs
+    if instance.type != 'blacklist':
+        return
+
+    # Vérifier si MikroTik est activé
+    if not getattr(settings, 'MIKROTIK_SYNC_ENABLED', True):
+        return
+
+    try:
+        set_syncing(True)
+
+        from mikrotik.dns_service import MikrotikDNSBlockingService
+        service = MikrotikDNSBlockingService()
+
+        if instance.is_active:
+            if created or not instance.mikrotik_id:
+                # Nouvel ajout
+                result = service.add_blocked_domain(instance)
+                action = 'ajouté'
+            else:
+                # Mise à jour
+                result = service.update_blocked_domain(instance)
+                action = 'mis à jour'
+
+            if result.get('success'):
+                logger.info(f"🚫 BlockedSite '{instance.domain}' {action} sur MikroTik DNS")
+            else:
+                logger.warning(
+                    f"⚠️ Échec sync BlockedSite '{instance.domain}': {result.get('error')}"
+                )
+                log_sync_failure('mikrotik_dns', instance, result.get('error'))
+        else:
+            # Site désactivé, supprimer de MikroTik
+            if instance.mikrotik_id:
+                result = service.remove_blocked_domain(instance)
+                if result.get('success'):
+                    logger.info(f"✅ BlockedSite '{instance.domain}' supprimé de MikroTik DNS")
+                else:
+                    logger.warning(
+                        f"⚠️ Échec suppression BlockedSite '{instance.domain}': {result.get('error')}"
+                    )
+
+    except Exception as e:
+        logger.error(f"Erreur sync BlockedSite '{instance.domain}': {e}")
+        log_sync_failure('mikrotik_dns', instance, e)
+    finally:
+        set_syncing(False)
+
+
+@receiver(post_delete, sender=BlockedSite)
+def remove_blocked_site_from_mikrotik(sender, instance, **kwargs):
+    """
+    Supprime un BlockedSite de MikroTik DNS après suppression.
+    """
+    if is_syncing() or not get_sync_enabled():
+        return
+
+    # Pas de MikroTik ID = rien à supprimer
+    if not instance.mikrotik_id:
+        return
+
+    # Vérifier si MikroTik est activé
+    if not getattr(settings, 'MIKROTIK_SYNC_ENABLED', True):
+        return
+
+    try:
+        set_syncing(True)
+
+        from mikrotik.dns_service import MikrotikDNSBlockingService
+        service = MikrotikDNSBlockingService()
+
+        result = service.remove_blocked_domain(instance)
+
+        if result.get('success'):
+            logger.info(f"🗑️ BlockedSite '{instance.domain}' supprimé de MikroTik DNS")
+        else:
+            logger.warning(
+                f"⚠️ Échec suppression BlockedSite '{instance.domain}': {result.get('error')}"
+            )
+
+    except Exception as e:
+        logger.error(f"Erreur suppression BlockedSite '{instance.domain}': {e}")
+    finally:
+        set_syncing(False)

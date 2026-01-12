@@ -1710,10 +1710,63 @@ class VoucherViewSet(viewsets.ModelViewSet):
 
 
 class BlockedSiteViewSet(viewsets.ModelViewSet):
-    """ViewSet for BlockedSite model"""
+    """ViewSet for BlockedSite model with MikroTik DNS synchronization"""
     queryset = BlockedSite.objects.all()
     serializer_class = BlockedSiteSerializer
     permission_classes = [IsAdmin]
+
+    def _sync_to_mikrotik(self, blocked_site, action='add'):
+        """
+        Synchronise un site bloqué avec MikroTik DNS.
+
+        Args:
+            blocked_site: Instance BlockedSite
+            action: 'add', 'update', ou 'remove'
+        """
+        try:
+            from mikrotik.dns_service import MikrotikDNSBlockingService
+            service = MikrotikDNSBlockingService()
+
+            if action == 'add':
+                result = service.add_blocked_domain(blocked_site)
+            elif action == 'update':
+                result = service.update_blocked_domain(blocked_site)
+            elif action == 'remove':
+                result = service.remove_blocked_domain(blocked_site)
+            else:
+                result = {'success': False, 'error': f'Action inconnue: {action}'}
+
+            return result
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Erreur sync MikroTik pour {blocked_site.domain}: {str(e)}")
+            blocked_site.mark_error(str(e))
+            return {'success': False, 'error': str(e)}
+
+    def perform_create(self, serializer):
+        """Crée un site bloqué et le synchronise avec MikroTik"""
+        instance = serializer.save()
+        if instance.is_active and instance.type == 'blacklist':
+            self._sync_to_mikrotik(instance, 'add')
+
+    def perform_update(self, serializer):
+        """Met à jour un site bloqué et synchronise avec MikroTik"""
+        instance = serializer.save()
+        if instance.is_active and instance.type == 'blacklist':
+            if instance.mikrotik_id:
+                self._sync_to_mikrotik(instance, 'update')
+            else:
+                self._sync_to_mikrotik(instance, 'add')
+        elif not instance.is_active and instance.mikrotik_id:
+            # Si désactivé, supprimer de MikroTik
+            self._sync_to_mikrotik(instance, 'remove')
+
+    def perform_destroy(self, instance):
+        """Supprime un site bloqué et le retire de MikroTik"""
+        if instance.mikrotik_id:
+            self._sync_to_mikrotik(instance, 'remove')
+        instance.delete()
 
     @action(detail=False, methods=['get'])
     def active(self, request):
@@ -1728,6 +1781,89 @@ class BlockedSiteViewSet(viewsets.ModelViewSet):
         sites = BlockedSite.objects.filter(type='blacklist', is_active=True)
         serializer = self.get_serializer(sites, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def whitelist(self, request):
+        """Get all whitelisted sites"""
+        sites = BlockedSite.objects.filter(type='whitelist', is_active=True)
+        serializer = self.get_serializer(sites, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def sync(self, request, pk=None):
+        """Synchronise manuellement un site avec MikroTik"""
+        site = self.get_object()
+
+        if not site.is_active:
+            return Response({
+                'success': False,
+                'error': 'Le site n\'est pas actif'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if site.type != 'blacklist':
+            return Response({
+                'success': False,
+                'error': 'Seuls les sites en blacklist peuvent être synchronisés'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        action = 'update' if site.mikrotik_id else 'add'
+        result = self._sync_to_mikrotik(site, action)
+
+        if result.get('success'):
+            return Response({
+                'success': True,
+                'message': f'Site {site.domain} synchronisé avec succès',
+                'mikrotik_id': site.mikrotik_id
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': result.get('error', 'Erreur inconnue')
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'])
+    def sync_all(self, request):
+        """Synchronise tous les sites en attente avec MikroTik"""
+        pending_sites = BlockedSite.objects.filter(
+            sync_status__in=['pending', 'error'],
+            is_active=True,
+            type='blacklist'
+        )
+
+        results = {
+            'total': pending_sites.count(),
+            'success': 0,
+            'failed': 0,
+            'errors': []
+        }
+
+        for site in pending_sites:
+            action = 'update' if site.mikrotik_id else 'add'
+            result = self._sync_to_mikrotik(site, action)
+
+            if result.get('success'):
+                results['success'] += 1
+            else:
+                results['failed'] += 1
+                results['errors'].append({
+                    'domain': site.domain,
+                    'error': result.get('error', 'Erreur inconnue')
+                })
+
+        return Response(results)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Retourne les statistiques des sites bloqués"""
+        return Response({
+            'total': BlockedSite.objects.count(),
+            'blacklist': BlockedSite.objects.filter(type='blacklist').count(),
+            'whitelist': BlockedSite.objects.filter(type='whitelist').count(),
+            'active': BlockedSite.objects.filter(is_active=True).count(),
+            'synced': BlockedSite.objects.filter(sync_status='synced').count(),
+            'pending': BlockedSite.objects.filter(sync_status='pending').count(),
+            'error': BlockedSite.objects.filter(sync_status='error').count(),
+        })
 
 
 class PromotionViewSet(viewsets.ModelViewSet):

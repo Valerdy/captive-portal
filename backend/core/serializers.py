@@ -404,11 +404,13 @@ class BlockedSiteSerializer(serializers.ModelSerializer):
     """Serializer for BlockedSite model"""
     added_by_username = serializers.CharField(source='added_by.username', read_only=True)
     added_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    # Accept 'url' from frontend, map to 'domain' field
+    url = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = BlockedSite
         fields = [
-            'id', 'domain', 'type', 'category', 'reason', 'is_active',
+            'id', 'url', 'domain', 'type', 'category', 'reason', 'is_active',
             'sync_status', 'mikrotik_id', 'last_sync_at', 'last_sync_error',
             'added_by', 'added_by_username', 'added_date', 'updated_at'
         ]
@@ -416,22 +418,34 @@ class BlockedSiteSerializer(serializers.ModelSerializer):
             'id', 'added_by', 'added_by_username', 'added_date', 'updated_at',
             'sync_status', 'mikrotik_id', 'last_sync_at', 'last_sync_error'
         ]
+        extra_kwargs = {
+            'domain': {'required': False}
+        }
 
     def to_representation(self, instance):
         """Add 'url' alias for frontend compatibility"""
         data = super().to_representation(instance)
-        data['url'] = data['domain']  # Alias for frontend
+        data['url'] = data.get('domain', '')  # Alias for frontend
         return data
 
+    def validate(self, attrs):
+        """Map 'url' to 'domain' if provided"""
+        url = attrs.pop('url', None)
+        if url and not attrs.get('domain'):
+            attrs['domain'] = url
+        if not attrs.get('domain'):
+            raise serializers.ValidationError({'domain': 'Ce champ est requis.'})
+        return attrs
+
     def create(self, validated_data):
-        # Handle 'url' field from frontend (map to 'domain')
-        if 'url' in self.initial_data and 'domain' not in validated_data:
-            validated_data['domain'] = self.initial_data['url']
         # Add the current user as the creator
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
             validated_data['added_by'] = request.user
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        return super().update(instance, validated_data)
 
 
 class UserQuotaSerializer(serializers.ModelSerializer):
