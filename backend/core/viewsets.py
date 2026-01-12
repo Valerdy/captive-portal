@@ -1888,7 +1888,10 @@ class PromotionViewSet(viewsets.ModelViewSet):
     def users(self, request, pk=None):
         """
         Récupère la liste des utilisateurs d'une promotion avec leurs statuts RADIUS.
+        Synchronise l'état RADIUS avec radcheck avant de retourner les données.
         """
+        from radius.services import ProfileRadiusService
+
         promotion = self.get_object()
         # Optimiser les requêtes avec select_related
         users_queryset = promotion.users.filter(is_active=True).select_related(
@@ -1897,6 +1900,11 @@ class PromotionViewSet(viewsets.ModelViewSet):
 
         users_data = []
         for user in users_queryset:
+            # Sync l'état RADIUS avec radcheck pour obtenir l'état réel
+            ProfileRadiusService.sync_user_radius_state(user)
+            # Recharger l'utilisateur après sync
+            user.refresh_from_db()
+
             users_data.append({
                 'id': user.id,
                 'username': user.username,
@@ -1953,12 +1961,12 @@ class PromotionViewSet(viewsets.ModelViewSet):
                 promotion.is_active = False
                 promotion.save(update_fields=['is_active'])
 
-                # Récupérer TOUS les utilisateurs RADIUS activés de la promotion
-                users_to_disable = promotion.users.filter(
-                    is_active=True,
-                    is_radius_activated=True
-                )
+                # Récupérer TOUS les utilisateurs actifs de la promotion
+                # On ne filtre plus par is_radius_activated car on veut aussi
+                # désactiver les utilisateurs qui sont dans radcheck mais pas marqués
+                users_to_disable = promotion.users.filter(is_active=True)
                 disabled_count = 0
+                skipped_count = 0
                 failed_count = 0
                 errors = []
 
@@ -1966,6 +1974,15 @@ class PromotionViewSet(viewsets.ModelViewSet):
                     try:
                         # Utiliser select_for_update pour éviter les race conditions
                         user = User.objects.select_for_update().get(id=user.id)
+
+                        # Sync l'état RADIUS avec radcheck avant de désactiver
+                        ProfileRadiusService.sync_user_radius_state(user)
+                        user.refresh_from_db()
+
+                        # Si l'utilisateur n'est pas dans radcheck, skip
+                        if not user.is_radius_activated:
+                            skipped_count += 1
+                            continue
 
                         # Utiliser le service RADIUS pour désactiver proprement
                         result = ProfileRadiusService.deactivate_user_radius(
@@ -1998,6 +2015,7 @@ class PromotionViewSet(viewsets.ModelViewSet):
                             'is_active': promotion.is_active
                         },
                         'users_disabled': disabled_count,
+                        'users_skipped': skipped_count,
                         'users_failed': failed_count,
                         'errors': errors if errors else None
                     }
@@ -2040,19 +2058,11 @@ class PromotionViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-                # Vérifier que la promotion a un profil assigné
-                if not promotion.profile:
-                    return Response(
-                        format_api_error(
-                            'no_profile',
-                            f'La promotion "{promotion.name}" n\'a pas de profil assigné.'
-                        ),
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-                # 1. S'assurer que le groupe du profil existe dans RADIUS
+                # Récupérer le profil s'il existe (optionnel)
                 profile = promotion.profile
-                if profile.is_active:
+
+                # 1. S'assurer que le groupe du profil existe dans RADIUS (si profil assigné)
+                if profile and profile.is_active:
                     group_result = RadiusProfileGroupService.sync_profile_to_radius_group(profile)
                     if not group_result.get('success'):
                         return Response(
@@ -2078,6 +2088,10 @@ class PromotionViewSet(viewsets.ModelViewSet):
                     try:
                         # Utiliser select_for_update pour éviter les race conditions
                         user = User.objects.select_for_update().get(id=user.id)
+
+                        # Sync l'état RADIUS avec radcheck pour obtenir l'état réel
+                        ProfileRadiusService.sync_user_radius_state(user)
+                        user.refresh_from_db()
 
                         # Vérifier que le mot de passe en clair est disponible
                         if not user.cleartext_password:
@@ -2143,9 +2157,9 @@ class PromotionViewSet(viewsets.ModelViewSet):
                             'id': promotion.id,
                             'name': promotion.name,
                             'is_active': promotion.is_active,
-                            'profile': profile.name
+                            'profile': profile.name if profile else None
                         },
-                        'profile_group': RadiusProfileGroupService.get_group_name(profile),
+                        'profile_group': RadiusProfileGroupService.get_group_name(profile) if profile else None,
                         'users_enabled': enabled_count,
                         'users_reactivated': reactivated_count,
                         'users_failed': failed_count,
