@@ -3,13 +3,13 @@ Service de synchronisation des profils vers FreeRADIUS.
 Gère le mapping des attributs Django Profile vers les tables RADIUS.
 """
 
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 from datetime import timedelta
 from typing import Optional, Dict, Any, List, Tuple
 import logging
 
-from .models import RadCheck, RadReply, RadUserGroup, RadAcct
+from .models import RadCheck, RadReply, RadUserGroup, RadAcct, RadGroupReply, RadGroupCheck
 from core.models import User, Profile, Promotion, UserProfileUsage, UserDisconnectionLog
 
 logger = logging.getLogger(__name__)
@@ -274,32 +274,35 @@ class ProfileRadiusService:
     @classmethod
     def _update_radreply(cls, username: str, profile: Profile) -> None:
         """
-        Met à jour les entrées radreply pour un utilisateur.
+        [DEPRECATED] Cette méthode n'est plus utilisée.
 
-        Les attributs radreply sont envoyés dans Access-Accept et appliqués par le NAS.
-        Pour MikroTik, ces attributs contrôlent la QoS, les timeouts et les quotas.
+        Les attributs reply (bandwidth, timeout, quota) sont maintenant gérés
+        via radgroupreply grâce au système de groupes FreeRADIUS.
 
-        Processus:
-        1. Supprimer TOUS les attributs gérés pour cet utilisateur
-        2. Créer les nouveaux attributs basés sur le profil
+        Workflow correct:
+        1. Créer le groupe du profil dans radgroupreply/radgroupcheck
+        2. Assigner l'utilisateur au groupe via radusergroup
+        3. FreeRADIUS applique automatiquement les attributs du groupe
 
-        Cela garantit qu'aucun ancien attribut ne reste actif.
+        Voir: RadiusProfileGroupService.sync_profile_to_radius_group()
+              RadiusProfileGroupService.sync_user_profile_group()
+
+        Cette méthode est conservée pour référence mais ne doit plus être appelée.
         """
-        # =====================================================================
-        # 1. SUPPRIMER les anciens attributs gérés
-        # =====================================================================
-        # Supprime uniquement les attributs que nous gérons pour éviter
-        # d'effacer d'éventuels attributs personnalisés ajoutés manuellement
+        import warnings
+        warnings.warn(
+            "_update_radreply is deprecated. Use RadiusProfileGroupService instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
+        # Code legacy conservé pour référence - NE PAS UTILISER
         RadReply.objects.filter(
             username=username,
             attribute__in=cls.MANAGED_RADREPLY_ATTRIBUTES
         ).delete()
 
-        # =====================================================================
-        # 2. CRÉER les nouveaux attributs depuis le profil
-        # =====================================================================
         attributes = cls.get_radius_attributes_for_profile(profile)
-
         for attr in attributes:
             RadReply.objects.create(
                 username=username,
@@ -308,11 +311,9 @@ class ProfileRadiusService:
                 value=attr['value']
             )
 
-        logger.debug(
-            f"Updated radreply for {username}: "
-            f"Mikrotik-Rate-Limit={cls.get_mikrotik_rate_limit(profile)}, "
-            f"Session-Timeout={profile.session_timeout}, "
-            f"Idle-Timeout={profile.idle_timeout}"
+        logger.warning(
+            f"DEPRECATED: _update_radreply called for {username}. "
+            "Use RadiusProfileGroupService instead."
         )
 
     @classmethod
@@ -1108,8 +1109,6 @@ class MikrotikProfileService:
 # - Architecture standard FreeRADIUS
 # ============================================================================
 
-from .models import RadGroupReply, RadGroupCheck
-
 
 class RadiusProfileGroupService:
     """
@@ -1562,3 +1561,250 @@ class RadiusProfileGroupService:
 
 # Instance singleton pour utilisation globale
 radius_profile_group_service = RadiusProfileGroupService()
+
+
+# =============================================================================
+# FONCTION PRINCIPALE D'ACTIVATION RADIUS
+# =============================================================================
+
+def activate_profile_in_radius(profile_id: int) -> Dict[str, Any]:
+    """
+    Active un profil dans FreeRADIUS selon les standards FreeRADIUS.
+
+    WORKFLOW CONFORME FREERADIUS:
+    ============================
+
+    1. RADGROUPREPLY - Attributs Reply du profil (centralisés)
+       - Mikrotik-Rate-Limit: Bande passante (upload/download)
+       - WISPr-Bandwidth-Max-Up/Down: Alternative WISPr
+       - Session-Timeout: Durée max de session
+       - Idle-Timeout: Délai d'inactivité
+       - Mikrotik-Total-Limit: Quota de données
+       - ChilliSpot-Max-Total-Octets: Alternative quota
+
+    2. RADGROUPCHECK - Attributs Check du profil
+       - Simultaneous-Use: Nombre de connexions simultanées
+
+    3. RADUSERGROUP - Mapping utilisateur → profil
+       - username: Nom d'utilisateur
+       - groupname: Nom du groupe (profile_{id}_{name})
+       - priority: 5 (profil direct) ou 10 (via promotion)
+
+    CE QUI N'EST PAS UTILISÉ:
+    ========================
+    - RADREPLY: NE JAMAIS écrire d'attributs de profil dans radreply
+      (réservé aux surcharges utilisateur spécifiques si nécessaire)
+
+    Args:
+        profile_id: ID du profil Django à activer
+
+    Returns:
+        Dict avec:
+        - success: bool
+        - groupname: Nom du groupe RADIUS créé
+        - reply_attributes: Nombre d'attributs radgroupreply créés
+        - check_attributes: Nombre d'attributs radgroupcheck créés
+        - users_assigned: Nombre d'utilisateurs assignés au groupe
+        - error: Message d'erreur si échec
+
+    Exemple d'utilisation:
+    >>> result = activate_profile_in_radius(7)
+    >>> print(result)
+    {
+        'success': True,
+        'groupname': 'profile_7_allumini',
+        'reply_attributes': 7,
+        'check_attributes': 1,
+        'users_assigned': 15
+    }
+
+    Tables FreeRADIUS impactées:
+    - radgroupreply: Attributs reply centralisés par profil
+    - radgroupcheck: Attributs check centralisés par profil
+    - radusergroup: Associations utilisateur → groupe profil
+    """
+    from core.models import Profile, User
+
+    try:
+        # 1. Récupérer le profil
+        profile = Profile.objects.get(pk=profile_id)
+
+        if not profile.is_active:
+            return {
+                'success': False,
+                'error': f"Le profil '{profile.name}' est inactif"
+            }
+
+        # 2. Synchroniser le profil vers les groupes RADIUS
+        # Crée/met à jour radgroupreply et radgroupcheck
+        group_result = RadiusProfileGroupService.sync_profile_to_radius_group(profile)
+
+        if not group_result.get('success'):
+            return {
+                'success': False,
+                'error': f"Échec sync profil vers RADIUS: {group_result}"
+            }
+
+        # 3. Synchroniser tous les utilisateurs vers leurs groupes
+        # Met à jour radusergroup pour chaque utilisateur avec ce profil
+        users_with_profile = User.objects.filter(
+            models.Q(profile=profile) |
+            models.Q(promotion__profile=profile, profile__isnull=True),
+            is_active=True,
+            is_radius_activated=True
+        ).distinct()
+
+        users_assigned = 0
+        errors = []
+
+        for user in users_with_profile:
+            try:
+                user_result = RadiusProfileGroupService.sync_user_profile_group(user)
+                if user_result.get('groupname'):
+                    users_assigned += 1
+            except Exception as e:
+                errors.append(f"{user.username}: {str(e)}")
+
+        logger.info(
+            f"✅ Profil '{profile.name}' activé dans RADIUS: "
+            f"groupe='{group_result['groupname']}', "
+            f"{group_result['reply_attributes']} attrs reply, "
+            f"{group_result['check_attributes']} attrs check, "
+            f"{users_assigned} utilisateurs"
+        )
+
+        return {
+            'success': True,
+            'profile_id': profile.id,
+            'profile_name': profile.name,
+            'groupname': group_result['groupname'],
+            'reply_attributes': group_result['reply_attributes'],
+            'check_attributes': group_result['check_attributes'],
+            'users_assigned': users_assigned,
+            'errors': errors if errors else None
+        }
+
+    except Profile.DoesNotExist:
+        return {
+            'success': False,
+            'error': f"Profil avec ID {profile_id} non trouvé"
+        }
+    except Exception as e:
+        logger.error(f"Erreur activation profil {profile_id}: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+def verify_radius_profile_sync(profile_id: int) -> Dict[str, Any]:
+    """
+    Vérifie que la configuration RADIUS d'un profil est correcte.
+
+    Effectue les vérifications suivantes:
+    1. Le groupe existe dans radgroupreply avec les bons attributs
+    2. Le groupe existe dans radgroupcheck avec Simultaneous-Use
+    3. Les utilisateurs sont correctement assignés via radusergroup
+
+    Args:
+        profile_id: ID du profil à vérifier
+
+    Returns:
+        Dict avec le résultat de la vérification et les détails
+    """
+    from core.models import Profile, User
+
+    try:
+        profile = Profile.objects.get(pk=profile_id)
+        groupname = RadiusProfileGroupService.get_group_name(profile)
+
+        # Vérifier radgroupreply
+        reply_attrs = list(
+            RadGroupReply.objects.filter(groupname=groupname)
+            .values('attribute', 'op', 'value')
+        )
+
+        # Vérifier radgroupcheck
+        check_attrs = list(
+            RadGroupCheck.objects.filter(groupname=groupname)
+            .values('attribute', 'op', 'value')
+        )
+
+        # Vérifier radusergroup
+        users_in_group = list(
+            RadUserGroup.objects.filter(groupname=groupname)
+            .values('username', 'priority')
+        )
+
+        # Utilisateurs Django qui devraient être dans le groupe
+        expected_users = User.objects.filter(
+            models.Q(profile=profile) |
+            models.Q(promotion__profile=profile, profile__isnull=True),
+            is_active=True,
+            is_radius_activated=True
+        ).values_list('username', flat=True)
+
+        expected_set = set(expected_users)
+        actual_set = {u['username'] for u in users_in_group}
+
+        missing_users = expected_set - actual_set
+        extra_users = actual_set - expected_set
+
+        # Vérifier les attributs attendus
+        expected_attrs = {
+            'Mikrotik-Rate-Limit',
+            'Session-Timeout',
+            'Idle-Timeout',
+            'WISPr-Bandwidth-Max-Up',
+            'WISPr-Bandwidth-Max-Down'
+        }
+        if profile.quota_type == 'limited':
+            expected_attrs.add('Mikrotik-Total-Limit')
+            expected_attrs.add('ChilliSpot-Max-Total-Octets')
+
+        actual_attrs = {attr['attribute'] for attr in reply_attrs}
+        missing_attrs = expected_attrs - actual_attrs
+
+        # Résultat
+        is_valid = (
+            len(reply_attrs) >= 5 and
+            len(check_attrs) >= 1 and
+            len(missing_users) == 0 and
+            len(missing_attrs) == 0
+        )
+
+        return {
+            'success': True,
+            'is_valid': is_valid,
+            'profile': {
+                'id': profile.id,
+                'name': profile.name,
+                'groupname': groupname
+            },
+            'radgroupreply': {
+                'count': len(reply_attrs),
+                'attributes': reply_attrs,
+                'missing': list(missing_attrs) if missing_attrs else None
+            },
+            'radgroupcheck': {
+                'count': len(check_attrs),
+                'attributes': check_attrs
+            },
+            'radusergroup': {
+                'count': len(users_in_group),
+                'users': users_in_group,
+                'missing_users': list(missing_users) if missing_users else None,
+                'extra_users': list(extra_users) if extra_users else None
+            }
+        }
+
+    except Profile.DoesNotExist:
+        return {
+            'success': False,
+            'error': f"Profil avec ID {profile_id} non trouvé"
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
