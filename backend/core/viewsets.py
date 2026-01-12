@@ -1924,11 +1924,16 @@ class PromotionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
     def deactivate(self, request, pk=None):
         """
-        Désactive une promotion et SUPPRIME tous les utilisateurs de RADIUS.
-        Les utilisateurs n'auront plus accès à Internet.
-        Utilise une transaction atomique pour garantir la cohérence.
+        Désactive une promotion et désactive l'accès RADIUS des utilisateurs.
+
+        Workflow RADIUS conforme FreeRADIUS:
+        - Désactive le mot de passe dans radcheck (statut=False)
+        - Retire les utilisateurs de leurs groupes de profil (radusergroup)
+        - NE TOUCHE PAS à radreply (non utilisé pour les profils)
+
+        Les utilisateurs n'auront plus accès à Internet mais gardent leurs credentials.
         """
-        from radius.models import RadReply, RadUserGroup
+        from radius.services import ProfileRadiusService, RadiusProfileGroupService
 
         try:
             with transaction.atomic():
@@ -1948,8 +1953,11 @@ class PromotionViewSet(viewsets.ModelViewSet):
                 promotion.is_active = False
                 promotion.save(update_fields=['is_active'])
 
-                # Récupérer TOUS les utilisateurs actifs de la promotion
-                users_to_disable = promotion.users.filter(is_active=True)
+                # Récupérer TOUS les utilisateurs RADIUS activés de la promotion
+                users_to_disable = promotion.users.filter(
+                    is_active=True,
+                    is_radius_activated=True
+                )
                 disabled_count = 0
                 failed_count = 0
                 errors = []
@@ -1959,24 +1967,30 @@ class PromotionViewSet(viewsets.ModelViewSet):
                         # Utiliser select_for_update pour éviter les race conditions
                         user = User.objects.select_for_update().get(id=user.id)
 
-                        # SUPPRIMER toutes les entrées RADIUS
-                        RadCheck.objects.filter(username=user.username).delete()
-                        RadReply.objects.filter(username=user.username).delete()
-                        RadUserGroup.objects.filter(username=user.username).delete()
+                        # Utiliser le service RADIUS pour désactiver proprement
+                        result = ProfileRadiusService.deactivate_user_radius(
+                            user,
+                            reason='promotion_deactivated',
+                            deactivated_by=request.user
+                        )
 
-                        # Mettre à jour les statuts dans User
-                        user.is_radius_activated = False
-                        user.is_radius_enabled = False
-                        user.save(update_fields=['is_radius_activated', 'is_radius_enabled'])
-
-                        disabled_count += 1
+                        if result.get('success'):
+                            # Retirer des groupes de profil
+                            RadiusProfileGroupService.remove_user_from_profile_groups(user.username)
+                            disabled_count += 1
+                        else:
+                            failed_count += 1
+                            errors.append({
+                                'username': user.username,
+                                'error': result.get('error', 'Erreur inconnue')
+                            })
 
                     except Exception as e:
                         failed_count += 1
                         errors.append({'username': user.username, 'error': str(e)})
 
                 return Response(format_api_success(
-                    f'Promotion "{promotion.name}" désactivée. {disabled_count} utilisateur(s) supprimé(s) de RADIUS.',
+                    f'Promotion "{promotion.name}" désactivée. {disabled_count} utilisateur(s) désactivé(s) dans RADIUS.',
                     {
                         'promotion': {
                             'id': promotion.id,
@@ -2000,10 +2014,17 @@ class PromotionViewSet(viewsets.ModelViewSet):
     def activate(self, request, pk=None):
         """
         Active une promotion et CRÉE les entrées RADIUS pour TOUS les utilisateurs.
-        Tous les utilisateurs auront accès à Internet.
-        Utilise une transaction atomique pour garantir la cohérence.
+
+        Workflow RADIUS conforme FreeRADIUS:
+        1. S'assure que le groupe du profil existe dans radgroupreply/radgroupcheck
+        2. Crée les credentials dans radcheck pour chaque utilisateur
+        3. Assigne chaque utilisateur à son groupe de profil via radusergroup
+        4. NE TOUCHE PAS à radreply (les attributs sont dans radgroupreply)
+
+        Les attributs RADIUS (bandwidth, timeout, quota) sont centralisés dans
+        radgroupreply et appliqués via l'association radusergroup.
         """
-        from radius.models import RadReply, RadUserGroup
+        from radius.services import ProfileRadiusService, RadiusProfileGroupService
 
         try:
             with transaction.atomic():
@@ -2019,6 +2040,29 @@ class PromotionViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
+                # Vérifier que la promotion a un profil assigné
+                if not promotion.profile:
+                    return Response(
+                        format_api_error(
+                            'no_profile',
+                            f'La promotion "{promotion.name}" n\'a pas de profil assigné.'
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                # 1. S'assurer que le groupe du profil existe dans RADIUS
+                profile = promotion.profile
+                if profile.is_active:
+                    group_result = RadiusProfileGroupService.sync_profile_to_radius_group(profile)
+                    if not group_result.get('success'):
+                        return Response(
+                            format_api_error(
+                                'profile_sync_failed',
+                                f'Échec de synchronisation du profil "{profile.name}" vers RADIUS.'
+                            ),
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                        )
+
                 # Activer la promotion
                 promotion.is_active = True
                 promotion.save(update_fields=['is_active'])
@@ -2026,6 +2070,7 @@ class PromotionViewSet(viewsets.ModelViewSet):
                 # Récupérer TOUS les utilisateurs actifs de la promotion
                 users_to_enable = promotion.users.filter(is_active=True)
                 enabled_count = 0
+                reactivated_count = 0
                 failed_count = 0
                 errors = []
 
@@ -2043,85 +2088,66 @@ class PromotionViewSet(viewsets.ModelViewSet):
                             })
                             continue
 
-                        # CRÉER les entrées RADIUS avec les paramètres du profil
-                        profile = user.get_effective_profile()
-
-                        # 1. radcheck - Mot de passe en clair
-                        RadCheck.objects.update_or_create(
-                            username=user.username,
-                            attribute='Cleartext-Password',
-                            defaults={
-                                'op': ':=',
-                                'value': user.cleartext_password,
-                                'statut': True
-                            }
-                        )
-
-                        # 2. radreply - Session timeout
-                        session_timeout = profile.session_timeout if profile else (86400 if user.is_staff else 3600)
-                        RadReply.objects.update_or_create(
-                            username=user.username,
-                            attribute='Session-Timeout',
-                            defaults={'op': '=', 'value': str(session_timeout)}
-                        )
-
-                        # 3. radreply - Idle timeout
-                        if profile:
-                            RadReply.objects.update_or_create(
-                                username=user.username,
-                                attribute='Idle-Timeout',
-                                defaults={'op': '=', 'value': str(profile.idle_timeout)}
-                            )
-
-                        # 4. radreply - Limite de bande passante
-                        if profile:
-                            upload_mbps = max(1, int(profile.bandwidth_upload))
-                            download_mbps = max(1, int(profile.bandwidth_download))
-                            bandwidth_value = f"{upload_mbps}M/{download_mbps}M"
+                        # Utiliser le service RADIUS pour activer proprement
+                        if user.is_radius_activated:
+                            # Déjà activé, juste réactiver si désactivé
+                            if not user.is_radius_enabled:
+                                result = ProfileRadiusService.reactivate_user_radius(
+                                    user,
+                                    reactivated_by=request.user
+                                )
+                                if result.get('success'):
+                                    # S'assurer que l'utilisateur est dans le bon groupe
+                                    RadiusProfileGroupService.sync_user_profile_group(user)
+                                    reactivated_count += 1
+                                else:
+                                    failed_count += 1
+                                    errors.append({
+                                        'username': user.username,
+                                        'error': result.get('error', 'Erreur réactivation')
+                                    })
+                            else:
+                                # Déjà activé et actif, sync le groupe
+                                RadiusProfileGroupService.sync_user_profile_group(user)
+                                enabled_count += 1
                         else:
-                            bandwidth_value = '10M/10M'
-
-                        RadReply.objects.update_or_create(
-                            username=user.username,
-                            attribute='Mikrotik-Rate-Limit',
-                            defaults={'op': '=', 'value': bandwidth_value}
-                        )
-
-                        # 5. radcheck - Quota de données
-                        if profile and profile.quota_type == 'limited':
-                            RadCheck.objects.update_or_create(
-                                username=user.username,
-                                attribute='ChilliSpot-Max-Total-Octets',
-                                defaults={'op': ':=', 'value': str(profile.data_volume), 'statut': True}
+                            # Première activation
+                            result = ProfileRadiusService.activate_user_radius(
+                                user,
+                                activated_by=request.user
                             )
-
-                        # 6. radusergroup - Groupe utilisateur
-                        RadUserGroup.objects.update_or_create(
-                            username=user.username,
-                            groupname=user.role,
-                            defaults={'priority': 0}
-                        )
-
-                        # Mettre à jour les statuts dans User
-                        user.is_radius_activated = True
-                        user.is_radius_enabled = True
-                        user.save(update_fields=['is_radius_activated', 'is_radius_enabled'])
-
-                        enabled_count += 1
+                            if result.get('success'):
+                                enabled_count += 1
+                            else:
+                                failed_count += 1
+                                errors.append({
+                                    'username': user.username,
+                                    'error': result.get('error', 'Erreur activation')
+                                })
 
                     except Exception as e:
                         failed_count += 1
                         errors.append({'username': user.username, 'error': str(e)})
 
+                total_success = enabled_count + reactivated_count
+                message = f'Promotion "{promotion.name}" activée.'
+                if enabled_count > 0:
+                    message += f' {enabled_count} utilisateur(s) activé(s).'
+                if reactivated_count > 0:
+                    message += f' {reactivated_count} utilisateur(s) réactivé(s).'
+
                 return Response(format_api_success(
-                    f'Promotion "{promotion.name}" activée. {enabled_count} utilisateur(s) créé(s) dans RADIUS.',
+                    message,
                     {
                         'promotion': {
                             'id': promotion.id,
                             'name': promotion.name,
-                            'is_active': promotion.is_active
+                            'is_active': promotion.is_active,
+                            'profile': profile.name
                         },
+                        'profile_group': RadiusProfileGroupService.get_group_name(profile),
                         'users_enabled': enabled_count,
+                        'users_reactivated': reactivated_count,
                         'users_failed': failed_count,
                         'errors': errors if errors else None
                     }
