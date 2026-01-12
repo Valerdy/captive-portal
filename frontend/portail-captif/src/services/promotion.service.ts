@@ -27,30 +27,48 @@ export const promotionService = {
   },
 
   async update(id: number, data: Partial<Promotion>): Promise<Promotion> {
+    if (!id) {
+      throw new Error('ID de promotion invalide')
+    }
     const response = await api.patch<Promotion>(`/api/core/promotions/${id}/`, data)
     return response.data
   },
 
   async delete(id: number): Promise<void> {
+    if (!id) {
+      throw new Error('ID de promotion invalide')
+    }
     await api.delete(`/api/core/promotions/${id}/`)
   },
 
   async toggleStatus(id: number): Promise<Promotion> {
+    if (!id) {
+      throw new Error('ID de promotion invalide')
+    }
     const response = await api.post<Promotion>(`/api/core/promotions/${id}/toggle_status/`)
     return response.data
   },
 
   async activate(id: number): Promise<any> {
+    if (!id) {
+      throw new Error('ID de promotion invalide')
+    }
     const response = await api.post(`/api/core/promotions/${id}/activate/`)
     return response.data
   },
 
   async deactivate(id: number): Promise<any> {
+    if (!id) {
+      throw new Error('ID de promotion invalide')
+    }
     const response = await api.post(`/api/core/promotions/${id}/deactivate/`)
     return response.data
   },
 
   async getUsers(id: number): Promise<any> {
+    if (!id) {
+      throw new Error('ID de promotion invalide')
+    }
     const response = await api.get(`/api/core/promotions/${id}/users/`)
     return response.data
   },

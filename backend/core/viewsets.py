@@ -2171,16 +2171,9 @@ class PromotionViewSet(viewsets.ModelViewSet):
             promotion.is_active = not promotion.is_active
             promotion.save(update_fields=['is_active'])
 
-            status_text = 'activée' if promotion.is_active else 'désactivée'
-            return Response({
-                'success': True,
-                'message': f'Promotion "{promotion.name}" {status_text}.',
-                'promotion': {
-                    'id': promotion.id,
-                    'name': promotion.name,
-                    'is_active': promotion.is_active
-                }
-            })
+            # Retourner la promotion complète sérialisée
+            serializer = self.get_serializer(promotion)
+            return Response(serializer.data)
         except Exception as e:
             return Response(
                 format_api_error('toggle_failed', f'Erreur: {str(e)}'),
