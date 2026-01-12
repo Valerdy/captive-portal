@@ -428,7 +428,7 @@ class ProfileRadiusService:
     @transaction.atomic
     def activate_user_radius(cls, user: User, activated_by: Optional[User] = None) -> Dict[str, Any]:
         """
-        Active un utilisateur dans RADIUS (première provisioning).
+        Active un utilisateur dans RADIUS (première provisioning ou sync).
 
         Args:
             user: L'utilisateur à activer
@@ -437,10 +437,18 @@ class ProfileRadiusService:
         Returns:
             Dictionnaire avec le statut de l'opération
         """
-        if user.is_radius_activated:
+        # Vérifier si l'utilisateur existe déjà dans radcheck
+        existing_radcheck = RadCheck.objects.filter(
+            username=user.username,
+            attribute='Cleartext-Password'
+        ).first()
+
+        if user.is_radius_activated and user.is_radius_enabled:
+            # Déjà activé et actif, juste s'assurer de la sync
             return {
-                'success': False,
-                'error': 'Utilisateur déjà activé dans RADIUS'
+                'success': True,
+                'message': f"Utilisateur {user.username} déjà activé dans RADIUS",
+                'already_active': True
             }
 
         if not user.cleartext_password:
@@ -450,15 +458,23 @@ class ProfileRadiusService:
             }
 
         profile = user.get_effective_profile()
-        if not profile:
-            return {
-                'success': False,
-                'error': 'Aucun profil assigné à cet utilisateur'
-            }
+        # Profile optionnel - utilisateur sera activé sans groupe si pas de profil
 
         try:
-            # Créer les entrées RADIUS
-            cls.sync_user_to_radius(user, profile)
+            if profile:
+                # Créer/mettre à jour les entrées RADIUS avec profil
+                cls.sync_user_to_radius(user, profile)
+            else:
+                # Créer seulement les credentials dans radcheck (sans groupe)
+                RadCheck.objects.update_or_create(
+                    username=user.username,
+                    attribute='Cleartext-Password',
+                    defaults={
+                        'op': ':=',
+                        'value': user.cleartext_password,
+                        'statut': True
+                    }
+                )
 
             # Marquer l'utilisateur comme activé
             user.is_radius_activated = True
@@ -478,7 +494,7 @@ class ProfileRadiusService:
             return {
                 'success': True,
                 'message': f"Utilisateur {user.username} activé dans RADIUS",
-                'profile': profile.name
+                'profile': profile.name if profile else None
             }
 
         except Exception as e:
@@ -500,7 +516,13 @@ class ProfileRadiusService:
             reason: Raison de la désactivation
             deactivated_by: L'admin qui effectue la désactivation
         """
-        if not user.is_radius_activated:
+        # Vérifier si l'utilisateur existe dans radcheck (même si Django ne le sait pas)
+        radcheck_entry = RadCheck.objects.filter(
+            username=user.username,
+            attribute='Cleartext-Password'
+        ).first()
+
+        if not user.is_radius_activated and not radcheck_entry:
             return {
                 'success': False,
                 'error': 'Utilisateur non activé dans RADIUS'
@@ -508,12 +530,15 @@ class ProfileRadiusService:
 
         try:
             # Mettre à jour le statut dans radcheck
-            RadCheck.objects.filter(
+            updated_count = RadCheck.objects.filter(
                 username=user.username,
                 attribute='Cleartext-Password'
             ).update(statut=False)
 
             # Marquer comme désactivé dans Django
+            # Sync: si l'utilisateur était dans radcheck, on le marque comme activé mais désactivé
+            if radcheck_entry and not user.is_radius_activated:
+                user.is_radius_activated = True
             user.is_radius_enabled = False
             user.save()
 
@@ -531,7 +556,8 @@ class ProfileRadiusService:
 
             return {
                 'success': True,
-                'message': f"Accès RADIUS désactivé pour {user.username}"
+                'message': f"Accès RADIUS désactivé pour {user.username}",
+                'radcheck_updated': updated_count > 0
             }
 
         except Exception as e:
@@ -593,6 +619,94 @@ class ProfileRadiusService:
                 'success': False,
                 'error': str(e)
             }
+
+    @classmethod
+    def sync_user_radius_state(cls, user: User) -> Dict[str, Any]:
+        """
+        Synchronise l'état RADIUS d'un utilisateur entre Django et radcheck.
+
+        Vérifie si l'utilisateur existe dans radcheck et met à jour les flags
+        is_radius_activated et is_radius_enabled en conséquence.
+
+        Returns:
+            Dictionnaire avec l'état actuel et les modifications apportées
+        """
+        radcheck_entry = RadCheck.objects.filter(
+            username=user.username,
+            attribute='Cleartext-Password'
+        ).first()
+
+        changes = {}
+        original_activated = user.is_radius_activated
+        original_enabled = user.is_radius_enabled
+
+        if radcheck_entry:
+            # L'utilisateur existe dans radcheck
+            if not user.is_radius_activated:
+                user.is_radius_activated = True
+                changes['is_radius_activated'] = True
+
+            # Sync le statut enabled basé sur radcheck.statut
+            expected_enabled = radcheck_entry.statut
+            if user.is_radius_enabled != expected_enabled:
+                user.is_radius_enabled = expected_enabled
+                changes['is_radius_enabled'] = expected_enabled
+        else:
+            # L'utilisateur n'existe pas dans radcheck
+            if user.is_radius_activated:
+                user.is_radius_activated = False
+                changes['is_radius_activated'] = False
+            if user.is_radius_enabled:
+                user.is_radius_enabled = False
+                changes['is_radius_enabled'] = False
+
+        if changes:
+            user.save()
+            logger.info(f"Synced RADIUS state for {user.username}: {changes}")
+
+        return {
+            'username': user.username,
+            'in_radcheck': radcheck_entry is not None,
+            'radcheck_statut': radcheck_entry.statut if radcheck_entry else None,
+            'is_radius_activated': user.is_radius_activated,
+            'is_radius_enabled': user.is_radius_enabled,
+            'changes': changes,
+            'synced': len(changes) > 0
+        }
+
+    @classmethod
+    def sync_all_users_radius_state(cls, queryset=None) -> Dict[str, Any]:
+        """
+        Synchronise l'état RADIUS de tous les utilisateurs ou d'un queryset spécifique.
+
+        Args:
+            queryset: Optional queryset d'utilisateurs à synchroniser. Si None, tous les utilisateurs.
+
+        Returns:
+            Statistiques de synchronisation
+        """
+        if queryset is None:
+            queryset = User.objects.filter(is_active=True, role='user')
+
+        total = 0
+        synced = 0
+        errors = []
+
+        for user in queryset:
+            try:
+                result = cls.sync_user_radius_state(user)
+                total += 1
+                if result['synced']:
+                    synced += 1
+            except Exception as e:
+                errors.append({'username': user.username, 'error': str(e)})
+
+        return {
+            'success': True,
+            'total': total,
+            'synced': synced,
+            'errors': errors
+        }
 
 
 class PromotionRadiusService:
