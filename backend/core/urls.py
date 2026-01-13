@@ -5,7 +5,7 @@ from .viewsets import (
     UserViewSet, DeviceViewSet, SessionViewSet, VoucherViewSet,
     BlockedSiteViewSet, UserQuotaViewSet, PromotionViewSet, ProfileViewSet,
     UserProfileUsageViewSet, ProfileHistoryViewSet, ProfileAlertViewSet,
-    UserDisconnectionLogViewSet
+    UserDisconnectionLogViewSet, DashboardViewSet
 )
 from . import views
 
@@ -22,6 +22,7 @@ router.register(r'vouchers', VoucherViewSet, basename='voucher')
 router.register(r'blocked-sites', BlockedSiteViewSet, basename='blocked-site')
 router.register(r'user-quotas', UserQuotaViewSet, basename='user-quota')
 router.register(r'promotions', PromotionViewSet, basename='promotion')
+router.register(r'dashboard', DashboardViewSet, basename='dashboard')
 
 urlpatterns = [
     # Authentication endpoints

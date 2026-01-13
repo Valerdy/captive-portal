@@ -2614,3 +2614,247 @@ class UserDisconnectionLogViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({
                 'error': f'Erreur lors de la réactivation: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# =============================================================================
+# DASHBOARD VIEWSET
+# =============================================================================
+
+class DashboardViewSet(viewsets.ViewSet):
+    """
+    ViewSet pour les statistiques du dashboard administrateur.
+
+    Endpoints:
+    - GET /stats/           - Statistiques globales (cartes)
+    - GET /bandwidth-24h/   - Bande passante par tranche de 4h
+    - GET /user-activity/   - Activité utilisateurs sur 7 jours
+    - GET /top-consumers/   - Top utilisateurs consommateurs
+    - GET /top-profiles/    - Top profils par consommation
+    - GET /user-history/    - Historique d'un utilisateur
+    - GET /search-users/    - Recherche d'utilisateurs
+    - GET /active-sessions/ - Sessions actives en temps réel
+    """
+
+    permission_classes = [IsAdmin]
+
+    @action(detail=False, methods=['get'], url_path='stats')
+    def global_statistics(self, request):
+        """
+        Statistiques globales pour les cartes du dashboard.
+
+        GET /api/core/dashboard/stats/
+
+        Returns:
+            - total_users: Nombre total d'utilisateurs
+            - active_users: Utilisateurs avec sessions actives
+            - total_sessions: Sessions en cours
+            - connected_devices: Appareils connectés (MAC uniques)
+            - bandwidth_today: Bande passante aujourd'hui
+            - bandwidth_total: Bande passante totale
+            - profiles_count: Nombre de profils
+            - profiles_with_quota: Profils avec quota limité
+        """
+        from .dashboard_service import DashboardService
+
+        stats = DashboardService.get_global_statistics()
+        return Response(stats)
+
+    @action(detail=False, methods=['get'], url_path='bandwidth-24h')
+    def bandwidth_24h(self, request):
+        """
+        Consommation de bande passante sur 24h par intervalle.
+
+        GET /api/core/dashboard/bandwidth-24h/
+        Query params:
+            - interval: Intervalle en heures (défaut: 4)
+            - profile_id: Filtrer par profil (optionnel)
+            - promotion_id: Filtrer par promotion (optionnel)
+
+        Returns:
+            - intervals: Liste des intervalles avec timestamp et données
+            - total: Total sur 24h
+            - filter_applied: Type de filtre appliqué
+        """
+        from .dashboard_service import DashboardService
+
+        interval = int(request.query_params.get('interval', 4))
+        profile_id = request.query_params.get('profile_id')
+        promotion_id = request.query_params.get('promotion_id')
+
+        # Conversion en int si présent
+        if profile_id:
+            profile_id = int(profile_id)
+        if promotion_id:
+            promotion_id = int(promotion_id)
+
+        data = DashboardService.get_bandwidth_24h(
+            interval_hours=interval,
+            profile_id=profile_id,
+            promotion_id=promotion_id
+        )
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path='user-activity')
+    def user_activity(self, request):
+        """
+        Activité utilisateurs sur les 7 derniers jours.
+
+        GET /api/core/dashboard/user-activity/
+
+        Returns:
+            - days: Liste des jours avec nombre d'utilisateurs actifs
+            - total_unique_users: Total utilisateurs uniques
+            - average_daily: Moyenne journalière
+        """
+        from .dashboard_service import DashboardService
+
+        data = DashboardService.get_user_activity_7days()
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path='top-consumers')
+    def top_consumers(self, request):
+        """
+        Top utilisateurs consommateurs de bande passante.
+
+        GET /api/core/dashboard/top-consumers/
+        Query params:
+            - limit: Nombre d'utilisateurs (défaut: 10)
+            - period: Période en jours (défaut: 30)
+
+        Returns:
+            - users: Liste des top consommateurs avec détails
+            - total_bandwidth: Bande passante totale
+        """
+        from .dashboard_service import DashboardService
+
+        limit = int(request.query_params.get('limit', 10))
+        period = int(request.query_params.get('period', 30))
+
+        data = DashboardService.get_top_consumers(limit=limit, period_days=period)
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path='top-profiles')
+    def top_profiles(self, request):
+        """
+        Top profils par consommation de bande passante.
+
+        GET /api/core/dashboard/top-profiles/
+        Query params:
+            - limit: Nombre de profils (défaut: 10)
+
+        Returns:
+            - profiles: Liste des profils avec stats
+            - total_profiles: Nombre total de profils
+        """
+        from .dashboard_service import DashboardService
+
+        limit = int(request.query_params.get('limit', 10))
+
+        data = DashboardService.get_top_profiles(limit=limit)
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path='user-history')
+    def user_history(self, request):
+        """
+        Historique complet d'un utilisateur.
+
+        GET /api/core/dashboard/user-history/
+        Query params (au moins un requis):
+            - matricule: Matricule de l'utilisateur
+            - username: Nom d'utilisateur
+            - user_id: ID de l'utilisateur
+            - limit: Nombre de sessions (défaut: 50)
+
+        Returns:
+            - user: Informations de l'utilisateur
+            - sessions: Historique des sessions
+            - stats: Statistiques agrégées
+            - current_session: Session active si existante
+        """
+        from .dashboard_service import DashboardService
+
+        matricule = request.query_params.get('matricule')
+        username = request.query_params.get('username')
+        user_id = request.query_params.get('user_id')
+        limit = int(request.query_params.get('limit', 50))
+
+        if user_id:
+            user_id = int(user_id)
+
+        if not matricule and not username and not user_id:
+            return Response(
+                {'error': 'Un identifiant est requis (matricule, username ou user_id)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        data = DashboardService.get_user_history(
+            matricule=matricule,
+            username=username,
+            user_id=user_id,
+            limit=limit
+        )
+
+        if data.get('error'):
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path='search-users')
+    def search_users(self, request):
+        """
+        Recherche d'utilisateurs par matricule, nom ou email.
+
+        GET /api/core/dashboard/search-users/
+        Query params:
+            - q: Terme de recherche (min 2 caractères)
+            - limit: Nombre de résultats (défaut: 20)
+
+        Returns:
+            Liste d'utilisateurs correspondants
+        """
+        from .dashboard_service import DashboardService
+
+        query = request.query_params.get('q', '')
+        limit = int(request.query_params.get('limit', 20))
+
+        if len(query) < 2:
+            return Response(
+                {'error': 'Le terme de recherche doit contenir au moins 2 caractères'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        users = DashboardService.search_users(query=query, limit=limit)
+        return Response({'users': users, 'count': len(users)})
+
+    @action(detail=False, methods=['get'], url_path='active-sessions')
+    def active_sessions(self, request):
+        """
+        Sessions actuellement actives en temps réel.
+
+        GET /api/core/dashboard/active-sessions/
+        Query params:
+            - limit: Nombre de sessions (défaut: 100)
+
+        Returns:
+            - sessions: Liste des sessions actives
+            - stats: Statistiques agrégées
+            - timestamp: Horodatage de la réponse
+        """
+        from .dashboard_service import DashboardService
+
+        limit = int(request.query_params.get('limit', 100))
+
+        data = DashboardService.get_active_sessions(limit=limit)
+        return Response(data)
+
+    @action(detail=False, methods=['post'], url_path='clear-cache')
+    def clear_cache(self, request):
+        """
+        Efface le cache du dashboard.
+
+        POST /api/core/dashboard/clear-cache/
+        """
+        from .dashboard_service import DashboardService
+
+        DashboardService.clear_cache()
+        return Response({'message': 'Cache du dashboard effacé'})
