@@ -105,10 +105,10 @@ const newProfile = ref({
   bandwidth_upload: 5,  // 5 Mbps par défaut
   bandwidth_download: 10,  // 10 Mbps par défaut
   quota_type: 'limited' as 'unlimited' | 'limited',
-  data_volume: 53687091200,  // 50 Go par défaut
+  data_volume: 51200,  // 50 Go par défaut (en MB: 50 * 1024 = 51200)
   validity_duration: 30,
-  session_timeout: 28800,  // 8 heures
-  idle_timeout: 600,  // 10 minutes
+  session_timeout: 480,  // 8 heures en minutes (8 * 60 = 480)
+  idle_timeout: 10,  // 10 minutes
   simultaneous_use: 1,
   is_active: true,
   assign_to_promotions: [] as number[],
@@ -124,6 +124,147 @@ const users = computed(() => {
   if (!Array.isArray(userStore.users)) return []
   return userStore.users.filter(u => u && u.is_active && !u.is_staff)
 })
+
+// Search filters for assignment lists
+const promotionSearchQuery = ref('')
+const userSearchQuery = ref('')
+const editPromotionSearchQuery = ref('')
+const editUserSearchQuery = ref('')
+
+// Filtered lists for assignment
+const filteredPromotions = computed(() => {
+  if (!promotionSearchQuery.value) return promotions.value
+  const query = promotionSearchQuery.value.toLowerCase()
+  return promotions.value.filter(p =>
+    p.name?.toLowerCase().includes(query)
+  )
+})
+
+const filteredUsers = computed(() => {
+  if (!userSearchQuery.value) return users.value
+  const query = userSearchQuery.value.toLowerCase()
+  return users.value.filter(u =>
+    u.username?.toLowerCase().includes(query) ||
+    u.first_name?.toLowerCase().includes(query) ||
+    u.last_name?.toLowerCase().includes(query)
+  )
+})
+
+const editFilteredPromotions = computed(() => {
+  if (!editPromotionSearchQuery.value) return promotions.value
+  const query = editPromotionSearchQuery.value.toLowerCase()
+  return promotions.value.filter(p =>
+    p.name?.toLowerCase().includes(query)
+  )
+})
+
+const editFilteredUsers = computed(() => {
+  if (!editUserSearchQuery.value) return users.value
+  const query = editUserSearchQuery.value.toLowerCase()
+  return users.value.filter(u =>
+    u.username?.toLowerCase().includes(query) ||
+    u.first_name?.toLowerCase().includes(query) ||
+    u.last_name?.toLowerCase().includes(query)
+  )
+})
+
+// Duration unit options
+const durationUnitOptions = [
+  { value: 'minutes', label: 'Minute(s)', multiplier: 1 / 1440 },
+  { value: 'hours', label: 'Heure(s)', multiplier: 1 / 24 },
+  { value: 'days', label: 'Jour(s)', multiplier: 1 },
+  { value: 'months', label: 'Mois', multiplier: 30 }
+]
+
+// Duration value and unit for new profile
+const newDurationValue = ref(30)
+const newDurationUnit = ref('days')
+
+// Duration value and unit for edit profile
+const editDurationValue = ref(30)
+const editDurationUnit = ref('days')
+
+// Tooltip visibility state
+const activeTooltip = ref<string | null>(null)
+
+function toggleTooltip(fieldName: string) {
+  if (activeTooltip.value === fieldName) {
+    activeTooltip.value = null
+  } else {
+    activeTooltip.value = fieldName
+  }
+}
+
+function closeTooltip() {
+  activeTooltip.value = null
+}
+
+// Help texts for form fields
+const fieldHelpTexts: Record<string, string> = {
+  bandwidth_upload: "Vitesse d'envoi maximale autorisée pour l'utilisateur. Définit la limite de débit montant vers Internet.",
+  bandwidth_download: "Vitesse de téléchargement maximale autorisée. Définit la limite de débit descendant depuis Internet.",
+  quota_type: "Limité : l'utilisateur a un volume de données mensuel. Illimité : aucune restriction de volume.",
+  data_volume: "Volume total de données que l'utilisateur peut consommer pendant la période de validité.",
+  validity_duration: "Durée pendant laquelle le quota de données est valide avant réinitialisation.",
+  session_timeout: "Durée maximale d'une session WiFi. Après ce délai, l'utilisateur doit se reconnecter.",
+  idle_timeout: "Délai d'inactivité avant déconnexion automatique. Si aucun trafic n'est détecté pendant cette durée, la session est fermée.",
+  simultaneous_use: "Nombre d'appareils pouvant se connecter simultanément avec ce compte utilisateur."
+}
+
+// Computed duration in days from value and unit
+function computeDurationDays(value: number, unit: string): number {
+  const option = durationUnitOptions.find(o => o.value === unit)
+  if (!option) return value
+  return Math.round(value * option.multiplier * 1440) / 1440 * option.multiplier === option.multiplier
+    ? value * (unit === 'months' ? 30 : unit === 'days' ? 1 : unit === 'hours' ? 1/24 : 1/1440)
+    : value
+}
+
+// Convert days to value and unit
+function daysToValueUnit(days: number): { value: number, unit: string } {
+  if (days >= 30 && days % 30 === 0) {
+    return { value: days / 30, unit: 'months' }
+  }
+  if (days >= 1) {
+    return { value: days, unit: 'days' }
+  }
+  const hours = days * 24
+  if (hours >= 1 && hours % 1 === 0) {
+    return { value: hours, unit: 'hours' }
+  }
+  return { value: days * 1440, unit: 'minutes' }
+}
+
+// Sync newProfile.validity_duration when duration value/unit changes
+function updateNewProfileDuration() {
+  const unit = newDurationUnit.value
+  const value = newDurationValue.value
+  if (unit === 'months') {
+    newProfile.value.validity_duration = value * 30
+  } else if (unit === 'days') {
+    newProfile.value.validity_duration = value
+  } else if (unit === 'hours') {
+    newProfile.value.validity_duration = value / 24
+  } else {
+    newProfile.value.validity_duration = value / 1440
+  }
+}
+
+// Sync selectedProfile.validity_duration when edit duration value/unit changes
+function updateEditProfileDuration() {
+  if (!selectedProfile.value) return
+  const unit = editDurationUnit.value
+  const value = editDurationValue.value
+  if (unit === 'months') {
+    selectedProfile.value.validity_duration = value * 30
+  } else if (unit === 'days') {
+    selectedProfile.value.validity_duration = value
+  } else if (unit === 'hours') {
+    selectedProfile.value.validity_duration = value / 24
+  } else {
+    selectedProfile.value.validity_duration = value / 1440
+  }
+}
 
 // Durées disponibles
 const durationOptions = [
@@ -224,15 +365,23 @@ function openAddModal() {
     bandwidth_upload: 5,
     bandwidth_download: 10,
     quota_type: 'limited',
-    data_volume: 53687091200,
+    data_volume: 51200,  // 50 Go en MB
     validity_duration: 30,
-    session_timeout: 28800,
-    idle_timeout: 600,
+    session_timeout: 480,  // 8 heures en minutes
+    idle_timeout: 10,  // 10 minutes
     simultaneous_use: 1,
     is_active: true,
     assign_to_promotions: [],
     assign_to_users: []
   }
+  // Reset duration inputs
+  newDurationValue.value = 30
+  newDurationUnit.value = 'days'
+  // Reset search filters
+  promotionSearchQuery.value = ''
+  userSearchQuery.value = ''
+  // Close any open tooltips
+  activeTooltip.value = null
   showAddModal.value = true
 }
 
@@ -265,6 +414,19 @@ async function handleEdit(profile: Profile) {
   selectedProfile.value = { ...profile }
   editAssignPromotions.value = []
   editAssignUsers.value = []
+
+  // Initialize duration value and unit from profile's validity_duration
+  const durationResult = daysToValueUnit(profile.validity_duration)
+  editDurationValue.value = durationResult.value
+  editDurationUnit.value = durationResult.unit
+
+  // Reset search filters
+  editPromotionSearchQuery.value = ''
+  editUserSearchQuery.value = ''
+
+  // Close any open tooltips
+  activeTooltip.value = null
+
   showEditModal.value = true
 
   // Charger les assignations actuelles
@@ -816,12 +978,36 @@ function getStatusLabel(status: string): string {
 
             <div class="form-row">
               <div class="form-group">
-                <label>Upload (Mbps) *</label>
+                <div class="label-with-help">
+                  <label>Upload (Mbps) *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('bandwidth_upload')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'bandwidth_upload'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.bandwidth_upload }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
                 <input v-model.number="newProfile.bandwidth_upload" type="number" min="1" step="1" required />
                 <small class="help-text">{{ newProfile.bandwidth_upload }} Mbps</small>
               </div>
               <div class="form-group">
-                <label>Download (Mbps) *</label>
+                <div class="label-with-help">
+                  <label>Download (Mbps) *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('bandwidth_download')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'bandwidth_download'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.bandwidth_download }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
                 <input v-model.number="newProfile.bandwidth_download" type="number" min="1" step="1" required />
                 <small class="help-text">{{ newProfile.bandwidth_download }} Mbps</small>
               </div>
@@ -832,7 +1018,19 @@ function getStatusLabel(status: string): string {
             <h4 class="section-title">Quota de données</h4>
 
             <div class="form-group">
-              <label>Type de quota *</label>
+              <div class="label-with-help">
+                <label>Type de quota *</label>
+                <button type="button" class="help-icon" @click="toggleTooltip('quota_type')">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <div v-if="activeTooltip === 'quota_type'" class="tooltip-popup" @click.stop>
+                  <p>{{ fieldHelpTexts.quota_type }}</p>
+                  <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                </div>
+              </div>
               <select v-model="newProfile.quota_type" required>
                 <option value="limited">Limité</option>
                 <option value="unlimited">Illimité</option>
@@ -841,17 +1039,47 @@ function getStatusLabel(status: string): string {
 
             <div v-if="newProfile.quota_type === 'limited'" class="form-row">
               <div class="form-group">
-                <label>Volume de données (octets) *</label>
-                <input v-model.number="newProfile.data_volume" type="number" min="1073741824" step="1073741824" required />
-                <small class="help-text">{{ formatDataVolume(newProfile.data_volume) }}</small>
+                <div class="label-with-help">
+                  <label>Volume de données (MB) *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('data_volume')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'data_volume'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.data_volume }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
+                <div class="input-with-unit">
+                  <input v-model.number="newProfile.data_volume" type="number" min="1" step="1" required />
+                  <span class="unit-label">MB</span>
+                </div>
+                <small class="help-text">{{ (newProfile.data_volume / 1024).toFixed(2) }} Go</small>
               </div>
               <div class="form-group">
-                <label>Durée de validité *</label>
-                <select v-model.number="newProfile.validity_duration" required>
-                  <option v-for="opt in durationOptions" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </option>
-                </select>
+                <div class="label-with-help">
+                  <label>Durée de validité *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('validity_duration')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'validity_duration'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.validity_duration }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
+                <div class="duration-input-group">
+                  <input v-model.number="newDurationValue" type="number" min="1" @change="updateNewProfileDuration" />
+                  <select v-model="newDurationUnit" @change="updateNewProfileDuration">
+                    <option v-for="opt in durationUnitOptions" :key="opt.value" :value="opt.value">
+                      {{ opt.label }}
+                    </option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -861,19 +1089,61 @@ function getStatusLabel(status: string): string {
 
             <div class="form-row">
               <div class="form-group">
-                <label>Session timeout (secondes)</label>
-                <input v-model.number="newProfile.session_timeout" type="number" min="60" step="60" />
-                <small class="help-text">{{ formatSeconds(newProfile.session_timeout) }}</small>
+                <div class="label-with-help">
+                  <label>Session timeout (min) *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('session_timeout')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'session_timeout'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.session_timeout }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
+                <div class="input-with-unit">
+                  <input v-model.number="newProfile.session_timeout" type="number" min="1" step="1" />
+                  <span class="unit-label">min</span>
+                </div>
+                <small class="help-text">{{ Math.floor(newProfile.session_timeout / 60) }}h {{ newProfile.session_timeout % 60 }}min</small>
               </div>
               <div class="form-group">
-                <label>Idle timeout (secondes)</label>
-                <input v-model.number="newProfile.idle_timeout" type="number" min="60" step="60" />
-                <small class="help-text">{{ formatSeconds(newProfile.idle_timeout) }}</small>
+                <div class="label-with-help">
+                  <label>Idle timeout (min) *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('idle_timeout')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'idle_timeout'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.idle_timeout }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
+                <div class="input-with-unit">
+                  <input v-model.number="newProfile.idle_timeout" type="number" min="1" step="1" />
+                  <span class="unit-label">min</span>
+                </div>
+                <small class="help-text">{{ newProfile.idle_timeout }} min</small>
               </div>
             </div>
 
             <div class="form-group">
-              <label>Connexions simultanées</label>
+              <div class="label-with-help">
+                <label>Connexions simultanées</label>
+                <button type="button" class="help-icon" @click="toggleTooltip('simultaneous_use')">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <div v-if="activeTooltip === 'simultaneous_use'" class="tooltip-popup" @click.stop>
+                  <p>{{ fieldHelpTexts.simultaneous_use }}</p>
+                  <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                </div>
+              </div>
               <input v-model.number="newProfile.simultaneous_use" type="number" min="1" max="10" />
               <small class="help-text">Nombre de connexions simultanées autorisées</small>
             </div>
@@ -885,8 +1155,15 @@ function getStatusLabel(status: string): string {
 
             <div class="form-group">
               <label>Promotions</label>
+              <div class="search-filter-box">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                  <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <input v-model="promotionSearchQuery" type="text" placeholder="Rechercher une promotion..." class="search-filter-input" />
+              </div>
               <select v-model="newProfile.assign_to_promotions" multiple size="5">
-                <option v-for="promo in promotions" :key="promo.id" :value="promo.id">
+                <option v-for="promo in filteredPromotions" :key="promo.id" :value="promo.id">
                   {{ promo.name }} ({{ promo.user_count || 0 }} utilisateurs)
                 </option>
               </select>
@@ -895,8 +1172,15 @@ function getStatusLabel(status: string): string {
 
             <div class="form-group">
               <label>Utilisateurs individuels</label>
+              <div class="search-filter-box">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                  <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <input v-model="userSearchQuery" type="text" placeholder="Rechercher un utilisateur..." class="search-filter-input" />
+              </div>
               <select v-model="newProfile.assign_to_users" multiple size="5">
-                <option v-for="user in users" :key="user.id" :value="user.id">
+                <option v-for="user in filteredUsers" :key="user.id" :value="user.id">
                   {{ user.first_name }} {{ user.last_name }} ({{ user.username }})
                 </option>
               </select>
@@ -956,12 +1240,36 @@ function getStatusLabel(status: string): string {
 
             <div class="form-row">
               <div class="form-group">
-                <label>Upload (Mbps) *</label>
+                <div class="label-with-help">
+                  <label>Upload (Mbps) *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('edit_bandwidth_upload')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'edit_bandwidth_upload'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.bandwidth_upload }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
                 <input v-model.number="selectedProfile.bandwidth_upload" type="number" min="1" step="1" required />
                 <small class="help-text">{{ selectedProfile.bandwidth_upload }} Mbps</small>
               </div>
               <div class="form-group">
-                <label>Download (Mbps) *</label>
+                <div class="label-with-help">
+                  <label>Download (Mbps) *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('edit_bandwidth_download')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'edit_bandwidth_download'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.bandwidth_download }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
                 <input v-model.number="selectedProfile.bandwidth_download" type="number" min="1" step="1" required />
                 <small class="help-text">{{ selectedProfile.bandwidth_download }} Mbps</small>
               </div>
@@ -972,7 +1280,19 @@ function getStatusLabel(status: string): string {
             <h4 class="section-title">Quota de données</h4>
 
             <div class="form-group">
-              <label>Type de quota *</label>
+              <div class="label-with-help">
+                <label>Type de quota *</label>
+                <button type="button" class="help-icon" @click="toggleTooltip('edit_quota_type')">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <div v-if="activeTooltip === 'edit_quota_type'" class="tooltip-popup" @click.stop>
+                  <p>{{ fieldHelpTexts.quota_type }}</p>
+                  <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                </div>
+              </div>
               <select v-model="selectedProfile.quota_type" required>
                 <option value="limited">Limité</option>
                 <option value="unlimited">Illimité</option>
@@ -981,17 +1301,47 @@ function getStatusLabel(status: string): string {
 
             <div v-if="selectedProfile.quota_type === 'limited'" class="form-row">
               <div class="form-group">
-                <label>Volume de données (octets) *</label>
-                <input v-model.number="selectedProfile.data_volume" type="number" min="1073741824" step="1073741824" required />
-                <small class="help-text">{{ formatDataVolume(selectedProfile.data_volume) }}</small>
+                <div class="label-with-help">
+                  <label>Volume de données (MB) *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('edit_data_volume')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'edit_data_volume'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.data_volume }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
+                <div class="input-with-unit">
+                  <input v-model.number="selectedProfile.data_volume" type="number" min="1" step="1" required />
+                  <span class="unit-label">MB</span>
+                </div>
+                <small class="help-text">{{ (selectedProfile.data_volume / 1024).toFixed(2) }} Go</small>
               </div>
               <div class="form-group">
-                <label>Durée de validité *</label>
-                <select v-model.number="selectedProfile.validity_duration" required>
-                  <option v-for="opt in durationOptions" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </option>
-                </select>
+                <div class="label-with-help">
+                  <label>Durée de validité *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('edit_validity_duration')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'edit_validity_duration'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.validity_duration }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
+                <div class="duration-input-group">
+                  <input v-model.number="editDurationValue" type="number" min="1" @change="updateEditProfileDuration" />
+                  <select v-model="editDurationUnit" @change="updateEditProfileDuration">
+                    <option v-for="opt in durationUnitOptions" :key="opt.value" :value="opt.value">
+                      {{ opt.label }}
+                    </option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -1001,19 +1351,61 @@ function getStatusLabel(status: string): string {
 
             <div class="form-row">
               <div class="form-group">
-                <label>Session timeout (secondes)</label>
-                <input v-model.number="selectedProfile.session_timeout" type="number" min="60" step="60" />
-                <small class="help-text">{{ formatSeconds(selectedProfile.session_timeout) }}</small>
+                <div class="label-with-help">
+                  <label>Session timeout (min) *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('edit_session_timeout')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'edit_session_timeout'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.session_timeout }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
+                <div class="input-with-unit">
+                  <input v-model.number="selectedProfile.session_timeout" type="number" min="1" step="1" />
+                  <span class="unit-label">min</span>
+                </div>
+                <small class="help-text">{{ Math.floor(selectedProfile.session_timeout / 60) }}h {{ selectedProfile.session_timeout % 60 }}min</small>
               </div>
               <div class="form-group">
-                <label>Idle timeout (secondes)</label>
-                <input v-model.number="selectedProfile.idle_timeout" type="number" min="60" step="60" />
-                <small class="help-text">{{ formatSeconds(selectedProfile.idle_timeout) }}</small>
+                <div class="label-with-help">
+                  <label>Idle timeout (min) *</label>
+                  <button type="button" class="help-icon" @click="toggleTooltip('edit_idle_timeout')">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                  <div v-if="activeTooltip === 'edit_idle_timeout'" class="tooltip-popup" @click.stop>
+                    <p>{{ fieldHelpTexts.idle_timeout }}</p>
+                    <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                  </div>
+                </div>
+                <div class="input-with-unit">
+                  <input v-model.number="selectedProfile.idle_timeout" type="number" min="1" step="1" />
+                  <span class="unit-label">min</span>
+                </div>
+                <small class="help-text">{{ selectedProfile.idle_timeout }} min</small>
               </div>
             </div>
 
             <div class="form-group">
-              <label>Connexions simultanées</label>
+              <div class="label-with-help">
+                <label>Connexions simultanées</label>
+                <button type="button" class="help-icon" @click="toggleTooltip('edit_simultaneous_use')">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 16v-1M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <div v-if="activeTooltip === 'edit_simultaneous_use'" class="tooltip-popup" @click.stop>
+                  <p>{{ fieldHelpTexts.simultaneous_use }}</p>
+                  <button type="button" class="tooltip-close" @click="closeTooltip">&times;</button>
+                </div>
+              </div>
               <input v-model.number="selectedProfile.simultaneous_use" type="number" min="1" max="10" />
               <small class="help-text">Nombre de connexions simultanées autorisées</small>
             </div>
@@ -1031,8 +1423,15 @@ function getStatusLabel(status: string): string {
             <template v-else>
               <div class="form-group">
                 <label>Promotions</label>
+                <div class="search-filter-box">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                    <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <input v-model="editPromotionSearchQuery" type="text" placeholder="Rechercher une promotion..." class="search-filter-input" />
+                </div>
                 <select v-model="editAssignPromotions" multiple size="5">
-                  <option v-for="promo in promotions" :key="promo.id" :value="promo.id">
+                  <option v-for="promo in editFilteredPromotions" :key="promo.id" :value="promo.id">
                     {{ promo.name }} ({{ promo.user_count || 0 }} utilisateurs)
                   </option>
                 </select>
@@ -1041,8 +1440,15 @@ function getStatusLabel(status: string): string {
 
               <div class="form-group">
                 <label>Utilisateurs individuels</label>
+                <div class="search-filter-box">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                    <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <input v-model="editUserSearchQuery" type="text" placeholder="Rechercher un utilisateur..." class="search-filter-input" />
+                </div>
                 <select v-model="editAssignUsers" multiple size="5">
-                  <option v-for="user in users" :key="user.id" :value="user.id">
+                  <option v-for="user in editFilteredUsers" :key="user.id" :value="user.id">
                     {{ user.first_name }} {{ user.last_name }} ({{ user.username }})
                   </option>
                 </select>
@@ -2323,6 +2729,182 @@ function getStatusLabel(status: string): string {
   font-style: italic;
 }
 
+/* Help icon and tooltip styles */
+.label-with-help {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.label-with-help label {
+  margin-bottom: 0;
+}
+
+.help-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: rgba(242, 148, 0, 0.2);
+  border: 1px solid rgba(242, 148, 0, 0.4);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.help-icon svg {
+  width: 14px;
+  height: 14px;
+  color: #F29400;
+}
+
+.help-icon:hover {
+  background: rgba(242, 148, 0, 0.3);
+  border-color: #F29400;
+  transform: scale(1.1);
+}
+
+.tooltip-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  width: 280px;
+  padding: 1rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid rgba(242, 148, 0, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  margin-top: 0.5rem;
+}
+
+.tooltip-popup p {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.tooltip-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.tooltip-close:hover {
+  background: rgba(229, 50, 18, 0.3);
+  color: #e53212;
+}
+
+/* Input with unit suffix */
+.input-with-unit {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-with-unit input {
+  width: 100%;
+  padding-right: 3.5rem !important;
+}
+
+.input-with-unit .unit-label {
+  position: absolute;
+  right: 1rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(242, 148, 0, 0.8);
+  pointer-events: none;
+}
+
+/* Duration input group */
+.duration-input-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.duration-input-group input,
+.duration-input-group select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+}
+
+.duration-input-group input:focus,
+.duration-input-group select:focus {
+  outline: none;
+  border-color: #008ecf;
+  background: rgba(0, 142, 207, 0.1);
+  box-shadow: 0 0 20px rgba(0, 142, 207, 0.2);
+}
+
+/* Search filter box for assignment lists */
+.search-filter-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+}
+
+.search-filter-box svg {
+  width: 18px;
+  height: 18px;
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.search-filter-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+  outline: none;
+}
+
+.search-filter-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.search-filter-box:focus-within {
+  border-color: rgba(0, 142, 207, 0.4);
+  background: rgba(0, 142, 207, 0.05);
+}
+
+.search-filter-box:focus-within svg {
+  color: #008ecf;
+}
+
 .checkbox-group {
   margin-top: 1.5rem;
 }
@@ -2859,6 +3441,15 @@ function getStatusLabel(status: string): string {
   .details-grid,
   .list-grid {
     grid-template-columns: 1fr;
+  }
+
+  .tooltip-popup {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 300px;
   }
 
   .modal-content.modal-large {
