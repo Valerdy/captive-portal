@@ -569,7 +569,7 @@ onUnmounted(() => {
                 <span class="active-indicator"></span>
                 <span>En cours depuis {{ dashboardStore.selectedUserHistory.current_session.duration_formatted }}</span>
                 <span>{{ dashboardStore.selectedUserHistory.current_session.total_mb.toFixed(2) }} MB</span>
-                <span>IP: {{ dashboardStore.selectedUserHistory.current_session.ip_address || '-' }}</span>
+                <span>MAC: {{ dashboardStore.selectedUserHistory.current_session.mac_address || '-' }}</span>
               </div>
             </div>
 
@@ -584,7 +584,7 @@ onUnmounted(() => {
                       <th>Fin</th>
                       <th>Durée</th>
                       <th>Données</th>
-                      <th>IP</th>
+                      <th>MAC</th>
                       <th>Statut</th>
                     </tr>
                   </thead>
@@ -598,7 +598,7 @@ onUnmounted(() => {
                       <td>{{ session.is_active ? '-' : formatDate(session.stop_time) }}</td>
                       <td>{{ session.duration_formatted }}</td>
                       <td>{{ session.total_mb.toFixed(2) }} MB</td>
-                      <td>{{ session.ip_address || '-' }}</td>
+                      <td>{{ session.mac_address || '-' }}</td>
                       <td>
                         <span :class="['status-badge', session.is_active ? 'active' : 'closed']">
                           {{ session.is_active ? 'Active' : (session.terminate_cause || 'Terminée') }}

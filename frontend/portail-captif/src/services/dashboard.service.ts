@@ -20,7 +20,8 @@ export interface BandwidthData {
 
 export interface GlobalStatistics {
   total_users: number
-  active_users: number
+  active_users: number  // Utilisateurs activés RADIUS
+  online_users: number  // Utilisateurs actuellement connectés
   total_sessions: number
   connected_devices: number
   bandwidth_today: BandwidthData
