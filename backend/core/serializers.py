@@ -196,6 +196,50 @@ class ProfileSerializer(serializers.ModelSerializer):
 
         return profile
 
+    def to_representation(self, instance):
+        """
+        Convert internal values to API format:
+        - data_volume: bytes -> MB
+        - session_timeout: seconds -> minutes
+        - idle_timeout: seconds -> minutes
+        """
+        data = super().to_representation(instance)
+
+        # Convert data_volume from bytes to MB
+        if 'data_volume' in data and data['data_volume'] is not None:
+            data['data_volume'] = data['data_volume'] // (1024 * 1024)  # bytes to MB
+
+        # Convert session_timeout from seconds to minutes
+        if 'session_timeout' in data and data['session_timeout'] is not None:
+            data['session_timeout'] = data['session_timeout'] // 60  # seconds to minutes
+
+        # Convert idle_timeout from seconds to minutes
+        if 'idle_timeout' in data and data['idle_timeout'] is not None:
+            data['idle_timeout'] = data['idle_timeout'] // 60  # seconds to minutes
+
+        return data
+
+    def to_internal_value(self, data):
+        """
+        Convert API values to internal format:
+        - data_volume: MB -> bytes
+        - session_timeout: minutes -> seconds
+        - idle_timeout: minutes -> seconds
+        """
+        # Convert data_volume from MB to bytes
+        if 'data_volume' in data and data['data_volume'] is not None:
+            data['data_volume'] = int(data['data_volume']) * 1024 * 1024  # MB to bytes
+
+        # Convert session_timeout from minutes to seconds
+        if 'session_timeout' in data and data['session_timeout'] is not None:
+            data['session_timeout'] = int(data['session_timeout']) * 60  # minutes to seconds
+
+        # Convert idle_timeout from minutes to seconds
+        if 'idle_timeout' in data and data['idle_timeout'] is not None:
+            data['idle_timeout'] = int(data['idle_timeout']) * 60  # minutes to seconds
+
+        return super().to_internal_value(data)
+
 
 class PromotionSerializer(serializers.ModelSerializer):
     profile_name = serializers.CharField(source='profile.name', read_only=True)
