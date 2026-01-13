@@ -71,8 +71,15 @@ class DashboardService:
         now = timezone.now()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        # Statistiques utilisateurs
+        # Statistiques utilisateurs Django
         total_users = User.objects.filter(is_active=True, role='user').count()
+
+        # Utilisateurs activés dans RADIUS (is_radius_activated=True)
+        radius_activated_users = User.objects.filter(
+            is_active=True,
+            role='user',
+            is_radius_activated=True
+        ).count()
 
         # Sessions actives (radacct.acctstoptime IS NULL)
         active_sessions_data = RadAcct.objects.filter(
@@ -107,7 +114,8 @@ class DashboardService:
 
         result = {
             'total_users': total_users,
-            'active_users': active_sessions_data['unique_users'] or 0,
+            'active_users': radius_activated_users,  # Utilisateurs activés RADIUS
+            'online_users': active_sessions_data['unique_users'] or 0,  # Connectés actuellement
             'total_sessions': active_sessions_data['session_count'] or 0,
             'connected_devices': active_sessions_data['unique_macs'] or 0,
             'bandwidth_today': {
