@@ -114,8 +114,8 @@ class DashboardService:
 
         result = {
             'total_users': total_users,
-            'active_users': radius_activated_users,  # Utilisateurs activés RADIUS
-            'online_users': active_sessions_data['unique_users'] or 0,  # Connectés actuellement
+            'active_users': active_sessions_data['unique_users'] or 0,  # Connectés actuellement au WiFi
+            'online_users': active_sessions_data['unique_users'] or 0,  # Alias pour compatibilité
             'total_sessions': active_sessions_data['session_count'] or 0,
             'connected_devices': active_sessions_data['unique_macs'] or 0,
             'bandwidth_today': {
