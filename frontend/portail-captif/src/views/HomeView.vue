@@ -264,7 +264,20 @@ function goToAdminLogin() {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #050508;
+  background: url('/image-bg.jpg') no-repeat center center fixed;
+  background-size: cover;
+}
+
+/* Overlay sombre sur l'image de fond */
+.home-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(5, 5, 8, 0.85);
+  z-index: 0;
 }
 
 /* Animated Background */
