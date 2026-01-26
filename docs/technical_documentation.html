@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Technique - Portail Captif UCAC-ICAM</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            margin: 2.5cm;
+            color: #333;
+        }
+        h1 {
+            color: #1a365d;
+            font-size: 24pt;
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #1e40af;
+            font-size: 16pt;
+            margin-top: 30px;
+            border-left: 4px solid #2563eb;
+            padding-left: 15px;
+        }
+        h3 {
+            color: #3730a3;
+            font-size: 14pt;
+            margin-top: 20px;
+        }
+        h4 {
+            color: #4338ca;
+            font-size: 12pt;
+            margin-top: 15px;
+        }
+        .code-block {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 10pt;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .highlight {
+            background-color: #fef3c7;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #94a3b8;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #1e40af;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .note {
+            background-color: #dbeafe;
+            border-left: 4px solid #2563eb;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+        .warning {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+        .success {
+            background-color: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        .toc {
+            background-color: #f8fafc;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .toc li {
+            margin: 8px 0;
+        }
+        .toc a {
+            color: #1e40af;
+            text-decoration: none;
+        }
+        .authors {
+            text-align: center;
+            margin: 30px 0;
+            font-size: 14pt;
+        }
+        .date {
+            text-align: center;
+            font-style: italic;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+<h1>DOCUMENTATION TECHNIQUE<br>Portail Captif WiFi UCAC-ICAM</h1>
+
+<div class="authors">
+    <strong>Auteurs:</strong><br>
+    Valerdy (Developpeur Principal)<br>
+    Claude (Assistant IA - Anthropic)
+</div>
+
+<p class="date">Date: Janvier 2026</p>
+
+<div class="toc">
+    <h3>Table des Matieres</h3>
+    <ul>
+        <li><a href="#intro">1. Introduction</a></li>
+        <li><a href="#architecture">2. Architecture du Systeme</a></li>
+        <li><a href="#freeradius">3. Modifications FreeRADIUS</a></li>
+        <li><a href="#mikrotik">4. Modifications MikroTik</a></li>
+        <li><a href="#django">5. Implementation Django</a></li>
+        <li><a href="#agent">6. Agent MikroTik (Node.js)</a></li>
+        <li><a href="#preuve">7. Preuves de Realisation</a></li>
+        <li><a href="#conclusion">8. Conclusion</a></li>
+    </ul>
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="intro">1. Introduction</h2>
+
+<p>Ce document detaille les modifications techniques apportees aux systemes <strong>FreeRADIUS</strong> et <strong>MikroTik</strong> dans le cadre du projet de Portail Captif WiFi pour l'UCAC-ICAM. Il sert de preuve de la realisation complete du systeme par Valerdy et Claude.</p>
+
+<h3>1.1 Objectifs du Projet</h3>
+<ul>
+    <li>Gestion centralisee des utilisateurs WiFi (etudiants, personnel)</li>
+    <li>Authentification via FreeRADIUS avec controle de bande passante</li>
+    <li>Interface web d'administration en Vue.js</li>
+    <li>Integration complete avec le routeur MikroTik Hotspot</li>
+    <li>Blocage de sites via DNS statique</li>
+</ul>
+
+<h3>1.2 Technologies Utilisees</h3>
+<table>
+    <tr>
+        <th>Composant</th>
+        <th>Technologie</th>
+        <th>Version</th>
+    </tr>
+    <tr>
+        <td>Backend API</td>
+        <td>Django + Django REST Framework</td>
+        <td>4.2 / 3.14</td>
+    </tr>
+    <tr>
+        <td>Frontend</td>
+        <td>Vue.js 3 + PrimeVue</td>
+        <td>3.4</td>
+    </tr>
+    <tr>
+        <td>Base de Donnees</td>
+        <td>PostgreSQL</td>
+        <td>15</td>
+    </tr>
+    <tr>
+        <td>Serveur AAA</td>
+        <td>FreeRADIUS</td>
+        <td>3.0</td>
+    </tr>
+    <tr>
+        <td>Routeur</td>
+        <td>MikroTik RouterOS</td>
+        <td>7.x</td>
+    </tr>
+    <tr>
+        <td>Agent MikroTik</td>
+        <td>Node.js + Express</td>
+        <td>20.x</td>
+    </tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="architecture">2. Architecture du Systeme</h2>
+
+<h3>2.1 Diagramme d'Architecture</h3>
+
+<div class="code-block">
++------------------+     +------------------+     +------------------+
+|    Frontend      |     |     Backend      |     |   FreeRADIUS     |
+|    (Vue.js)      |<--->|    (Django)      |<--->|   (PostgreSQL)   |
++------------------+     +------------------+     +------------------+
+        |                        |                        ^
+        |                        |                        |
+        v                        v                        |
++------------------+     +------------------+     +------------------+
+|   Utilisateur    |     | MikroTik Agent   |     |    MikroTik      |
+|     WiFi         |     |   (Node.js)      |<--->|    Hotspot       |
++------------------+     +------------------+     +------------------+
+</div>
+
+<h3>2.2 Flux d'Authentification</h3>
+<ol>
+    <li>L'utilisateur se connecte au WiFi et est redirige vers la page de login MikroTik</li>
+    <li>MikroTik envoie une requete RADIUS au serveur FreeRADIUS</li>
+    <li>FreeRADIUS verifie le mot de passe dans <code>radcheck</code></li>
+    <li>FreeRADIUS recupere le groupe de l'utilisateur depuis <code>radusergroup</code></li>
+    <li>FreeRADIUS recupere les attributs du groupe depuis <code>radgroupreply</code></li>
+    <li>FreeRADIUS envoie un <code>Access-Accept</code> avec les attributs</li>
+    <li>MikroTik applique la QoS (bande passante, timeout, quota)</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2 id="freeradius">3. Modifications FreeRADIUS</h2>
+
+<h3>3.1 Schema de Base de Donnees</h3>
+
+<p>Les tables FreeRADIUS standard ont ete integrees dans PostgreSQL avec des extensions personnalisees:</p>
+
+<h4>3.1.1 Table radcheck (Authentification)</h4>
+<div class="code-block">
+CREATE TABLE radcheck (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(64) NOT NULL,
+    attribute VARCHAR(64) NOT NULL,
+    op VARCHAR(2) DEFAULT ':=',
+    value VARCHAR(253) NOT NULL,
+    -- Extensions personnalisees
+    statut BOOLEAN DEFAULT TRUE,  -- Active/Desactive l'utilisateur
+    quota BIGINT                  -- Quota de donnees en octets
+);
+</div>
+
+<div class="note">
+    <strong>Extension:</strong> Les champs <code>statut</code> et <code>quota</code> ont ete ajoutes pour permettre un controle granulaire depuis Django.
+</div>
+
+<h4>3.1.2 Table radusergroup (Association Utilisateur-Groupe)</h4>
+<div class="code-block">
+CREATE TABLE radusergroup (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(64) NOT NULL,
+    groupname VARCHAR(64) NOT NULL,
+    priority INTEGER DEFAULT 1
+);
+
+-- Index pour les performances
+CREATE INDEX idx_radusergroup_username ON radusergroup(username);
+CREATE INDEX idx_radusergroup_groupname ON radusergroup(groupname);
+</div>
+
+<h4>3.1.3 Table radgroupreply (Attributs des Profils)</h4>
+<div class="code-block">
+CREATE TABLE radgroupreply (
+    id SERIAL PRIMARY KEY,
+    groupname VARCHAR(64) NOT NULL,
+    attribute VARCHAR(64) NOT NULL,
+    op VARCHAR(2) DEFAULT ':=',
+    value VARCHAR(253) NOT NULL
+);
+</div>
+
+<h4>3.1.4 Table radgroupcheck (Verifications des Profils)</h4>
+<div class="code-block">
+CREATE TABLE radgroupcheck (
+    id SERIAL PRIMARY KEY,
+    groupname VARCHAR(64) NOT NULL,
+    attribute VARCHAR(64) NOT NULL,
+    op VARCHAR(2) DEFAULT ':=',
+    value VARCHAR(253) NOT NULL
+);
+</div>
+
+<h3>3.2 Attributs RADIUS Implementes</h3>
+
+<table>
+    <tr>
+        <th>Attribut</th>
+        <th>Table</th>
+        <th>Description</th>
+        <th>Exemple</th>
+    </tr>
+    <tr>
+        <td>Cleartext-Password</td>
+        <td>radcheck</td>
+        <td>Mot de passe de l'utilisateur</td>
+        <td>:= "password123"</td>
+    </tr>
+    <tr>
+        <td>Simultaneous-Use</td>
+        <td>radgroupcheck</td>
+        <td>Connexions simultanees autorisees</td>
+        <td>:= 1</td>
+    </tr>
+    <tr>
+        <td>Mikrotik-Rate-Limit</td>
+        <td>radgroupreply</td>
+        <td>Bande passante (upload/download)</td>
+        <td>:= "5M/10M"</td>
+    </tr>
+    <tr>
+        <td>Session-Timeout</td>
+        <td>radgroupreply</td>
+        <td>Duree max de session (secondes)</td>
+        <td>:= 28800</td>
+    </tr>
+    <tr>
+        <td>Idle-Timeout</td>
+        <td>radgroupreply</td>
+        <td>Delai d'inactivite (secondes)</td>
+        <td>:= 600</td>
+    </tr>
+    <tr>
+        <td>Mikrotik-Total-Limit</td>
+        <td>radgroupreply</td>
+        <td>Quota de donnees (octets)</td>
+        <td>:= 53687091200</td>
+    </tr>
+</table>
+
+<h3>3.3 Service de Synchronisation Django-RADIUS</h3>
+
+<p>Le fichier <code>backend/radius/services.py</code> contient la logique de synchronisation:</p>
+
+<div class="code-block">
+# Extrait de RadiusProfileGroupService
+
+class RadiusProfileGroupService:
+    """Service pour la synchronisation Profile Django -> Groupe FreeRADIUS."""
+
+    GROUP_PREFIX = "profile_"
+
+    @classmethod
+    def sync_profile_to_radius_group(cls, profile: Profile) -> Dict:
+        """
+        Synchronise un profil Django vers un groupe FreeRADIUS.
+
+        Cree/met a jour:
+        - Les entrees radgroupreply avec les attributs Reply
+        - Les entrees radgroupcheck avec les attributs Check
+        """
+        groupname = f"profile_{profile.id}_{profile.name_normalized}"
+
+        # Attributs Reply (envoyes dans Access-Accept)
+        reply_attrs = [
+            {'attribute': 'Mikrotik-Rate-Limit', 'value': f"{profile.bandwidth_upload}M/{profile.bandwidth_download}M"},
+            {'attribute': 'Session-Timeout', 'value': str(profile.session_timeout)},
+            {'attribute': 'Idle-Timeout', 'value': str(profile.idle_timeout)},
+        ]
+
+        # Attributs Check (verifications)
+        check_attrs = [
+            {'attribute': 'Simultaneous-Use', 'value': str(profile.simultaneous_use)},
+        ]
+
+        # Supprimer les anciens attributs et creer les nouveaux
+        RadGroupReply.objects.filter(groupname=groupname).delete()
+        RadGroupCheck.objects.filter(groupname=groupname).delete()
+
+        for attr in reply_attrs:
+            RadGroupReply.objects.create(groupname=groupname, **attr)
+
+        for attr in check_attrs:
+            RadGroupCheck.objects.create(groupname=groupname, **attr)
+
+        return {'success': True, 'groupname': groupname}
+</div>
+
+<div class="success">
+    <strong>Resultat:</strong> Chaque profil Django est automatiquement synchronise vers un groupe FreeRADIUS. Les utilisateurs heritent des attributs via leur appartenance au groupe.
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="mikrotik">4. Modifications MikroTik</h2>
+
+<h3>4.1 Configuration Hotspot RADIUS</h3>
+
+<p>Le routeur MikroTik a ete configure pour utiliser FreeRADIUS comme serveur d'authentification:</p>
+
+<div class="code-block">
+# Configuration RADIUS sur MikroTik
+/radius add address=10.242.18.X secret=shared_secret service=hotspot
+/ip hotspot profile set default use-radius=yes radius-accounting=yes
+</div>
+
+<h3>4.2 Pages Hotspot Personnalisees</h3>
+
+<p>Les pages HTML du hotspot ont ete personnalisees avec le design UCAC-ICAM:</p>
+
+<table>
+    <tr>
+        <th>Fichier</th>
+        <th>Description</th>
+        <th>Modifications</th>
+    </tr>
+    <tr>
+        <td>login.html</td>
+        <td>Page de connexion</td>
+        <td>Design glassmorphism, logo UCAC-ICAM, labels en francais</td>
+    </tr>
+    <tr>
+        <td>logout.html</td>
+        <td>Page de deconnexion</td>
+        <td>Affichage des statistiques de session</td>
+    </tr>
+    <tr>
+        <td>status.html</td>
+        <td>Page de statut</td>
+        <td>Temps restant, donnees consommees</td>
+    </tr>
+    <tr>
+        <td>alogin.html</td>
+        <td>Page de redirection</td>
+        <td>Compteur 30s, lien support IT</td>
+    </tr>
+</table>
+
+<h3>4.3 Blocage DNS</h3>
+
+<p>Le blocage de sites est implemente via des entrees DNS statiques:</p>
+
+<div class="code-block">
+# Exemple de blocage DNS sur MikroTik
+/ip dns static add name=facebook.com address=0.0.0.0 comment="captive-portal-block:1"
+/ip dns static add name=tiktok.com address=0.0.0.0 comment="captive-portal-block:2"
+</div>
+
+<h3>4.4 Redirection DNS Forcee</h3>
+
+<p>Pour empecher le contournement du blocage, toutes les requetes DNS sont redirigees vers le routeur:</p>
+
+<div class="code-block">
+# Forcer l'utilisation du DNS du routeur
+/ip firewall nat add chain=dstnat protocol=udp dst-port=53 action=redirect to-ports=53
+/ip firewall nat add chain=dstnat protocol=tcp dst-port=53 action=redirect to-ports=53
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="django">5. Implementation Django</h2>
+
+<h3>5.1 Modeles de Donnees</h3>
+
+<h4>5.1.1 Modele Profile</h4>
+<div class="code-block">
+class Profile(models.Model):
+    """Profil d'abonnement definissant les parametres RADIUS."""
+
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    # Bande passante (Mbps)
+    bandwidth_upload = models.IntegerField(default=5)
+    bandwidth_download = models.IntegerField(default=10)
+
+    # Quota
+    quota_type = models.CharField(choices=[('unlimited', 'Illimite'), ('limited', 'Limite')])
+    data_volume = models.BigIntegerField(default=53687091200)  # 50 Go
+
+    # Parametres RADIUS
+    session_timeout = models.IntegerField(default=28800)  # 8 heures
+    idle_timeout = models.IntegerField(default=600)       # 10 minutes
+    simultaneous_use = models.IntegerField(default=1)
+
+    # Synchronisation RADIUS
+    is_radius_enabled = models.BooleanField(default=False)
+    radius_group_name = models.CharField(max_length=64, blank=True)
+    last_radius_sync = models.DateTimeField(null=True)
+</div>
+
+<h4>5.1.2 Modele User (Extension AbstractUser)</h4>
+<div class="code-block">
+class User(AbstractUser):
+    """Utilisateur du portail captif."""
+
+    promotion = models.ForeignKey(Promotion, null=True, related_name='users')
+    profile = models.ForeignKey(Profile, null=True, related_name='users')
+
+    # RADIUS Status
+    is_radius_activated = models.BooleanField(default=False)  # Provisionne dans RADIUS
+    is_radius_enabled = models.BooleanField(default=True)      # Acces WiFi actif
+    cleartext_password = models.CharField(max_length=128)      # Pour RADIUS
+
+    def get_effective_profile(self):
+        """Profil effectif: individuel > promotion."""
+        return self.profile or (self.promotion.profile if self.promotion else None)
+</div>
+
+<h4>5.1.3 Modele BlockedSite</h4>
+<div class="code-block">
+class BlockedSite(models.Model):
+    """Sites bloques via DNS statique MikroTik."""
+
+    domain = models.CharField(max_length=255, unique=True)
+    type = models.CharField(choices=[('blacklist', 'Blacklist'), ('whitelist', 'Whitelist')])
+    category = models.CharField(choices=[('social', 'Reseaux sociaux'), ...])
+
+    # Synchronisation MikroTik
+    mikrotik_id = models.CharField(max_length=50, blank=True)
+    sync_status = models.CharField(choices=[('pending', 'En attente'), ('synced', 'Synchronise')])
+    last_sync_at = models.DateTimeField(null=True)
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="agent">6. Agent MikroTik (Node.js)</h2>
+
+<h3>6.1 Architecture</h3>
+
+<p>L'agent Node.js sert d'intermediaire entre Django et l'API RouterOS de MikroTik:</p>
+
+<div class="code-block">
+// mikrotik-agent/src/index.js
+
+const express = require('express');
+const RouterOSAPI = require('node-routeros-v2').RouterOSAPI;
+
+const app = express();
+
+// Connexion a MikroTik
+async function connectToMikrotik() {
+    const conn = new RouterOSAPI({
+        host: process.env.MIKROTIK_HOST,    // 10.242.18.6
+        user: process.env.MIKROTIK_USERNAME, // admin
+        password: process.env.MIKROTIK_PASSWORD,
+        port: 8728
+    });
+    await conn.connect();
+    return conn;
+}
+
+// Endpoint: Ajouter une entree DNS statique (blocage)
+app.post('/api/mikrotik/dns/static', async (req, res) => {
+    const { name, address, comment } = req.body;
+    const conn = await connectToMikrotik();
+
+    const result = await conn.write('/ip/dns/static/add', [
+        `=name=${name}`,
+        `=address=${address}`,
+        `=comment=${comment}`
+    ]);
+
+    await conn.close();
+    res.json({ success: true, id: result });
+});
+
+// Endpoint: Supprimer une entree DNS
+app.delete('/api/mikrotik/dns/static/:id', async (req, res) => {
+    const conn = await connectToMikrotik();
+    await conn.write('/ip/dns/static/remove', [`=.id=${req.params.id}`]);
+    await conn.close();
+    res.json({ success: true });
+});
+</div>
+
+<h3>6.2 Endpoints Disponibles</h3>
+
+<table>
+    <tr>
+        <th>Methode</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/mikrotik/test</td>
+        <td>Tester la connexion MikroTik</td>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/mikrotik/hotspot/active</td>
+        <td>Liste des sessions actives</td>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/mikrotik/dns/static</td>
+        <td>Liste des entrees DNS statiques</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/mikrotik/dns/static</td>
+        <td>Ajouter un blocage DNS</td>
+    </tr>
+    <tr>
+        <td>DELETE</td>
+        <td>/api/mikrotik/dns/static/:id</td>
+        <td>Supprimer un blocage DNS</td>
+    </tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="preuve">7. Preuves de Realisation</h2>
+
+<h3>7.1 Fichiers Crees/Modifies</h3>
+
+<h4>Backend Django:</h4>
+<ul>
+    <li><code>backend/core/models.py</code> - Modeles User, Profile, Promotion, BlockedSite</li>
+    <li><code>backend/core/viewsets.py</code> - API REST pour toutes les entites</li>
+    <li><code>backend/radius/models.py</code> - Modeles FreeRADIUS (RadCheck, RadReply, etc.)</li>
+    <li><code>backend/radius/services.py</code> - Services de synchronisation RADIUS</li>
+    <li><code>backend/mikrotik/dns_service.py</code> - Service de blocage DNS</li>
+    <li><code>backend/mikrotik/utils.py</code> - Client API MikroTik Agent</li>
+</ul>
+
+<h4>Frontend Vue.js:</h4>
+<ul>
+    <li><code>frontend/portail-captif/src/views/</code> - Pages de l'application</li>
+    <li><code>frontend/portail-captif/src/components/</code> - Composants reutilisables</li>
+    <li><code>frontend/portail-captif/src/services/</code> - Services API</li>
+</ul>
+
+<h4>Agent MikroTik:</h4>
+<ul>
+    <li><code>mikrotik-agent/src/index.js</code> - Serveur Express avec endpoints RouterOS</li>
+    <li><code>mikrotik-agent/.env</code> - Configuration (credentials MikroTik)</li>
+</ul>
+
+<h3>7.2 Fonctionnalites Implementees</h3>
+
+<div class="success">
+    <strong>COMPLETE:</strong>
+    <ul>
+        <li>Gestion des utilisateurs avec activation/desactivation RADIUS</li>
+        <li>Gestion des profils avec synchronisation automatique vers FreeRADIUS</li>
+        <li>Gestion des promotions avec heritage de profil</li>
+        <li>Blocage de sites via DNS statique MikroTik</li>
+        <li>Dashboard avec statistiques en temps reel</li>
+        <li>Historique des sessions utilisateur</li>
+        <li>Pages hotspot personnalisees</li>
+    </ul>
+</div>
+
+<h3>7.3 Commandes de Verification</h3>
+
+<div class="code-block">
+# Verifier les groupes RADIUS
+SELECT groupname, attribute, value FROM radgroupreply WHERE groupname LIKE 'profile_%';
+
+# Verifier les associations utilisateur-groupe
+SELECT username, groupname, priority FROM radusergroup WHERE groupname LIKE 'profile_%';
+
+# Verifier les entrees DNS sur MikroTik
+/ip dns static print where comment~"captive-portal"
+</div>
+
+<div class="page-break"></div>
+
+<h2 id="conclusion">8. Conclusion</h2>
+
+<p>Ce document demontre que le projet de Portail Captif WiFi pour l'UCAC-ICAM a ete entierement realise par <strong>Valerdy</strong> en collaboration avec <strong>Claude (Assistant IA)</strong>.</p>
+
+<h3>8.1 Contributions</h3>
+
+<table>
+    <tr>
+        <th>Tache</th>
+        <th>Contributeur</th>
+    </tr>
+    <tr>
+        <td>Analyse des besoins et conception</td>
+        <td>Valerdy</td>
+    </tr>
+    <tr>
+        <td>Developpement Backend (Django)</td>
+        <td>Valerdy + Claude</td>
+    </tr>
+    <tr>
+        <td>Developpement Frontend (Vue.js)</td>
+        <td>Valerdy + Claude</td>
+    </tr>
+    <tr>
+        <td>Integration FreeRADIUS</td>
+        <td>Valerdy + Claude</td>
+    </tr>
+    <tr>
+        <td>Integration MikroTik</td>
+        <td>Valerdy + Claude</td>
+    </tr>
+    <tr>
+        <td>Tests et validation</td>
+        <td>Valerdy</td>
+    </tr>
+    <tr>
+        <td>Documentation</td>
+        <td>Valerdy + Claude</td>
+    </tr>
+</table>
+
+<h3>8.2 Points Cles</h3>
+
+<ul>
+    <li>Le systeme utilise une architecture moderne et evolutive</li>
+    <li>La synchronisation Django-FreeRADIUS est entierement automatisee</li>
+    <li>Le blocage DNS fonctionne de maniere transparente via l'agent MikroTik</li>
+    <li>L'interface utilisateur est intuitive et responsive</li>
+</ul>
+
+<div class="note">
+    <strong>Note:</strong> Ce projet respecte les standards de l'industrie pour les portails captifs et peut etre deploye en production apres les tests finaux.
+</div>
+
+<hr>
+
+<p style="text-align: center; color: #64748b; font-style: italic;">
+    Document genere le 16 janvier 2026<br>
+    Portail Captif UCAC-ICAM - Version 1.0
+</p>
+
+</body>
+</html>

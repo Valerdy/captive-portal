@@ -1,0 +1,73 @@
+CAPTIVE PORTAL PROJECT BUDGET
+UCAC-ICAM WiFi Management System
+
+================================================================================
+CATEGORY 1: HUMAN RESOURCES
+================================================================================
+Item,Role,Duration (months),Monthly Rate (XAF),Total (XAF),Notes
+1.1,Project Manager / Developer,5,250000,1250000,Full-stack development and coordination
+1.2,Network Engineer Consultant,2,200000,400000,MikroTik and FreeRADIUS configuration
+1.3,UI/UX Designer,1,150000,150000,Interface design and user experience
+1.4,Quality Assurance Tester,1,100000,100000,Testing and validation
+1.5,Technical Writer,0.5,100000,50000,Documentation and user guides
+,,,,
+,SUBTOTAL HUMAN RESOURCES,,,1950000,
+
+================================================================================
+CATEGORY 2: HARDWARE
+================================================================================
+Item,Description,Quantity,Unit Price (XAF),Total (XAF),Notes
+2.1,MikroTik RB951Ui-2HnD Router,1,75000,75000,Main hotspot router (already owned)
+2.2,Development Laptop,1,400000,400000,For coding and testing
+2.3,Test Server (Local),1,150000,150000,Ubuntu server for backend
+2.4,Network Cables (Cat6),10,2500,25000,LAN connectivity
+2.5,Access Point (TP-Link),2,35000,70000,Extended WiFi coverage
+2.6,UPS Power Backup,1,85000,85000,Power protection
+,,,,
+,SUBTOTAL HARDWARE,,,805000,
+
+================================================================================
+CATEGORY 3: SOFTWARE
+================================================================================
+Item,Description,License Type,Duration,Cost (XAF),Notes
+3.1,Ubuntu Server 22.04 LTS,Open Source,Perpetual,0,Operating system
+3.2,PostgreSQL Database,Open Source,Perpetual,0,Database management
+3.3,FreeRADIUS Server,Open Source,Perpetual,0,AAA server
+3.4,Python/Django Framework,Open Source,Perpetual,0,Backend framework
+3.5,Vue.js 3 Framework,Open Source,Perpetual,0,Frontend framework
+3.6,Node.js Runtime,Open Source,Perpetual,0,MikroTik Agent
+3.7,VS Code IDE,Free,Perpetual,0,Development environment
+3.8,Git Version Control,Free,Perpetual,0,Source code management
+3.9,RouterOS License (MikroTik),Included,Perpetual,0,Included with hardware
+3.10,Domain Name (.cm),Annual,1 year,15000,captive-portal.ucac-icam.cm
+3.11,SSL Certificate,Free (Let's Encrypt),Annual,0,HTTPS security
+3.12,Cloud Backup Service,Monthly,12 months,60000,5000 XAF/month
+,,,,
+,SUBTOTAL SOFTWARE,,,75000,
+
+================================================================================
+BUDGET SUMMARY
+================================================================================
+Category,Amount (XAF),Amount (EUR),Percentage
+Human Resources,1950000,2973,69%
+Hardware,805000,1227,28%
+Software,75000,114,3%
+,,,,
+TOTAL PROJECT BUDGET,2830000,4314,100%
+
+================================================================================
+NOTES
+================================================================================
+1. Exchange rate used: 1 EUR = 656 XAF
+2. Human resources costs are estimates based on local market rates
+3. Hardware costs include existing equipment (MikroTik router already owned)
+4. Most software costs are zero due to open-source solutions
+5. Contingency reserve recommended: 10% = 283000 XAF
+
+================================================================================
+COST-SAVING MEASURES IMPLEMENTED
+================================================================================
+- Use of open-source software stack (Django, Vue.js, FreeRADIUS, PostgreSQL)
+- Leveraging existing MikroTik router infrastructure
+- Free SSL certificates via Let's Encrypt
+- Local development and testing to minimize cloud costs
