@@ -1,0 +1,360 @@
+<mxfile host="app.diagrams.net" modified="2026-01-16T10:00:00.000Z" agent="Mozilla/5.0" version="22.1.0" type="device">
+  <diagram name="Schema Reseau - Portail Captif UCAC-ICAM" id="network-diagram">
+    <mxGraphModel dx="1434" dy="780" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITRE -->
+        <mxCell id="title" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;SCHEMA RESEAU - PORTAIL CAPTIF WIFI UCAC-ICAM&lt;/b&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="284" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE INTERNET ==================== -->
+        <mxCell id="zone-internet" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;dashPattern=8 8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-internet-label" value="&lt;b&gt;INTERNET&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;rounded=0;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="90" y="85" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Cloud Internet -->
+        <mxCell id="internet-cloud" value="&lt;b&gt;INTERNET&lt;/b&gt;&lt;br&gt;WAN" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="110" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE ROUTEUR MIKROTIK ==================== -->
+        <mxCell id="zone-mikrotik" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;dashPattern=8 8;" vertex="1" parent="1">
+          <mxGeometry x="300" y="80" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-mikrotik-label" value="&lt;b&gt;ROUTEUR MIKROTIK&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;rounded=0;fontColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="365" y="85" width="150" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- MikroTik Router -->
+        <mxCell id="mikrotik-router" value="&lt;b&gt;MikroTik&lt;/b&gt;&lt;br&gt;RB951Ui-2HnD&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;10.242.18.6&lt;/font&gt;" style="shape=mxgraph.cisco.routers.router;html=1;pointerEvents=1;dashed=0;fillColor=#036897;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="395" y="115" width="90" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Hotspot Service -->
+        <mxCell id="hotspot-service" value="&lt;b&gt;Hotspot&lt;/b&gt;&lt;br&gt;Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="315" y="190" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- DNS Service -->
+        <mxCell id="dns-service" value="&lt;b&gt;DNS&lt;/b&gt;&lt;br&gt;Blocking" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="495" y="190" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- RADIUS Client -->
+        <mxCell id="radius-client" value="&lt;b&gt;RADIUS&lt;/b&gt;&lt;br&gt;Client" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="405" y="190" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE SERVEURS ==================== -->
+        <mxCell id="zone-servers" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;dashed=1;dashPattern=8 8;" vertex="1" parent="1">
+          <mxGeometry x="640" y="80" width="480" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-servers-label" value="&lt;b&gt;SERVEURS BACKEND&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;rounded=0;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="820" y="85" width="150" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Ubuntu Server -->
+        <mxCell id="ubuntu-server" value="&lt;b&gt;Serveur Ubuntu&lt;/b&gt;&lt;br&gt;22.04 LTS&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;10.242.18.X&lt;/font&gt;" style="shape=mxgraph.cisco.servers.standard_host;html=1;pointerEvents=1;dashed=0;fillColor=#23A2D9;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="115" width="60" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Django Backend -->
+        <mxCell id="django-backend" value="&lt;b&gt;Django&lt;/b&gt;&lt;br&gt;Backend API&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;:8000&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="670" y="200" width="90" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- FreeRADIUS -->
+        <mxCell id="freeradius-server" value="&lt;b&gt;FreeRADIUS&lt;/b&gt;&lt;br&gt;AAA Server&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;:1812/1813&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="200" width="90" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- PostgreSQL -->
+        <mxCell id="postgresql-db" value="&lt;b&gt;PostgreSQL&lt;/b&gt;&lt;br&gt;Database&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;:5432&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="195" width="80" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- MikroTik Agent -->
+        <mxCell id="mikrotik-agent" value="&lt;b&gt;MikroTik&lt;/b&gt;&lt;br&gt;Agent (Node.js)&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;:3001&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="200" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Vue.js Frontend -->
+        <mxCell id="vuejs-frontend" value="&lt;b&gt;Vue.js&lt;/b&gt;&lt;br&gt;Frontend&lt;br&gt;&lt;font color=&quot;#666666&quot;&gt;:5173&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="670" y="290" width="90" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE WIFI / CLIENTS ==================== -->
+        <mxCell id="zone-wifi" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;dashPattern=8 8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="540" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-wifi-label" value="&lt;b&gt;RESEAU WIFI - CLIENTS&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;rounded=0;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="235" y="285" width="150" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Access Point 1 -->
+        <mxCell id="ap1" value="&lt;b&gt;AP 1&lt;/b&gt;&lt;br&gt;WiFi 2.4GHz" style="shape=mxgraph.cisco.wireless.wireless_router;html=1;pointerEvents=1;dashed=0;fillColor=#29AAE1;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="320" width="50" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Access Point 2 -->
+        <mxCell id="ap2" value="&lt;b&gt;AP 2&lt;/b&gt;&lt;br&gt;WiFi 5GHz" style="shape=mxgraph.cisco.wireless.wireless_router;html=1;pointerEvents=1;dashed=0;fillColor=#29AAE1;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="320" width="50" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Client Laptop -->
+        <mxCell id="client-laptop" value="&lt;b&gt;Laptop&lt;/b&gt;&lt;br&gt;Etudiant" style="shape=mxgraph.cisco.computers_and_peripherals.laptop;html=1;pointerEvents=1;dashed=0;fillColor=#29AAE1;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="310" y="400" width="55" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Client Phone -->
+        <mxCell id="client-phone" value="&lt;b&gt;Smartphone&lt;/b&gt;&lt;br&gt;Personnel" style="shape=mxgraph.cisco.modems_and_phones.cell_phone;html=1;pointerEvents=1;dashed=0;fillColor=#29AAE1;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="410" y="400" width="30" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Client Tablet -->
+        <mxCell id="client-tablet" value="&lt;b&gt;Tablette&lt;/b&gt;&lt;br&gt;Invite" style="shape=mxgraph.cisco.computers_and_peripherals.pad;html=1;pointerEvents=1;dashed=0;fillColor=#29AAE1;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="400" width="40" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CONNEXIONS ==================== -->
+
+        <!-- Internet to MikroTik -->
+        <mxCell id="conn-internet-mikrotik" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=3;strokeColor=#6c8ebf;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="internet-cloud" target="mikrotik-router">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="220" y="145" as="sourcePoint" />
+            <mxPoint x="395" y="145" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-internet-mikrotik-label" value="&lt;font color=&quot;#6c8ebf&quot;&gt;&lt;b&gt;WAN&lt;/b&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="120" width="40" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- MikroTik to Ubuntu Server (LAN) -->
+        <mxCell id="conn-mikrotik-server" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=3;strokeColor=#82b366;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="mikrotik-router" target="ubuntu-server">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="490" y="145" as="sourcePoint" />
+            <mxPoint x="640" y="145" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-mikrotik-server-label" value="&lt;font color=&quot;#82b366&quot;&gt;&lt;b&gt;LAN&lt;/b&gt;&lt;br&gt;Ethernet&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="110" width="60" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- RADIUS Client to FreeRADIUS -->
+        <mxCell id="conn-radius" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#b85450;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="radius-client" target="freeradius-server">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="215" as="sourcePoint" />
+            <mxPoint x="780" y="230" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="600" y="215" />
+              <mxPoint x="600" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-radius-label" value="&lt;font color=&quot;#b85450&quot;&gt;&lt;b&gt;RADIUS&lt;/b&gt;&lt;br&gt;UDP 1812/1813&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="600" y="185" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- MikroTik Agent to MikroTik Router -->
+        <mxCell id="conn-agent-mikrotik" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#d6b656;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="mikrotik-agent">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="580" y="160" as="sourcePoint" />
+            <mxPoint x="530" y="160" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="620" y="230" />
+              <mxPoint x="620" y="100" />
+              <mxPoint x="530" y="100" />
+              <mxPoint x="530" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-agent-mikrotik-label" value="&lt;font color=&quot;#d6b656&quot;&gt;&lt;b&gt;RouterOS API&lt;/b&gt;&lt;br&gt;TCP 8728&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="540" y="65" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Django to PostgreSQL -->
+        <mxCell id="conn-django-postgres" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="django-backend" target="postgresql-db">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="770" y="230" as="sourcePoint" />
+            <mxPoint x="890" y="230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- FreeRADIUS to PostgreSQL -->
+        <mxCell id="conn-freeradius-postgres" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="freeradius-server" target="postgresql-db">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="880" y="230" as="sourcePoint" />
+            <mxPoint x="890" y="230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Django to FreeRADIUS (indirect via DB) -->
+        <mxCell id="conn-django-freeradius" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="django-backend" target="freeradius-server">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="770" y="230" as="sourcePoint" />
+            <mxPoint x="780" y="230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Django to MikroTik Agent -->
+        <mxCell id="conn-django-agent" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#d6b656;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="django-backend" target="mikrotik-agent">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="715" y="280" as="sourcePoint" />
+            <mxPoint x="1050" y="280" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="715" y="290" />
+              <mxPoint x="790" y="290" />
+              <mxPoint x="790" y="330" />
+              <mxPoint x="1050" y="330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-django-agent-label" value="&lt;font color=&quot;#d6b656&quot;&gt;&lt;b&gt;REST API&lt;/b&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="880" y="310" width="60" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- MikroTik to Access Points -->
+        <mxCell id="conn-mikrotik-ap1" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#29AAE1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="mikrotik-router" target="ap1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="440" y="180" as="sourcePoint" />
+            <mxPoint x="125" y="320" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="440" y="300" />
+              <mxPoint x="125" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conn-mikrotik-ap2" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#29AAE1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" target="ap2">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="440" y="300" as="sourcePoint" />
+            <mxPoint x="225" y="320" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="225" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Wireless signals from APs to Clients -->
+        <mxCell id="wifi-signal-1" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 2;strokeWidth=2;strokeColor=#9673a6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="ap1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="125" y="380" as="sourcePoint" />
+            <mxPoint x="337" y="400" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="125" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="wifi-signal-2" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 2;strokeWidth=2;strokeColor=#9673a6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="ap2">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="225" y="380" as="sourcePoint" />
+            <mxPoint x="425" y="400" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="225" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="wifi-signal-3" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 2;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="225" y="420" as="sourcePoint" />
+            <mxPoint x="510" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== LEGENDE ==================== -->
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#333333;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="640" y="400" width="480" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-title" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;LEGENDE - FLUX DE FONCTIONNEMENT&lt;/b&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="750" y="405" width="260" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Legend Items -->
+        <mxCell id="legend-1" value="&lt;b&gt;1. Connexion WiFi:&lt;/b&gt; Client se connecte au reseau WiFi (AP)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="435" width="300" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-2" value="&lt;b&gt;2. Redirection Hotspot:&lt;/b&gt; MikroTik redirige vers page login" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="455" width="300" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-3" value="&lt;b&gt;3. Authentification RADIUS:&lt;/b&gt; MikroTik envoie credentials a FreeRADIUS" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="475" width="340" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-4" value="&lt;b&gt;4. Verification BDD:&lt;/b&gt; FreeRADIUS verifie dans PostgreSQL (radcheck)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="495" width="340" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-5" value="&lt;b&gt;5. Access-Accept:&lt;/b&gt; FreeRADIUS retourne attributs QoS (bandwidth, timeout)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="515" width="350" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-6" value="&lt;b&gt;6. Application QoS:&lt;/b&gt; MikroTik applique bande passante et restrictions" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="535" width="340" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-7" value="&lt;b&gt;7. DNS Blocking:&lt;/b&gt; Sites bloques resolus vers 0.0.0.0" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="555" width="300" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-8" value="&lt;b&gt;8. Gestion Admin:&lt;/b&gt; Django gere users/profiles via API REST" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="575" width="300" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Legend Colors -->
+        <mxCell id="legend-color-1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#6c8ebf;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="440" width="30" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-color-1-label" value="WAN/Internet" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="435" width="70" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-color-2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82b366;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="460" width="30" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-color-2-label" value="LAN/Ethernet" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="455" width="70" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-color-3" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#b85450;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="480" width="30" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-color-3-label" value="RADIUS" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="475" width="70" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-color-4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6b656;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="500" width="30" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-color-4-label" value="RouterOS API" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="495" width="70" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-color-5" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#29AAE1;strokeColor=#29AAE1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="520" width="30" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-color-5-label" value="WiFi" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="515" width="70" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-color-6" value="- - -" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="535" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-color-6-label" value="Signal WiFi" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="535" width="70" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
