@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide de Configuration des Equipements - Portail Captif UCAC-ICAM</title>
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            margin: 2cm;
+            color: #333;
+        }
+        h1 {
+            color: #1a365d;
+            font-size: 22pt;
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #1e40af;
+            font-size: 16pt;
+            margin-top: 25px;
+            border-left: 4px solid #2563eb;
+            padding-left: 12px;
+            background-color: #f0f9ff;
+            padding: 8px 12px;
+        }
+        h3 {
+            color: #3730a3;
+            font-size: 13pt;
+            margin-top: 18px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+        h4 {
+            color: #4338ca;
+            font-size: 11pt;
+            margin-top: 12px;
+        }
+        .code-block {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            border-radius: 5px;
+            padding: 12px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 9pt;
+            overflow-x: auto;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        .code-block .comment {
+            color: #94a3b8;
+        }
+        .code-block .keyword {
+            color: #f472b6;
+        }
+        .code-block .string {
+            color: #86efac;
+        }
+        .code-block .value {
+            color: #fde047;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 10pt;
+        }
+        th, td {
+            border: 1px solid #94a3b8;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #1e40af;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .note {
+            background-color: #dbeafe;
+            border-left: 4px solid #2563eb;
+            padding: 10px 12px;
+            margin: 12px 0;
+            font-size: 10pt;
+        }
+        .warning {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 10px 12px;
+            margin: 12px 0;
+            font-size: 10pt;
+        }
+        .danger {
+            background-color: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 10px 12px;
+            margin: 12px 0;
+            font-size: 10pt;
+        }
+        .success {
+            background-color: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 10px 12px;
+            margin: 12px 0;
+            font-size: 10pt;
+        }
+        .step {
+            background-color: #f1f5f9;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #1e40af;
+            margin-right: 8px;
+        }
+        .toc {
+            background-color: #f8fafc;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .toc li {
+            margin: 5px 0;
+        }
+        .toc a {
+            color: #1e40af;
+            text-decoration: none;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        .equipment-box {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .equipment-header {
+            background-color: #1e40af;
+            color: white;
+            padding: 8px 12px;
+            margin: -15px -15px 15px -15px;
+            border-radius: 6px 6px 0 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1>GUIDE DE CONFIGURATION DES EQUIPEMENTS<br>
+<span style="font-size: 14pt; color: #64748b;">Portail Captif WiFi - UCAC-ICAM</span></h1>
+
+<p style="text-align: center; color: #64748b;">
+    <strong>Auteurs:</strong> Valerdy &amp; Claude (Assistant IA)<br>
+    <strong>Date:</strong> Janvier 2026<br>
+    <strong>Version:</strong> 1.0
+</p>
+
+<div class="toc">
+    <h3 style="margin-top: 0;">Table des Matieres</h3>
+    <ul>
+        <li><a href="#intro">1. Introduction et Architecture</a></li>
+        <li><a href="#mikrotik">2. Configuration MikroTik RouterOS</a></li>
+        <li><a href="#freeradius">3. Configuration FreeRADIUS</a></li>
+        <li><a href="#postgresql">4. Configuration PostgreSQL</a></li>
+        <li><a href="#django">5. Configuration Django Backend</a></li>
+        <li><a href="#agent">6. Configuration Agent MikroTik (Node.js)</a></li>
+        <li><a href="#verification">7. Verification et Tests</a></li>
+    </ul>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ============================================================== -->
+<h2 id="intro">1. Introduction et Architecture</h2>
+<!-- ============================================================== -->
+
+<h3>1.1 Equipements du Reseau</h3>
+
+<table>
+    <tr>
+        <th>Equipement</th>
+        <th>Modele/Version</th>
+        <th>Adresse IP</th>
+        <th>Role</th>
+    </tr>
+    <tr>
+        <td>Routeur Principal</td>
+        <td>MikroTik RB951Ui-2HnD</td>
+        <td>10.242.18.6</td>
+        <td>Hotspot, RADIUS Client, DNS</td>
+    </tr>
+    <tr>
+        <td>Serveur Backend</td>
+        <td>Ubuntu Server 22.04 LTS</td>
+        <td>10.242.18.X</td>
+        <td>Django, FreeRADIUS, PostgreSQL</td>
+    </tr>
+    <tr>
+        <td>Access Points</td>
+        <td>TP-Link / Integre MikroTik</td>
+        <td>DHCP</td>
+        <td>Couverture WiFi</td>
+    </tr>
+</table>
+
+<h3>1.2 Flux d'Authentification</h3>
+
+<div class="code-block">
+<span class="comment"># Sequence d'authentification WiFi</span>
+
+1. Client WiFi ──────────────────────> Access Point (connexion WiFi)
+2. MikroTik Hotspot ─────────────────> Page de Login (redirection HTTP)
+3. Client ───────────────────────────> Soumet credentials (username/password)
+4. MikroTik ─────── RADIUS Request ──> FreeRADIUS (UDP 1812)
+5. FreeRADIUS ───── SQL Query ───────> PostgreSQL (SELECT radcheck)
+6. PostgreSQL ───── Result ──────────> FreeRADIUS (user found + attributes)
+7. FreeRADIUS ───── Access-Accept ───> MikroTik (avec attributs QoS)
+8. MikroTik ─────── Apply QoS ───────> Client autorise (bandwidth limit)
+</div>
+
+<div class="page-break"></div>
+
+<!-- ============================================================== -->
+<h2 id="mikrotik">2. Configuration MikroTik RouterOS</h2>
+<!-- ============================================================== -->
+
+<div class="equipment-box">
+    <div class="equipment-header">MIKROTIK RB951Ui-2HnD - RouterOS 7.x</div>
+
+<h3>2.1 Configuration de Base du Routeur</h3>
+
+<h4><span class="step">1</span> Acces au Routeur</h4>
+<div class="code-block">
+<span class="comment"># Connexion via Winbox ou SSH</span>
+IP: <span class="value">10.242.18.6</span>
+Port API: <span class="value">8728</span>
+Username: <span class="value">admin</span>
+Password: <span class="value">Admins_ucac2018</span>
+</div>
+
+<h4><span class="step">2</span> Configuration des Interfaces</h4>
+<div class="code-block">
+<span class="comment"># Interface WAN (Internet)</span>
+/interface ethernet set ether1 name=ether1-WAN
+
+<span class="comment"># Interface LAN (reseau interne)</span>
+/interface ethernet set ether2 name=ether2-LAN
+
+<span class="comment"># Bridge pour le LAN</span>
+/interface bridge add name=bridge-LAN
+/interface bridge port add bridge=bridge-LAN interface=ether2-LAN
+</div>
+
+<h4><span class="step">3</span> Configuration IP et DHCP</h4>
+<div class="code-block">
+<span class="comment"># Adresse IP du routeur sur le LAN</span>
+/ip address add address=<span class="value">10.242.18.6/24</span> interface=bridge-LAN
+
+<span class="comment"># Pool DHCP pour les clients WiFi</span>
+/ip pool add name=dhcp-pool ranges=<span class="value">10.242.18.100-10.242.18.200</span>
+
+<span class="comment"># Serveur DHCP</span>
+/ip dhcp-server add name=dhcp-server interface=bridge-LAN address-pool=dhcp-pool
+/ip dhcp-server network add address=<span class="value">10.242.18.0/24</span> gateway=<span class="value">10.242.18.6</span> dns-server=<span class="value">10.242.18.6</span>
+</div>
+
+<h3>2.2 Configuration du Serveur RADIUS</h3>
+
+<div class="warning">
+    <strong>Important:</strong> Le secret RADIUS doit correspondre exactement a celui configure dans FreeRADIUS (fichier clients.conf).
+</div>
+
+<div class="code-block">
+<span class="comment"># Ajouter le serveur RADIUS</span>
+/radius add address=<span class="value">10.242.18.X</span> secret=<span class="string">"votre_secret_radius"</span> service=hotspot timeout=3s
+
+<span class="comment"># Verifier la configuration</span>
+/radius print
+</div>
+
+<h3>2.3 Configuration du Hotspot</h3>
+
+<h4><span class="step">1</span> Profil Hotspot avec RADIUS</h4>
+<div class="code-block">
+<span class="comment"># Creer le profil hotspot</span>
+/ip hotspot profile add name=<span class="string">"ucac-icam-profile"</span> \
+    hotspot-address=<span class="value">10.242.18.6</span> \
+    dns-name=<span class="string">"wifi.ucac-icam.cm"</span> \
+    html-directory=hotspot \
+    use-radius=<span class="value">yes</span> \
+    radius-accounting=<span class="value">yes</span> \
+    radius-interim-update=<span class="value">5m</span> \
+    login-by=<span class="value">http-chap,http-pap</span>
+
+<span class="comment"># Activer le hotspot sur l'interface</span>
+/ip hotspot add name=hotspot1 interface=bridge-LAN \
+    profile=<span class="string">"ucac-icam-profile"</span> \
+    address-pool=dhcp-pool \
+    disabled=no
+</div>
+
+<h4><span class="step">2</span> Walled Garden (pages accessibles sans auth)</h4>
+<div class="code-block">
+<span class="comment"># Permettre l'acces au serveur RADIUS et au portail admin</span>
+/ip hotspot walled-garden add dst-host=<span class="value">10.242.18.X</span> action=allow comment=<span class="string">"Backend Server"</span>
+/ip hotspot walled-garden ip add dst-address=<span class="value">10.242.18.X</span> action=accept
+</div>
+
+<h3>2.4 Configuration DNS (Blocage de Sites)</h3>
+
+<h4><span class="step">1</span> Activer le Serveur DNS</h4>
+<div class="code-block">
+<span class="comment"># Configurer le serveur DNS local</span>
+/ip dns set allow-remote-requests=<span class="value">yes</span> \
+    servers=<span class="value">8.8.8.8,1.1.1.1</span> \
+    cache-size=<span class="value">4096KiB</span>
+
+<span class="comment"># Verifier la configuration</span>
+/ip dns print
+</div>
+
+<h4><span class="step">2</span> Entrees DNS Statiques (Blocage)</h4>
+<div class="code-block">
+<span class="comment"># Bloquer un domaine (redirige vers 0.0.0.0)</span>
+/ip dns static add name=<span class="string">"facebook.com"</span> address=<span class="value">0.0.0.0</span> comment=<span class="string">"captive-portal-block:1"</span>
+/ip dns static add name=<span class="string">"www.facebook.com"</span> address=<span class="value">0.0.0.0</span> comment=<span class="string">"captive-portal-block:1"</span>
+
+<span class="comment"># Bloquer avec wildcard (regex)</span>
+/ip dns static add regexp=<span class="string">".*\\.tiktok\\.com$"</span> address=<span class="value">0.0.0.0</span> comment=<span class="string">"captive-portal-block:2"</span>
+
+<span class="comment"># Lister les entrees</span>
+/ip dns static print where comment~<span class="string">"captive-portal"</span>
+</div>
+
+<h4><span class="step">3</span> Forcer l'Utilisation du DNS Local</h4>
+<div class="code-block">
+<span class="comment"># Rediriger toutes les requetes DNS vers le routeur</span>
+/ip firewall nat add chain=dstnat protocol=udp dst-port=53 \
+    in-interface=bridge-LAN action=redirect to-ports=53 \
+    comment=<span class="string">"Force DNS to router (UDP)"</span>
+
+/ip firewall nat add chain=dstnat protocol=tcp dst-port=53 \
+    in-interface=bridge-LAN action=redirect to-ports=53 \
+    comment=<span class="string">"Force DNS to router (TCP)"</span>
+
+<span class="comment"># Optionnel: Bloquer DNS over HTTPS/TLS</span>
+/ip firewall filter add chain=forward protocol=tcp dst-port=853 \
+    in-interface=bridge-LAN action=drop comment=<span class="string">"Block DoT"</span>
+</div>
+
+<h3>2.5 Activation de l'API RouterOS</h3>
+
+<div class="code-block">
+<span class="comment"># Activer le service API (pour l'agent Node.js)</span>
+/ip service enable api
+/ip service set api port=<span class="value">8728</span>
+
+<span class="comment"># Optionnel: API SSL (plus securise)</span>
+/ip service enable api-ssl
+/ip service set api-ssl port=<span class="value">8729</span>
+
+<span class="comment"># Creer un utilisateur dedie pour l'API</span>
+/user add name=<span class="string">"api-user"</span> password=<span class="string">"api_password"</span> group=full
+</div>
+
+<h3>2.6 Pages Hotspot Personnalisees</h3>
+
+<p>Les fichiers HTML du hotspot sont stockes dans <code>/hotspot/</code> sur le routeur:</p>
+
+<table>
+    <tr>
+        <th>Fichier</th>
+        <th>Description</th>
+        <th>Modifications</th>
+    </tr>
+    <tr>
+        <td>login.html</td>
+        <td>Page de connexion</td>
+        <td>Design glassmorphism, logo UCAC-ICAM, CSS inline</td>
+    </tr>
+    <tr>
+        <td>logout.html</td>
+        <td>Page de deconnexion</td>
+        <td>Statistiques de session, bouton reconnexion</td>
+    </tr>
+    <tr>
+        <td>status.html</td>
+        <td>Statut de connexion</td>
+        <td>Temps restant, donnees consommees, refresh auto</td>
+    </tr>
+    <tr>
+        <td>alogin.html</td>
+        <td>Redirection apres login</td>
+        <td>Compteur 30s, lien support IT, redirection google.com</td>
+    </tr>
+</table>
+
+<div class="note">
+    <strong>Note:</strong> Les CSS sont integres inline car les polices Google ne sont pas accessibles avant l'authentification.
+</div>
+
+</div>
+
+<div class="page-break"></div>
+
+<!-- ============================================================== -->
+<h2 id="freeradius">3. Configuration FreeRADIUS</h2>
+<!-- ============================================================== -->
+
+<div class="equipment-box">
+    <div class="equipment-header">FREERADIUS 3.0 - Serveur AAA</div>
+
+<h3>3.1 Installation</h3>
+
+<div class="code-block">
+<span class="comment"># Installation sur Ubuntu</span>
+sudo apt update
+sudo apt install freeradius freeradius-postgresql freeradius-utils
+
+<span class="comment"># Verifier la version</span>
+freeradius -v
+</div>
+
+<h3>3.2 Configuration des Clients RADIUS</h3>
+
+<p><strong>Fichier:</strong> <code>/etc/freeradius/3.0/clients.conf</code></p>
+
+<div class="code-block">
+<span class="comment"># Client MikroTik (routeur hotspot)</span>
+client mikrotik-hotspot {
+    ipaddr = <span class="value">10.242.18.6</span>
+    secret = <span class="string">"votre_secret_radius"</span>
+    shortname = mikrotik
+    nastype = other
+
+    <span class="comment"># Limiter le nombre de requetes par seconde</span>
+    limit {
+        max_connections = 16
+        lifetime = 0
+        idle_timeout = 30
+    }
+}
+
+<span class="comment"># Permettre les tests locaux</span>
+client localhost {
+    ipaddr = 127.0.0.1
+    secret = testing123
+}
+</div>
+
+<h3>3.3 Configuration SQL (PostgreSQL)</h3>
+
+<p><strong>Fichier:</strong> <code>/etc/freeradius/3.0/mods-available/sql</code></p>
+
+<div class="code-block">
+sql {
+    <span class="comment"># Driver PostgreSQL</span>
+    driver = "rlm_sql_postgresql"
+    dialect = "postgresql"
+
+    <span class="comment"># Connexion a la base de donnees</span>
+    server = "<span class="value">localhost</span>"
+    port = <span class="value">5432</span>
+    login = "<span class="value">radius_user</span>"
+    password = "<span class="value">radius_password</span>"
+    radius_db = "<span class="value">captive_portal</span>"
+
+    <span class="comment"># Options de connexion</span>
+    read_clients = yes
+
+    <span class="comment"># Tables RADIUS</span>
+    acct_table1 = "radacct"
+    acct_table2 = "radacct"
+    postauth_table = "radpostauth"
+    authcheck_table = "radcheck"
+    groupcheck_table = "radgroupcheck"
+    authreply_table = "radreply"
+    groupreply_table = "radgroupreply"
+    usergroup_table = "radusergroup"
+
+    <span class="comment"># Pool de connexions</span>
+    pool {
+        start = 5
+        min = 4
+        max = 32
+        spare = 3
+        uses = 0
+        lifetime = 0
+        idle_timeout = 60
+    }
+}
+</div>
+
+<h4>Activer le module SQL:</h4>
+<div class="code-block">
+<span class="comment"># Creer le lien symbolique</span>
+sudo ln -s /etc/freeradius/3.0/mods-available/sql /etc/freeradius/3.0/mods-enabled/sql
+</div>
+
+<h3>3.4 Configuration du Site Default</h3>
+
+<p><strong>Fichier:</strong> <code>/etc/freeradius/3.0/sites-available/default</code></p>
+
+<div class="code-block">
+server default {
+    listen {
+        type = auth
+        ipaddr = *
+        port = <span class="value">1812</span>
+    }
+
+    listen {
+        type = acct
+        ipaddr = *
+        port = <span class="value">1813</span>
+    }
+
+    <span class="comment"># Section authorize - Verification des credentials</span>
+    authorize {
+        filter_username
+        preprocess
+
+        <span class="comment"># Utiliser SQL pour la verification</span>
+        sql
+
+        <span class="comment"># Verifier si l'utilisateur existe</span>
+        if (!ok) {
+            reject
+        }
+
+        <span class="comment"># Appliquer les attributs du groupe</span>
+        expiration
+        logintime
+        pap
+    }
+
+    <span class="comment"># Section authenticate - Authentification</span>
+    authenticate {
+        Auth-Type PAP {
+            pap
+        }
+        Auth-Type CHAP {
+            chap
+        }
+    }
+
+    <span class="comment"># Section post-auth - Apres authentification</span>
+    post-auth {
+        <span class="comment"># Logger dans radpostauth</span>
+        sql
+
+        <span class="comment"># Recuperer les attributs du groupe</span>
+        sql
+
+        Post-Auth-Type REJECT {
+            sql
+        }
+    }
+
+    <span class="comment"># Section accounting - Comptabilite des sessions</span>
+    accounting {
+        <span class="comment"># Enregistrer dans radacct</span>
+        sql
+    }
+}
+</div>
+
+<h3>3.5 Attributs MikroTik</h3>
+
+<p><strong>Fichier:</strong> <code>/etc/freeradius/3.0/dictionary.mikrotik</code></p>
+
+<div class="code-block">
+<span class="comment"># Attributs Vendor-Specific MikroTik</span>
+VENDOR          Mikrotik        14988
+
+BEGIN-VENDOR    Mikrotik
+
+ATTRIBUTE       Mikrotik-Recv-Limit             1       integer
+ATTRIBUTE       Mikrotik-Xmit-Limit             2       integer
+ATTRIBUTE       Mikrotik-Group                  3       string
+ATTRIBUTE       Mikrotik-Wireless-Forward       4       integer
+ATTRIBUTE       Mikrotik-Wireless-Skip-Dot1x    5       integer
+ATTRIBUTE       Mikrotik-Wireless-Enc-Algo      6       integer
+ATTRIBUTE       Mikrotik-Wireless-Enc-Key       7       string
+ATTRIBUTE       Mikrotik-Rate-Limit             8       string
+ATTRIBUTE       Mikrotik-Realm                  9       string
+ATTRIBUTE       Mikrotik-Host-IP                10      ipaddr
+ATTRIBUTE       Mikrotik-Mark-Id                11      string
+ATTRIBUTE       Mikrotik-Advertise-URL          12      string
+ATTRIBUTE       Mikrotik-Advertise-Interval     13      integer
+ATTRIBUTE       Mikrotik-Recv-Limit-Gigawords   14      integer
+ATTRIBUTE       Mikrotik-Xmit-Limit-Gigawords   15      integer
+ATTRIBUTE       Mikrotik-Wireless-PSK           16      string
+ATTRIBUTE       Mikrotik-Total-Limit            17      integer
+ATTRIBUTE       Mikrotik-Total-Limit-Gigawords  18      integer
+ATTRIBUTE       Mikrotik-Address-List           19      string
+ATTRIBUTE       Mikrotik-Wireless-MPKey         20      string
+ATTRIBUTE       Mikrotik-Wireless-Comment       21      string
+ATTRIBUTE       Mikrotik-Delegated-IPv6-Pool    22      string
+
+END-VENDOR      Mikrotik
+</div>
+
+<h3>3.6 Demarrage et Verification</h3>
+
+<div class="code-block">
+<span class="comment"># Tester la configuration</span>
+sudo freeradius -X
+
+<span class="comment"># Demarrer le service</span>
+sudo systemctl start freeradius
+sudo systemctl enable freeradius
+
+<span class="comment"># Verifier le statut</span>
+sudo systemctl status freeradius
+
+<span class="comment"># Tester l'authentification</span>
+radtest <span class="value">username</span> <span class="value">password</span> <span class="value">localhost</span> 0 <span class="value">testing123</span>
+</div>
+
+</div>
+
+<div class="page-break"></div>
+
+<!-- ============================================================== -->
+<h2 id="postgresql">4. Configuration PostgreSQL</h2>
+<!-- ============================================================== -->
+
+<div class="equipment-box">
+    <div class="equipment-header">POSTGRESQL 15 - Base de Donnees</div>
+
+<h3>4.1 Creation de la Base et de l'Utilisateur</h3>
+
+<div class="code-block">
+<span class="comment"># Connexion a PostgreSQL</span>
+sudo -u postgres psql
+
+<span class="comment"># Creer l'utilisateur</span>
+CREATE USER radius_user WITH PASSWORD '<span class="value">radius_password</span>';
+
+<span class="comment"># Creer la base de donnees</span>
+CREATE DATABASE captive_portal OWNER radius_user;
+
+<span class="comment"># Donner les permissions</span>
+GRANT ALL PRIVILEGES ON DATABASE captive_portal TO radius_user;
+
+\q
+</div>
+
+<h3>4.2 Tables FreeRADIUS</h3>
+
+<div class="code-block">
+<span class="comment">-- Table radcheck: Authentification des utilisateurs</span>
+CREATE TABLE radcheck (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(64) NOT NULL,
+    attribute VARCHAR(64) NOT NULL,
+    op VARCHAR(2) DEFAULT ':=',
+    value VARCHAR(253) NOT NULL,
+    <span class="comment">-- Extensions Django</span>
+    statut BOOLEAN DEFAULT TRUE,
+    quota BIGINT
+);
+CREATE INDEX idx_radcheck_username ON radcheck(username);
+
+<span class="comment">-- Table radreply: Attributs reply individuels</span>
+CREATE TABLE radreply (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(64) NOT NULL,
+    attribute VARCHAR(64) NOT NULL,
+    op VARCHAR(2) DEFAULT '=',
+    value VARCHAR(253) NOT NULL
+);
+CREATE INDEX idx_radreply_username ON radreply(username);
+
+<span class="comment">-- Table radusergroup: Association utilisateur-groupe</span>
+CREATE TABLE radusergroup (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(64) NOT NULL,
+    groupname VARCHAR(64) NOT NULL,
+    priority INTEGER DEFAULT 1
+);
+CREATE INDEX idx_radusergroup_username ON radusergroup(username);
+CREATE INDEX idx_radusergroup_groupname ON radusergroup(groupname);
+
+<span class="comment">-- Table radgroupreply: Attributs reply des groupes (profils)</span>
+CREATE TABLE radgroupreply (
+    id SERIAL PRIMARY KEY,
+    groupname VARCHAR(64) NOT NULL,
+    attribute VARCHAR(64) NOT NULL,
+    op VARCHAR(2) DEFAULT '=',
+    value VARCHAR(253) NOT NULL
+);
+CREATE INDEX idx_radgroupreply_groupname ON radgroupreply(groupname);
+
+<span class="comment">-- Table radgroupcheck: Attributs check des groupes</span>
+CREATE TABLE radgroupcheck (
+    id SERIAL PRIMARY KEY,
+    groupname VARCHAR(64) NOT NULL,
+    attribute VARCHAR(64) NOT NULL,
+    op VARCHAR(2) DEFAULT ':=',
+    value VARCHAR(253) NOT NULL
+);
+CREATE INDEX idx_radgroupcheck_groupname ON radgroupcheck(groupname);
+
+<span class="comment">-- Table radacct: Comptabilite des sessions</span>
+CREATE TABLE radacct (
+    radacctid BIGSERIAL PRIMARY KEY,
+    acctsessionid VARCHAR(64) NOT NULL,
+    acctuniqueid VARCHAR(32) NOT NULL UNIQUE,
+    username VARCHAR(64) NOT NULL,
+    realm VARCHAR(64),
+    nasipaddress VARCHAR(15) NOT NULL,
+    nasportid VARCHAR(50),
+    nasporttype VARCHAR(32),
+    acctstarttime TIMESTAMP WITH TIME ZONE,
+    acctupdatetime TIMESTAMP WITH TIME ZONE,
+    acctstoptime TIMESTAMP WITH TIME ZONE,
+    acctinterval INTEGER,
+    acctsessiontime INTEGER,
+    acctauthentic VARCHAR(32),
+    connectinfo_start VARCHAR(50),
+    connectinfo_stop VARCHAR(50),
+    acctinputoctets BIGINT,
+    acctoutputoctets BIGINT,
+    calledstationid VARCHAR(50),
+    callingstationid VARCHAR(50),
+    acctterminatecause VARCHAR(32),
+    servicetype VARCHAR(32),
+    framedprotocol VARCHAR(32),
+    framedipaddress VARCHAR(15),
+    framedipv6address VARCHAR(45),
+    framedipv6prefix VARCHAR(45),
+    framedinterfaceid VARCHAR(44),
+    delegatedipv6prefix VARCHAR(45)
+);
+CREATE INDEX idx_radacct_username ON radacct(username);
+CREATE INDEX idx_radacct_acctsessionid ON radacct(acctsessionid);
+
+<span class="comment">-- Table radpostauth: Logs d'authentification</span>
+CREATE TABLE radpostauth (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(64) NOT NULL,
+    pass VARCHAR(64),
+    reply VARCHAR(32),
+    authdate TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_radpostauth_username ON radpostauth(username);
+</div>
+
+<h3>4.3 Exemple de Donnees</h3>
+
+<div class="code-block">
+<span class="comment">-- Creer un groupe de profil (Etudiant)</span>
+INSERT INTO radgroupreply (groupname, attribute, op, value) VALUES
+    ('<span class="value">profile_1_etudiant</span>', 'Mikrotik-Rate-Limit', ':=', '<span class="value">5M/10M</span>'),
+    ('<span class="value">profile_1_etudiant</span>', 'Session-Timeout', ':=', '<span class="value">28800</span>'),
+    ('<span class="value">profile_1_etudiant</span>', 'Idle-Timeout', ':=', '<span class="value">600</span>');
+
+INSERT INTO radgroupcheck (groupname, attribute, op, value) VALUES
+    ('<span class="value">profile_1_etudiant</span>', 'Simultaneous-Use', ':=', '<span class="value">1</span>');
+
+<span class="comment">-- Creer un utilisateur</span>
+INSERT INTO radcheck (username, attribute, op, value, statut) VALUES
+    ('<span class="value">jean.dupont</span>', 'Cleartext-Password', ':=', '<span class="value">motdepasse123</span>', true);
+
+<span class="comment">-- Associer l'utilisateur au groupe</span>
+INSERT INTO radusergroup (username, groupname, priority) VALUES
+    ('<span class="value">jean.dupont</span>', '<span class="value">profile_1_etudiant</span>', 5);
+</div>
+
+</div>
+
+<div class="page-break"></div>
+
+<!-- ============================================================== -->
+<h2 id="django">5. Configuration Django Backend</h2>
+<!-- ============================================================== -->
+
+<div class="equipment-box">
+    <div class="equipment-header">DJANGO 4.2 + Django REST Framework</div>
+
+<h3>5.1 Variables d'Environnement</h3>
+
+<p><strong>Fichier:</strong> <code>backend/.env</code></p>
+
+<div class="code-block">
+<span class="comment"># Database</span>
+DATABASE_URL=postgres://<span class="value">radius_user</span>:<span class="value">radius_password</span>@localhost:5432/<span class="value">captive_portal</span>
+
+<span class="comment"># Django</span>
+SECRET_KEY=<span class="value">votre_cle_secrete_django</span>
+DEBUG=False
+ALLOWED_HOSTS=localhost,10.242.18.X
+
+<span class="comment"># MikroTik Agent</span>
+MIKROTIK_AGENT_URL=http://localhost:3001
+</div>
+
+<h3>5.2 Modeles RADIUS</h3>
+
+<p><strong>Fichier:</strong> <code>backend/radius/models.py</code></p>
+
+<div class="code-block">
+<span class="keyword">from</span> django.db <span class="keyword">import</span> models
+
+<span class="keyword">class</span> RadCheck(models.Model):
+    <span class="string">"""Table radcheck FreeRADIUS"""</span>
+    username = models.CharField(max_length=64, db_index=True)
+    attribute = models.CharField(max_length=64)
+    op = models.CharField(max_length=2, default=':=')
+    value = models.CharField(max_length=253)
+    statut = models.BooleanField(default=True)  <span class="comment"># Extension</span>
+    quota = models.BigIntegerField(null=True)    <span class="comment"># Extension</span>
+
+    <span class="keyword">class</span> Meta:
+        db_table = 'radcheck'
+        managed = False
+
+<span class="keyword">class</span> RadGroupReply(models.Model):
+    <span class="string">"""Table radgroupreply FreeRADIUS"""</span>
+    groupname = models.CharField(max_length=64, db_index=True)
+    attribute = models.CharField(max_length=64)
+    op = models.CharField(max_length=2, default='=')
+    value = models.CharField(max_length=253)
+
+    <span class="keyword">class</span> Meta:
+        db_table = 'radgroupreply'
+        managed = False
+
+<span class="keyword">class</span> RadUserGroup(models.Model):
+    <span class="string">"""Table radusergroup FreeRADIUS"""</span>
+    username = models.CharField(max_length=64, db_index=True)
+    groupname = models.CharField(max_length=64, db_index=True)
+    priority = models.IntegerField(default=1)
+
+    <span class="keyword">class</span> Meta:
+        db_table = 'radusergroup'
+        managed = False
+</div>
+
+<h3>5.3 Service de Synchronisation</h3>
+
+<p><strong>Fichier:</strong> <code>backend/radius/services.py</code> (extrait)</p>
+
+<div class="code-block">
+<span class="keyword">class</span> RadiusProfileGroupService:
+    <span class="string">"""Synchronise les profils Django vers FreeRADIUS"""</span>
+
+    @classmethod
+    <span class="keyword">def</span> sync_profile_to_radius_group(cls, profile):
+        <span class="string">"""Cree/met a jour le groupe RADIUS pour un profil"""</span>
+        groupname = f"profile_{profile.id}_{profile.name_slug}"
+
+        <span class="comment"># Supprimer les anciens attributs</span>
+        RadGroupReply.objects.filter(groupname=groupname).delete()
+        RadGroupCheck.objects.filter(groupname=groupname).delete()
+
+        <span class="comment"># Creer les attributs Reply</span>
+        RadGroupReply.objects.create(
+            groupname=groupname,
+            attribute='Mikrotik-Rate-Limit',
+            op=':=',
+            value=f"{profile.bandwidth_upload}M/{profile.bandwidth_download}M"
+        )
+        RadGroupReply.objects.create(
+            groupname=groupname,
+            attribute='Session-Timeout',
+            op=':=',
+            value=str(profile.session_timeout)
+        )
+
+        <span class="comment"># Creer les attributs Check</span>
+        RadGroupCheck.objects.create(
+            groupname=groupname,
+            attribute='Simultaneous-Use',
+            op=':=',
+            value=str(profile.simultaneous_use)
+        )
+
+        <span class="keyword">return</span> {'success': True, 'groupname': groupname}
+</div>
+
+</div>
+
+<div class="page-break"></div>
+
+<!-- ============================================================== -->
+<h2 id="agent">6. Configuration Agent MikroTik (Node.js)</h2>
+<!-- ============================================================== -->
+
+<div class="equipment-box">
+    <div class="equipment-header">NODE.JS + EXPRESS - Agent RouterOS API</div>
+
+<h3>6.1 Variables d'Environnement</h3>
+
+<p><strong>Fichier:</strong> <code>mikrotik-agent/.env</code></p>
+
+<div class="code-block">
+<span class="comment"># Configuration MikroTik</span>
+MIKROTIK_HOST=<span class="value">10.242.18.6</span>
+MIKROTIK_PORT=<span class="value">8728</span>
+MIKROTIK_USERNAME=<span class="value">admin</span>
+MIKROTIK_PASSWORD=<span class="value">Admins_ucac2018</span>
+
+<span class="comment"># Configuration serveur</span>
+PORT=<span class="value">3001</span>
+</div>
+
+<h3>6.2 Endpoints API</h3>
+
+<table>
+    <tr>
+        <th>Methode</th>
+        <th>Endpoint</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/mikrotik/test</td>
+        <td>Tester la connexion</td>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/mikrotik/hotspot/active</td>
+        <td>Sessions actives</td>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/api/mikrotik/dns/static</td>
+        <td>Entrees DNS statiques</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/api/mikrotik/dns/static</td>
+        <td>Ajouter blocage DNS</td>
+    </tr>
+    <tr>
+        <td>DELETE</td>
+        <td>/api/mikrotik/dns/static/:id</td>
+        <td>Supprimer blocage</td>
+    </tr>
+</table>
+
+<h3>6.3 Demarrage</h3>
+
+<div class="code-block">
+<span class="comment"># Installation des dependances</span>
+cd mikrotik-agent
+npm install
+
+<span class="comment"># Demarrage</span>
+npm start
+
+<span class="comment"># Ou avec PM2 (production)</span>
+pm2 start src/index.js --name mikrotik-agent
+pm2 save
+</div>
+
+</div>
+
+<div class="page-break"></div>
+
+<!-- ============================================================== -->
+<h2 id="verification">7. Verification et Tests</h2>
+<!-- ============================================================== -->
+
+<h3>7.1 Test de Connexion RADIUS</h3>
+
+<div class="code-block">
+<span class="comment"># Depuis le serveur FreeRADIUS</span>
+radtest jean.dupont motdepasse123 localhost 0 testing123
+
+<span class="comment"># Resultat attendu:</span>
+Received Access-Accept Id 123 from 127.0.0.1:1812 to 127.0.0.1:xxxxx length 108
+    Mikrotik-Rate-Limit = "5M/10M"
+    Session-Timeout = 28800
+    Idle-Timeout = 600
+</div>
+
+<h3>7.2 Verification des Tables RADIUS</h3>
+
+<div class="code-block">
+<span class="comment"># Connexion a PostgreSQL</span>
+psql -U radius_user -d captive_portal
+
+<span class="comment"># Verifier les groupes</span>
+SELECT * FROM radgroupreply WHERE groupname LIKE 'profile_%';
+
+<span class="comment"># Verifier les associations</span>
+SELECT * FROM radusergroup WHERE groupname LIKE 'profile_%';
+
+<span class="comment"># Verifier les utilisateurs</span>
+SELECT username, attribute, value, statut FROM radcheck;
+</div>
+
+<h3>7.3 Test du Blocage DNS</h3>
+
+<div class="code-block">
+<span class="comment"># Depuis un client WiFi connecte</span>
+nslookup facebook.com
+
+<span class="comment"># Resultat attendu (site bloque):</span>
+Server:     10.242.18.6
+Address:    10.242.18.6#53
+
+Name:   facebook.com
+Address: 0.0.0.0
+</div>
+
+<h3>7.4 Test de l'Agent MikroTik</h3>
+
+<div class="code-block">
+<span class="comment"># Tester la connexion</span>
+curl http://localhost:3001/api/mikrotik/test
+
+<span class="comment"># Lister les entrees DNS</span>
+curl http://localhost:3001/api/mikrotik/dns/static
+
+<span class="comment"># Ajouter un blocage</span>
+curl -X POST http://localhost:3001/api/mikrotik/dns/static \
+    -H "Content-Type: application/json" \
+    -d '{"name": "test.com", "address": "0.0.0.0", "comment": "test"}'
+</div>
+
+<div class="success">
+    <strong>Verification Complete:</strong> Si tous les tests passent, le systeme est correctement configure et pret pour la production.
+</div>
+
+<hr style="margin-top: 40px;">
+
+<p style="text-align: center; color: #64748b; font-style: italic;">
+    Document genere le 16 janvier 2026<br>
+    Portail Captif UCAC-ICAM - Guide de Configuration v1.0<br>
+    <strong>Auteurs:</strong> Valerdy &amp; Claude
+</p>
+
+</body>
+</html>
