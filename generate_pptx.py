@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Generate a comprehensive PowerPoint presentation for the Captive Portal project."""
+"""Generate a visual PowerPoint presentation for the Captive Portal project.
+Focus on diagrams, schemas and illustrations with minimal text."""
 
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
@@ -18,8 +19,15 @@ BLACK = RGBColor(0x33, 0x33, 0x33)
 GRAY = RGBColor(0x64, 0x74, 0x8B)
 LIGHT_GRAY = RGBColor(0xF1, 0xF5, 0xF9)
 GREEN = RGBColor(0x10, 0xB9, 0x81)
+LIGHT_GREEN = RGBColor(0xD1, 0xFA, 0xE5)
 ORANGE = RGBColor(0xF5, 0x9E, 0x0B)
+LIGHT_ORANGE = RGBColor(0xFE, 0xF3, 0xC7)
 RED = RGBColor(0xEF, 0x44, 0x44)
+LIGHT_RED = RGBColor(0xFE, 0xE2, 0xE2)
+PURPLE = RGBColor(0x7C, 0x3A, 0xED)
+LIGHT_PURPLE = RGBColor(0xED, 0xE9, 0xFE)
+TEAL = RGBColor(0x14, 0xB8, 0xA6)
+LIGHT_TEAL = RGBColor(0xCC, 0xFB, 0xF1)
 
 prs = Presentation()
 prs.slide_width = Inches(13.333)
@@ -36,13 +44,13 @@ def add_bg(slide, color=WHITE):
     fill.fore_color.rgb = color
 
 
-def add_shape(slide, left, top, width, height, color, border_color=None):
-    shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
+def add_shape(slide, left, top, width, height, color, border_color=None, shape_type=MSO_SHAPE.ROUNDED_RECTANGLE):
+    shape = slide.shapes.add_shape(shape_type, left, top, width, height)
     shape.fill.solid()
     shape.fill.fore_color.rgb = color
     if border_color:
         shape.line.color.rgb = border_color
-        shape.line.width = Pt(1.5)
+        shape.line.width = Pt(2)
     else:
         shape.line.fill.background()
     return shape
@@ -68,7 +76,7 @@ def set_text(shape, text, size=14, bold=False, color=BLACK, align=PP_ALIGN.LEFT)
     return tf
 
 
-def add_para(tf, text, size=14, bold=False, color=BLACK, align=PP_ALIGN.LEFT, space_before=Pt(4), bullet=False):
+def add_para(tf, text, size=14, bold=False, color=BLACK, align=PP_ALIGN.LEFT, space_before=Pt(4)):
     p = tf.add_paragraph()
     p.text = text
     p.font.size = Pt(size)
@@ -77,892 +85,796 @@ def add_para(tf, text, size=14, bold=False, color=BLACK, align=PP_ALIGN.LEFT, sp
     p.alignment = align
     if space_before:
         p.space_before = space_before
-    if bullet:
-        p.level = 0
     return p
 
 
-def title_slide(title, subtitle=""):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])  # blank
-    add_bg(slide, DARK_BLUE)
-    # Top bar
-    add_rect(slide, 0, 0, W, Inches(0.08), LIGHT_BLUE)
-    # Title
-    txBox = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(11.333), Inches(2))
+def add_text(slide, left, top, width, height, text, size=14, bold=False, color=BLACK, align=PP_ALIGN.LEFT):
+    txBox = slide.shapes.add_textbox(left, top, width, height)
     tf = txBox.text_frame
     tf.word_wrap = True
     p = tf.paragraphs[0]
-    p.text = title
-    p.font.size = Pt(40)
-    p.font.bold = True
-    p.font.color.rgb = WHITE
-    p.alignment = PP_ALIGN.CENTER
+    p.text = text
+    p.font.size = Pt(size)
+    p.font.bold = bold
+    p.font.color.rgb = color
+    p.alignment = align
+    return tf
+
+
+def header_bar(slide, title):
+    add_rect(slide, 0, 0, W, Inches(1.1), MEDIUM_BLUE)
+    txBox = slide.shapes.add_textbox(Inches(0.5), Inches(0.15), Inches(12), Inches(0.8))
+    set_text(txBox, title, size=28, bold=True, color=WHITE)
+
+
+def footer_bar(slide):
+    add_rect(slide, 0, Inches(7.44), W, Inches(0.06), LIGHT_BLUE)
+
+
+def icon_box(slide, left, top, size, icon_text, bg_color, text_color=WHITE):
+    """Draw a rounded square icon with an emoji/symbol."""
+    shape = add_shape(slide, left, top, Inches(size), Inches(size), bg_color)
+    set_text(shape, icon_text, size=int(size * 28), bold=True, color=text_color, align=PP_ALIGN.CENTER)
+    shape.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+    return shape
+
+
+def arrow_right(slide, left, top, width=Inches(1), color=MEDIUM_BLUE):
+    """Draw a right arrow."""
+    arr = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, left, top, width, Inches(0.4))
+    arr.fill.solid()
+    arr.fill.fore_color.rgb = color
+    arr.line.fill.background()
+    return arr
+
+
+def arrow_down(slide, left, top, height=Inches(0.6), color=MEDIUM_BLUE):
+    """Draw a down arrow."""
+    arr = slide.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, left, top, Inches(0.4), height)
+    arr.fill.solid()
+    arr.fill.fore_color.rgb = color
+    arr.line.fill.background()
+    return arr
+
+
+def card(slide, left, top, width, height, title, subtitle, bg_color, border_color, icon_text="", title_color=DARK_BLUE):
+    """Create a visual card with optional icon."""
+    box = add_shape(slide, left, top, width, height, bg_color, border_color)
+    y = top + Inches(0.15)
+    if icon_text:
+        add_text(slide, left, y, width, Inches(0.5), icon_text, size=24, align=PP_ALIGN.CENTER)
+        y += Inches(0.5)
+    add_text(slide, left + Inches(0.15), y, width - Inches(0.3), Inches(0.4),
+             title, size=14, bold=True, color=title_color, align=PP_ALIGN.CENTER)
     if subtitle:
-        add_para(tf, subtitle, size=20, color=RGBColor(0xBF, 0xDB, 0xFE), align=PP_ALIGN.CENTER, space_before=Pt(16))
-    # Bottom bar
-    add_rect(slide, 0, Inches(7.42), W, Inches(0.08), LIGHT_BLUE)
-    return slide
-
-
-def section_slide(number, title):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_bg(slide, WHITE)
-    add_rect(slide, 0, 0, W, Inches(0.06), LIGHT_BLUE)
-    # Number circle
-    circ = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(5.667), Inches(2), Inches(2), Inches(2))
-    circ.fill.solid()
-    circ.fill.fore_color.rgb = MEDIUM_BLUE
-    circ.line.fill.background()
-    set_text(circ, str(number), size=48, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    circ.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
-    # Title
-    txBox = slide.shapes.add_textbox(Inches(1), Inches(4.3), Inches(11.333), Inches(1.5))
-    tf = txBox.text_frame
-    tf.word_wrap = True
-    p = tf.paragraphs[0]
-    p.text = title
-    p.font.size = Pt(32)
-    p.font.bold = True
-    p.font.color.rgb = DARK_BLUE
-    p.alignment = PP_ALIGN.CENTER
-    add_rect(slide, 0, Inches(7.44), W, Inches(0.06), LIGHT_BLUE)
-    return slide
-
-
-def content_slide(title, bullets, subtitle=None):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_bg(slide, WHITE)
-    # Header bar
-    add_rect(slide, 0, 0, W, Inches(1.1), MEDIUM_BLUE)
-    txBox = slide.shapes.add_textbox(Inches(0.5), Inches(0.15), Inches(12), Inches(0.8))
-    tf = txBox.text_frame
-    p = tf.paragraphs[0]
-    p.text = title
-    p.font.size = Pt(28)
-    p.font.bold = True
-    p.font.color.rgb = WHITE
-    if subtitle:
-        add_para(tf, subtitle, size=16, color=RGBColor(0xBF, 0xDB, 0xFE), space_before=Pt(4))
-    # Content
-    txBox2 = slide.shapes.add_textbox(Inches(0.8), Inches(1.5), Inches(11.7), Inches(5.5))
-    tf2 = txBox2.text_frame
-    tf2.word_wrap = True
-    first = True
-    for b in bullets:
-        if first:
-            p = tf2.paragraphs[0]
-            first = False
-        else:
-            p = tf2.add_paragraph()
-        if isinstance(b, tuple):
-            text, level = b
-        else:
-            text, level = b, 0
-        p.text = text
-        p.font.size = Pt(17 if level == 0 else 15)
-        p.font.color.rgb = BLACK if level == 0 else GRAY
-        p.font.bold = (level == 0 and text.endswith(":")) or (level == 0 and ":" in text and len(text) < 80)
-        p.space_before = Pt(10 if level == 0 else 4)
-        p.level = level
-    # Footer
-    add_rect(slide, 0, Inches(7.44), W, Inches(0.06), LIGHT_BLUE)
-    return slide
-
-
-def two_col_slide(title, left_title, left_bullets, right_title, right_bullets):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_bg(slide, WHITE)
-    add_rect(slide, 0, 0, W, Inches(1.1), MEDIUM_BLUE)
-    txBox = slide.shapes.add_textbox(Inches(0.5), Inches(0.15), Inches(12), Inches(0.8))
-    set_text(txBox, title, size=28, bold=True, color=WHITE)
-    # Left col
-    box_l = add_shape(slide, Inches(0.5), Inches(1.4), Inches(5.9), Inches(5.5), LIGHT_GRAY, MEDIUM_BLUE)
-    txL = slide.shapes.add_textbox(Inches(0.8), Inches(1.5), Inches(5.3), Inches(0.5))
-    set_text(txL, left_title, size=20, bold=True, color=MEDIUM_BLUE, align=PP_ALIGN.CENTER)
-    txLC = slide.shapes.add_textbox(Inches(0.8), Inches(2.1), Inches(5.3), Inches(4.5))
-    tf = txLC.text_frame
-    tf.word_wrap = True
-    for i, b in enumerate(left_bullets):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.text = b
-        p.font.size = Pt(15)
-        p.font.color.rgb = BLACK
-        p.space_before = Pt(6)
-    # Right col
-    box_r = add_shape(slide, Inches(6.9), Inches(1.4), Inches(5.9), Inches(5.5), LIGHT_GRAY, MEDIUM_BLUE)
-    txR = slide.shapes.add_textbox(Inches(7.2), Inches(1.5), Inches(5.3), Inches(0.5))
-    set_text(txR, right_title, size=20, bold=True, color=MEDIUM_BLUE, align=PP_ALIGN.CENTER)
-    txRC = slide.shapes.add_textbox(Inches(7.2), Inches(2.1), Inches(5.3), Inches(4.5))
-    tf2 = txRC.text_frame
-    tf2.word_wrap = True
-    for i, b in enumerate(right_bullets):
-        p = tf2.paragraphs[0] if i == 0 else tf2.add_paragraph()
-        p.text = b
-        p.font.size = Pt(15)
-        p.font.color.rgb = BLACK
-        p.space_before = Pt(6)
-    add_rect(slide, 0, Inches(7.44), W, Inches(0.06), LIGHT_BLUE)
-    return slide
-
-
-def code_slide(title, code_text, note=None):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_bg(slide, WHITE)
-    add_rect(slide, 0, 0, W, Inches(1.1), MEDIUM_BLUE)
-    txBox = slide.shapes.add_textbox(Inches(0.5), Inches(0.15), Inches(12), Inches(0.8))
-    set_text(txBox, title, size=28, bold=True, color=WHITE)
-    # Code block
-    code_h = Inches(5.0) if note else Inches(5.6)
-    box = add_shape(slide, Inches(0.5), Inches(1.4), Inches(12.333), code_h, RGBColor(0x1E, 0x29, 0x3B))
-    txC = slide.shapes.add_textbox(Inches(0.8), Inches(1.6), Inches(11.7), code_h - Inches(0.4))
-    tf = txC.text_frame
-    tf.word_wrap = True
-    for i, line in enumerate(code_text.split("\n")):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.text = line
-        p.font.size = Pt(13)
-        p.font.name = "Consolas"
-        p.font.color.rgb = RGBColor(0xE2, 0xE8, 0xF0)
-        p.space_before = Pt(2)
-    if note:
-        note_box = add_shape(slide, Inches(0.5), Inches(6.6), Inches(12.333), Inches(0.7), ACCENT_BLUE, LIGHT_BLUE)
-        set_text(note_box, "  " + note, size=13, color=MEDIUM_BLUE)
-    add_rect(slide, 0, Inches(7.44), W, Inches(0.06), LIGHT_BLUE)
-    return slide
-
-
-def diagram_slide(title):
-    """Network architecture diagram as text boxes."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_bg(slide, WHITE)
-    add_rect(slide, 0, 0, W, Inches(1.1), MEDIUM_BLUE)
-    txBox = slide.shapes.add_textbox(Inches(0.5), Inches(0.15), Inches(12), Inches(0.8))
-    set_text(txBox, title, size=28, bold=True, color=WHITE)
-
-    # Internet cloud
-    inet = add_shape(slide, Inches(5.5), Inches(1.3), Inches(2.3), Inches(0.8), RGBColor(0xFE, 0xF3, 0xC7), ORANGE)
-    set_text(inet, "INTERNET (WAN)", size=14, bold=True, color=BLACK, align=PP_ALIGN.CENTER)
-
-    # MikroTik
-    mk = add_shape(slide, Inches(4.5), Inches(2.6), Inches(4.3), Inches(1.2), RGBColor(0xDB, 0xEA, 0xFE), MEDIUM_BLUE)
-    tf = mk.text_frame
-    tf.word_wrap = True
-    p = tf.paragraphs[0]
-    p.text = "MikroTik RB951Ui-2HnD"
-    p.font.size = Pt(14); p.font.bold = True; p.font.color.rgb = DARK_BLUE; p.alignment = PP_ALIGN.CENTER
-    add_para(tf, "10.242.18.6  |  Hotspot + RADIUS Client + NAT + DNS", size=11, color=GRAY, align=PP_ALIGN.CENTER)
-
-    # Server
-    srv = add_shape(slide, Inches(0.5), Inches(4.5), Inches(5.5), Inches(2.5), RGBColor(0xD1, 0xFA, 0xE5), GREEN)
-    tf2 = srv.text_frame; tf2.word_wrap = True
-    p = tf2.paragraphs[0]
-    p.text = "Serveur Backend (Ubuntu 22.04 LTS)"; p.font.size = Pt(14); p.font.bold = True; p.font.color.rgb = DARK_BLUE; p.alignment = PP_ALIGN.CENTER
-    add_para(tf2, "Django REST + PostgreSQL + FreeRADIUS", size=12, color=GRAY, align=PP_ALIGN.CENTER)
-    add_para(tf2, "RADIUS: UDP 1812/1813  |  API: HTTP 8000", size=11, color=GRAY, align=PP_ALIGN.CENTER)
-    add_para(tf2, "Agent MikroTik (Node.js): HTTP 3001", size=11, color=GRAY, align=PP_ALIGN.CENTER)
-    add_para(tf2, "Redis + Celery + Prometheus + Grafana", size=11, color=GRAY, align=PP_ALIGN.CENTER)
-
-    # Client
-    cl = add_shape(slide, Inches(7.5), Inches(4.5), Inches(5.3), Inches(2.5), RGBColor(0xFE, 0xE2, 0xE2), RED)
-    tf3 = cl.text_frame; tf3.word_wrap = True
-    p = tf3.paragraphs[0]
-    p.text = "Clients WiFi"; p.font.size = Pt(14); p.font.bold = True; p.font.color.rgb = DARK_BLUE; p.alignment = PP_ALIGN.CENTER
-    add_para(tf3, "DHCP: 10.242.18.100 - 10.242.18.200", size=12, color=GRAY, align=PP_ALIGN.CENTER)
-    add_para(tf3, "Gateway: 10.242.18.6 | DNS: 10.242.18.6", size=11, color=GRAY, align=PP_ALIGN.CENTER)
-    add_para(tf3, "Redirection captive vers page de login", size=11, color=GRAY, align=PP_ALIGN.CENTER)
-    add_para(tf3, "Authentification via RADIUS (PAP/CHAP)", size=11, color=GRAY, align=PP_ALIGN.CENTER)
-
-    # Arrows as text
-    arr1 = slide.shapes.add_textbox(Inches(6.2), Inches(2.15), Inches(1), Inches(0.4))
-    set_text(arr1, "▼", size=18, bold=True, color=MEDIUM_BLUE, align=PP_ALIGN.CENTER)
-
-    arr2 = slide.shapes.add_textbox(Inches(2.5), Inches(3.9), Inches(2.5), Inches(0.5))
-    set_text(arr2, "◄── RADIUS (1812/1813) ──►", size=11, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
-
-    arr3 = slide.shapes.add_textbox(Inches(8.5), Inches(3.9), Inches(2.5), Inches(0.5))
-    set_text(arr3, "◄── WiFi / DHCP ──►", size=11, bold=True, color=RED, align=PP_ALIGN.CENTER)
-
-    add_rect(slide, 0, Inches(7.44), W, Inches(0.06), LIGHT_BLUE)
-    return slide
+        add_text(slide, left + Inches(0.15), y + Inches(0.35), width - Inches(0.3), Inches(0.8),
+                 subtitle, size=11, color=GRAY, align=PP_ALIGN.CENTER)
+    return box
 
 
 # ═══════════════════════════════════════════════════════════════
-# SLIDES
+# SLIDE 1 — Title
 # ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, DARK_BLUE)
+add_rect(slide, 0, 0, W, Inches(0.08), LIGHT_BLUE)
 
-# 1. Title
-s = title_slide(
-    "Portail Captif WiFi - UCAC-ICAM",
-    "Récapitulatif Complet des Configurations\nProjet de fin d'études — Janvier 2026"
-)
-# Add author info
-txA = s.shapes.add_textbox(Inches(3), Inches(5.2), Inches(7.333), Inches(1.5))
-tf = txA.text_frame; tf.word_wrap = True
-add_para(tf, "Auteur : Valerdy", size=16, color=RGBColor(0xBF, 0xDB, 0xFE), align=PP_ALIGN.CENTER, space_before=Pt(0))
+# Big WiFi icon
+wifi = add_shape(slide, Inches(5.4), Inches(1.2), Inches(2.5), Inches(2.5), MEDIUM_BLUE, shape_type=MSO_SHAPE.OVAL)
+set_text(wifi, "📡", size=60, align=PP_ALIGN.CENTER)
+
+add_text(slide, Inches(1), Inches(3.9), Inches(11.333), Inches(1),
+         "Portail Captif WiFi — UCAC-ICAM", size=40, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(1), Inches(5), Inches(11.333), Inches(0.6),
+         "Projet de fin d'études — Janvier 2026", size=20, color=RGBColor(0xBF, 0xDB, 0xFE), align=PP_ALIGN.CENTER)
+tf = add_text(slide, Inches(3), Inches(5.8), Inches(7.333), Inches(1),
+              "Auteur : Valerdy", size=16, color=RGBColor(0xBF, 0xDB, 0xFE), align=PP_ALIGN.CENTER)
 add_para(tf, "Encadrement technique avec Claude (Assistant IA)", size=14, color=GRAY, align=PP_ALIGN.CENTER)
 
-# 2. Sommaire
-content_slide("Sommaire de la Présentation", [
-    "1.  Introduction et objectifs du projet",
-    "2.  Architecture réseau globale",
-    "3.  MikroTik — Interfaces et adressage IP",
-    "4.  MikroTik — DHCP Server",
-    "5.  MikroTik — Configuration Hotspot",
-    "6.  MikroTik — NAT (Masquerade)",
-    "7.  MikroTik — Sécurité, DNS et contrôle d'accès",
-    "8.  Machine cliente — Connexion et tests",
-    "9.  FreeRADIUS — Rôle et architecture",
-    "10. FreeRADIUS — Fichiers de configuration",
-    "11. FreeRADIUS — Authentification et communication MikroTik",
-    "12. FreeRADIUS — Logs et vérifications",
-    "13. PostgreSQL — Base de données et tables RADIUS",
-    "14. PostgreSQL — Lien FreeRADIUS ↔ PostgreSQL",
-    "15. Flux d'authentification complet",
-    "16. Conclusion et résumé final",
-])
+add_rect(slide, 0, Inches(7.42), W, Inches(0.08), LIGHT_BLUE)
 
-# 3. Introduction
-content_slide("Introduction et Objectifs du Projet", [
-    "Contexte :",
-    ("Le campus UCAC-ICAM a besoin d'un système WiFi sécurisé avec authentification", 1),
-    ("Les étudiants et le personnel doivent s'identifier avant d'accéder à Internet", 1),
-    "",
-    "Objectif principal :",
-    ("Mettre en place un portail captif WiFi avec gestion centralisée des accès", 1),
-    ("Authentification RADIUS, gestion des quotas, contrôle de bande passante", 1),
-    "",
-    "Technologies utilisées :",
-    ("MikroTik RB951Ui-2HnD — Routeur hotspot + client RADIUS", 1),
-    ("FreeRADIUS 3.0 — Serveur d'authentification AAA", 1),
-    ("PostgreSQL 15 — Base de données (tables RADIUS + Django)", 1),
-    ("Django REST Framework — Backend API de gestion", 1),
-    ("Vue.js 3 — Interface d'administration", 1),
-    ("Docker Compose — Orchestration de 11 services", 1),
-])
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 2 — Sommaire visuel (icons grid)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "Sommaire")
 
-# 4. Section 1 - MikroTik
-section_slide(1, "Configuration MikroTik")
-
-# 5. Architecture réseau
-diagram_slide("Architecture Réseau Globale")
-
-# 6. MikroTik Interfaces
-two_col_slide(
-    "MikroTik — Interfaces et Adressage IP",
-    "Interfaces",
-    [
-        "• ether1-WAN : Connexion Internet (WAN)",
-        "• ether2-LAN : Réseau local (LAN)",
-        "• bridge-LAN : Bridge regroupant les interfaces LAN",
-        "",
-        "Commandes RouterOS :",
-        "/interface ethernet set ether1 name=ether1-WAN",
-        "/interface ethernet set ether2 name=ether2-LAN",
-        "/interface bridge add name=bridge-LAN",
-        "/interface bridge port add bridge=bridge-LAN",
-        "    interface=ether2-LAN",
-    ],
-    "Adressage IP",
-    [
-        "• Routeur (LAN) : 10.242.18.6/24",
-        "  → Passerelle par défaut des clients",
-        "  → Serveur DNS local",
-        "  → Interface du hotspot",
-        "",
-        "• Pool DHCP : 10.242.18.100 - .200",
-        "  → 101 adresses disponibles",
-        "",
-        "• Sous-réseau : 10.242.18.0/24",
-        "",
-        "Commande :",
-        "/ip address add address=10.242.18.6/24",
-        "    interface=bridge-LAN",
-    ]
-)
-
-# 7. DHCP Server
-content_slide("MikroTik — Serveur DHCP", [
-    "Rôle : Attribuer automatiquement une adresse IP à chaque client WiFi connecté",
-    "",
-    "Configuration du pool DHCP :",
-    ("Pool name : dhcp-pool", 1),
-    ("Plage d'adresses : 10.242.18.100 à 10.242.18.200 (101 adresses)", 1),
-    "",
-    "Configuration du serveur DHCP :",
-    ("Interface : bridge-LAN", 1),
-    ("Réseau : 10.242.18.0/24", 1),
-    ("Passerelle (gateway) : 10.242.18.6", 1),
-    ("Serveur DNS : 10.242.18.6 (le routeur lui-même)", 1),
-    "",
-    "Commandes RouterOS :",
-    ("/ip pool add name=dhcp-pool ranges=10.242.18.100-10.242.18.200", 1),
-    ("/ip dhcp-server add name=dhcp-server interface=bridge-LAN address-pool=dhcp-pool", 1),
-    ("/ip dhcp-server network add address=10.242.18.0/24 gateway=10.242.18.6 dns-server=10.242.18.6", 1),
-])
-
-# 8. Hotspot
-content_slide("MikroTik — Configuration du Hotspot", [
-    "Principe du hotspot :",
-    ("Tout client connecté au WiFi est redirigé vers une page de login", 1),
-    ("L'utilisateur doit s'authentifier pour accéder à Internet", 1),
-    ("MikroTik délègue l'authentification au serveur FreeRADIUS", 1),
-    "",
-    "Profil hotspot créé : ucac-icam-profile",
-    ("Adresse hotspot : 10.242.18.6", 1),
-    ("Nom DNS : wifi.ucac-icam.cm", 1),
-    ("Utilisation RADIUS : oui (use-radius=yes)", 1),
-    ("Accounting RADIUS : oui (suivi des sessions)", 1),
-    ("Intervalle interim : 5 minutes", 1),
-    ("Méthodes de login : HTTP-CHAP et HTTP-PAP", 1),
-    "",
-    "Activation du hotspot :",
-    ("Interface : bridge-LAN  |  Pool : dhcp-pool", 1),
-    "",
-    "Walled Garden (accès sans authentification) :",
-    ("Serveur backend (Django, FreeRADIUS) accessible sans login", 1),
-])
-
-# 9. Hotspot code
-code_slide("MikroTik — Commandes Hotspot (RouterOS)", """# Créer le profil hotspot
-/ip hotspot profile add name="ucac-icam-profile" \\
-    hotspot-address=10.242.18.6 \\
-    dns-name="wifi.ucac-icam.cm" \\
-    html-directory=hotspot \\
-    use-radius=yes \\
-    radius-accounting=yes \\
-    radius-interim-update=5m \\
-    login-by=http-chap,http-pap
-
-# Activer le hotspot sur l'interface
-/ip hotspot add name=hotspot1 interface=bridge-LAN \\
-    profile="ucac-icam-profile" \\
-    address-pool=dhcp-pool disabled=no
-
-# Walled Garden (pages accessibles sans authentification)
-/ip hotspot walled-garden add dst-host=10.242.18.X action=allow
-/ip hotspot walled-garden ip add dst-address=10.242.18.X action=accept""",
-    "Le hotspot crée automatiquement des règles firewall, NAT et des queues pour le contrôle de bande passante.")
-
-# 10. Hotspot rules auto
-content_slide("MikroTik — Règles Créées Automatiquement par le Hotspot", [
-    "Quand le hotspot est activé, MikroTik crée automatiquement :",
-    "",
-    "Règles NAT (Firewall) :",
-    ("Redirection HTTP (port 80) → page de login du hotspot", 1),
-    ("Redirection HTTPS (port 443) → page de login sécurisée", 1),
-    ("Masquerade pour le trafic des clients authentifiés", 1),
-    "",
-    "Règles Filter (Firewall) :",
-    ("Blocage du trafic des clients non authentifiés", 1),
-    ("Autorisation du trafic des clients authentifiés", 1),
-    ("Autorisation du trafic vers le Walled Garden", 1),
-    "",
-    "Queues (Contrôle de bande passante) :",
-    ("Queue dynamique créée par client authentifié", 1),
-    ("Limites appliquées via l'attribut RADIUS Mikrotik-Rate-Limit", 1),
-    ("Exemple : 5M upload / 10M download par utilisateur", 1),
-    "",
-    "Pages HTML du hotspot :",
-    ("login.html, logout.html, status.html, alogin.html — personnalisées UCAC-ICAM", 1),
-])
-
-# 11. NAT
-content_slide("MikroTik — NAT (Masquerade)", [
-    "Qu'est-ce que le NAT Masquerade ?",
-    ("Technique qui permet aux clients du réseau local (IP privée) d'accéder à Internet", 1),
-    ("Le routeur remplace l'adresse IP source privée par son adresse IP publique (WAN)", 1),
-    ("Les réponses sont automatiquement retransmises au bon client", 1),
-    "",
-    "Configuration :",
-    ("Chain : srcnat (trafic sortant)", 1),
-    ("Interface de sortie : ether1-WAN", 1),
-    ("Action : masquerade", 1),
-    "",
-    "Commande RouterOS :",
-    ("/ip firewall nat add chain=srcnat out-interface=ether1-WAN action=masquerade", 1),
-    "",
-    "Pourquoi c'est nécessaire ?",
-    ("Sans NAT, les clients en 10.242.18.x ne peuvent pas atteindre Internet", 1),
-    ("Le masquerade est la forme la plus simple de NAT pour un accès Internet partagé", 1),
-    "",
-    "Note : Le hotspot ajoute aussi ses propres règles NAT pour la redirection captive",
-])
-
-# 12. Sécurité
-content_slide("MikroTik — Sécurité et Contrôle d'Accès", [
-    "Configuration DNS (blocage de sites) :",
-    ("Serveur DNS local activé (allow-remote-requests=yes)", 1),
-    ("DNS upstream : 8.8.8.8 et 1.1.1.1 (Google + Cloudflare)", 1),
-    ("Cache DNS : 4096 KiB", 1),
-    "",
-    "Blocage de sites par DNS statique :",
-    ("Entrées DNS statiques pointant vers 0.0.0.0", 1),
-    ("Support des expressions régulières (wildcard)", 1),
-    ("Géré automatiquement depuis le backend Django", 1),
-    "",
-    "Forçage DNS (empêcher le contournement) :",
-    ("Redirection de toutes les requêtes DNS (UDP/TCP 53) vers le routeur", 1),
-    ("Blocage optionnel de DNS over TLS (port 853)", 1),
-    "",
-    "API RouterOS :",
-    ("Service API activé sur le port 8728", 1),
-    ("Utilisateur dédié pour l'agent Node.js", 1),
-    ("Communication sécurisée entre le backend et le routeur", 1),
-])
-
-# 13. DNS code
-code_slide("MikroTik — Commandes DNS et Sécurité", """# Configurer le serveur DNS local
-/ip dns set allow-remote-requests=yes servers=8.8.8.8,1.1.1.1 cache-size=4096KiB
-
-# Bloquer un domaine (redirection vers 0.0.0.0)
-/ip dns static add name="facebook.com" address=0.0.0.0 comment="captive-portal-block:1"
-/ip dns static add name="www.facebook.com" address=0.0.0.0 comment="captive-portal-block:1"
-
-# Bloquer avec wildcard (regex)
-/ip dns static add regexp=".*\\.tiktok\\.com$" address=0.0.0.0 comment="captive-portal-block:2"
-
-# Forcer l'utilisation du DNS local (empêcher contournement)
-/ip firewall nat add chain=dstnat protocol=udp dst-port=53 \\
-    in-interface=bridge-LAN action=redirect to-ports=53
-/ip firewall nat add chain=dstnat protocol=tcp dst-port=53 \\
-    in-interface=bridge-LAN action=redirect to-ports=53
-
-# Bloquer DNS over TLS
-/ip firewall filter add chain=forward protocol=tcp dst-port=853 \\
-    in-interface=bridge-LAN action=drop comment="Block DoT" """)
-
-# 14. Tests hotspot
-content_slide("MikroTik — Tests de Fonctionnement du Hotspot", [
-    "Test 1 : Redirection captive",
-    ("Le client connecté au WiFi est automatiquement redirigé vers la page de login", 1),
-    ("URL : http://wifi.ucac-icam.cm/login", 1),
-    "",
-    "Test 2 : Authentification RADIUS",
-    ("L'utilisateur entre ses identifiants sur la page de login", 1),
-    ("MikroTik envoie une requête Access-Request au serveur FreeRADIUS", 1),
-    ("FreeRADIUS répond Access-Accept ou Access-Reject", 1),
-    "",
-    "Test 3 : Accès Internet après authentification",
-    ("Après login réussi, le client peut naviguer sur Internet", 1),
-    ("Les limites de bande passante sont appliquées (ex: 5M/10M)", 1),
-    "",
-    "Test 4 : Comptabilité des sessions (Accounting)",
-    ("MikroTik envoie les données de session (durée, octets) toutes les 5 min", 1),
-    ("Les sessions sont enregistrées dans la table radacct", 1),
-    "",
-    "Test 5 : Blocage DNS",
-    ("nslookup facebook.com → 0.0.0.0 (site bloqué)", 1),
-])
-
-# 15. Section 2 - Machine Cliente
-section_slide(2, "Machine Cliente")
-
-# 16. Machine cliente
-two_col_slide(
-    "Machine Cliente — Connexion et Tests",
-    "Mode de Connexion",
-    [
-        "• Connexion WiFi au réseau UCAC-ICAM",
-        "• Attribution IP automatique via DHCP",
-        "",
-        "Adresse IP reçue :",
-        "  → Plage : 10.242.18.100 à .200",
-        "  → Passerelle : 10.242.18.6",
-        "  → DNS : 10.242.18.6",
-        "",
-        "Rôle dans le test :",
-        "  → Valider le fonctionnement du hotspot",
-        "  → Vérifier la redirection captive",
-        "  → Tester l'authentification RADIUS",
-        "  → Vérifier le contrôle de bande passante",
-    ],
-    "Tests Réalisés",
-    [
-        "1. Test DHCP :",
-        "   ipconfig → IP dans 10.242.18.100-200",
-        "",
-        "2. Test de redirection captive :",
-        "   Ouvrir navigateur → page de login",
-        "",
-        "3. Test d'authentification :",
-        "   Login avec credentials → accès Internet",
-        "",
-        "4. Test de ping :",
-        "   ping 10.242.18.6 → réponse OK",
-        "   ping 8.8.8.8 → réponse OK (après auth)",
-        "",
-        "5. Test de blocage DNS :",
-        "   nslookup facebook.com → 0.0.0.0",
-    ]
-)
-
-# 17. Section 3 - FreeRADIUS
-section_slide(3, "Configuration FreeRADIUS")
-
-# 18. FreeRADIUS rôle
-content_slide("FreeRADIUS — Rôle dans l'Architecture", [
-    "Qu'est-ce que FreeRADIUS ?",
-    ("Serveur AAA (Authentication, Authorization, Accounting)", 1),
-    ("Protocole RADIUS standard (RFC 2865 / RFC 2866)", 1),
-    ("Version utilisée : FreeRADIUS 3.0", 1),
-    "",
-    "Authentication (Authentification) :",
-    ("Vérifie l'identité de l'utilisateur (username + password)", 1),
-    ("Consulte la table radcheck dans PostgreSQL", 1),
-    ("Vérifie aussi le champ statut (actif/désactivé)", 1),
-    "",
-    "Authorization (Autorisation) :",
-    ("Détermine les droits de l'utilisateur (bande passante, durée de session)", 1),
-    ("Retourne les attributs depuis radreply et radgroupreply", 1),
-    ("Exemple : Mikrotik-Rate-Limit = 5M/10M, Session-Timeout = 28800", 1),
-    "",
-    "Accounting (Comptabilité) :",
-    ("Enregistre les sessions : début, durée, octets transférés", 1),
-    ("Table radacct mise à jour à chaque événement (Start, Interim, Stop)", 1),
-    ("Permet le suivi des quotas et la facturation", 1),
-])
-
-# 19. FreeRADIUS fichiers
-content_slide("FreeRADIUS — Fichiers de Configuration Modifiés", [
-    "1. /etc/freeradius/3.0/clients.conf",
-    ("Définit le MikroTik comme client RADIUS autorisé", 1),
-    ("IP : 10.242.18.6  |  Secret partagé  |  nastype : other", 1),
-    "",
-    "2. /etc/freeradius/3.0/mods-available/sql → mods-enabled/sql",
-    ("Driver : rlm_sql_postgresql (PostgreSQL)", 1),
-    ("Connexion : localhost:5432 / captive_portal", 1),
-    ("Tables : radcheck, radreply, radusergroup, radgroupreply, radacct, radpostauth", 1),
-    ("Pool de connexions : min=4, max=32, idle_timeout=60s", 1),
-    "",
-    "3. /etc/freeradius/3.0/sites-available/default",
-    ("Écoute : port 1812 (auth) et 1813 (acct)", 1),
-    ("Section authorize : sql → pap (vérification mot de passe)", 1),
-    ("Section authenticate : PAP et CHAP supportés", 1),
-    ("Section post-auth : log dans radpostauth via sql", 1),
-    ("Section accounting : enregistrement dans radacct via sql", 1),
-    "",
-    "4. /etc/freeradius/3.0/dictionary.mikrotik",
-    ("Attributs vendor-specific MikroTik (Vendor ID : 14988)", 1),
-    ("Mikrotik-Rate-Limit (ID 8), Mikrotik-Recv-Limit, Mikrotik-Total-Limit...", 1),
-])
-
-# 20. FreeRADIUS clients.conf code
-code_slide("FreeRADIUS — clients.conf", """# /etc/freeradius/3.0/clients.conf
-
-# Client MikroTik (routeur hotspot)
-client mikrotik-hotspot {
-    ipaddr = 10.242.18.6
-    secret = "votre_secret_radius"
-    shortname = mikrotik
-    nastype = other
-
-    limit {
-        max_connections = 16
-        lifetime = 0
-        idle_timeout = 30
-    }
-}
-
-# Client localhost (pour les tests avec radtest)
-client localhost {
-    ipaddr = 127.0.0.1
-    secret = testing123
-}""",
-    "Le secret RADIUS doit correspondre exactement à celui configuré dans MikroTik (/radius add secret=...)")
-
-# 21. FreeRADIUS SQL config
-code_slide("FreeRADIUS — Configuration SQL (mods-enabled/sql)", """# /etc/freeradius/3.0/mods-available/sql
-sql {
-    driver = "rlm_sql_postgresql"
-    dialect = "postgresql"
-
-    server = "localhost"
-    port = 5432
-    login = "radius_user"
-    password = "radius_password"
-    radius_db = "captive_portal"
-
-    read_clients = yes
-
-    # Tables RADIUS
-    acct_table1 = "radacct"
-    authcheck_table = "radcheck"
-    groupcheck_table = "radgroupcheck"
-    authreply_table = "radreply"
-    groupreply_table = "radgroupreply"
-    usergroup_table = "radusergroup"
-    postauth_table = "radpostauth"
-
-    pool {
-        start = 5
-        min = 4
-        max = 32
-        spare = 3
-        idle_timeout = 60
-    }
-}
-
-# Activation : ln -s mods-available/sql mods-enabled/sql""")
-
-# 22. Auth method
-content_slide("FreeRADIUS — Méthode d'Authentification", [
-    "Flux d'authentification détaillé :",
-    "",
-    "1. Le MikroTik reçoit les credentials de l'utilisateur",
-    ("Via la page de login hotspot (HTTP-CHAP ou HTTP-PAP)", 1),
-    "",
-    "2. MikroTik envoie un paquet Access-Request au FreeRADIUS",
-    ("Contient : User-Name, User-Password, NAS-IP-Address, Calling-Station-Id (MAC)", 1),
-    ("Protocole : UDP, port 1812", 1),
-    "",
-    "3. FreeRADIUS exécute la section authorize",
-    ("Requête SQL : SELECT * FROM radcheck WHERE username = ? AND statut = true", 1),
-    ("Récupère le mot de passe en clair (Cleartext-Password)", 1),
-    "",
-    "4. FreeRADIUS exécute la section authenticate",
-    ("Comparaison du mot de passe (PAP : clair, CHAP : hash MD5)", 1),
-    "",
-    "5. Si authentification réussie → Access-Accept",
-    ("Attributs retournés : Mikrotik-Rate-Limit, Session-Timeout, Idle-Timeout", 1),
-    "",
-    "6. Si échec → Access-Reject",
-    ("Log dans radpostauth (reply = 'Access-Reject')", 1),
-])
-
-# 23. Communication MikroTik
-content_slide("FreeRADIUS — Communication avec MikroTik", [
-    "Protocole de communication : RADIUS (UDP)",
-    "",
-    "Ports utilisés :",
-    ("1812 — Authentification (Access-Request / Access-Accept / Access-Reject)", 1),
-    ("1813 — Accounting (Accounting-Request / Accounting-Response)", 1),
-    "",
-    "Secret partagé :",
-    ("Clé secrète identique configurée sur MikroTik et FreeRADIUS", 1),
-    ("Utilisée pour chiffrer/vérifier les échanges RADIUS", 1),
-    "",
-    "Configuration côté MikroTik :",
-    ("/radius add address=<IP_serveur> secret=<secret> service=hotspot timeout=3s", 1),
-    "",
-    "Configuration côté FreeRADIUS :",
-    ("client mikrotik-hotspot { ipaddr=10.242.18.6 ; secret=<secret> }", 1),
-    "",
-    "Attributs vendor-specific MikroTik (Vendor ID 14988) :",
-    ("Mikrotik-Rate-Limit (att. 8) : contrôle de bande passante (ex: 5M/10M)", 1),
-    ("Mikrotik-Total-Limit (att. 17) : quota total en octets", 1),
-    ("Mikrotik-Recv-Limit / Mikrotik-Xmit-Limit : limites download/upload", 1),
-])
-
-# 24. Logs FreeRADIUS
-content_slide("FreeRADIUS — Logs et Vérifications", [
-    "Test d'authentification avec radtest :",
-    ("radtest jean.dupont motdepasse123 localhost 0 testing123", 1),
-    ("Résultat attendu : Access-Accept avec Mikrotik-Rate-Limit, Session-Timeout", 1),
-    "",
-    "Mode debug (pour diagnostic) :",
-    ("sudo freeradius -X → lance FreeRADIUS en mode debug", 1),
-    ("Affiche chaque étape : authorize, authenticate, post-auth", 1),
-    "",
-    "Logs dans la base de données :",
-    ("Table radpostauth : chaque tentative d'authentification (succès/rejet + date)", 1),
-    ("Table radacct : chaque session (début, fin, durée, octets, MAC)", 1),
-    "",
-    "Vérifications supplémentaires :",
-    ("sudo systemctl status freeradius → état du service", 1),
-    ("SELECT * FROM radpostauth ORDER BY authdate DESC LIMIT 10 → dernières auth", 1),
-    ("SELECT * FROM radacct WHERE acctstoptime IS NULL → sessions actives", 1),
-    "",
-    "Gestion du service :",
-    ("sudo systemctl start/stop/restart freeradius", 1),
-    ("sudo systemctl enable freeradius → démarrage automatique", 1),
-])
-
-# 25. Section 4 - PostgreSQL
-section_slide(4, "Configuration PostgreSQL")
-
-# 26. PostgreSQL overview
-content_slide("PostgreSQL — Base de Données et Tables", [
-    "Base de données : captive_portal",
-    ("Utilisateur : radius_user (accès FreeRADIUS + Django)", 1),
-    ("Version : PostgreSQL 15", 1),
-    "",
-    "Tables RADIUS (utilisées directement par FreeRADIUS) :",
-    ("radcheck — Authentification (username, password, statut, quota)", 1),
-    ("radreply — Attributs de réponse individuels (Rate-Limit, Timeout)", 1),
-    ("radusergroup — Association utilisateur → groupe (profil)", 1),
-    ("radgroupcheck — Attributs de vérification par groupe (Simultaneous-Use)", 1),
-    ("radgroupreply — Attributs de réponse par groupe (Rate-Limit, Timeout)", 1),
-    ("radacct — Comptabilité des sessions (durée, octets, MAC, IP)", 1),
-    ("radpostauth — Journal des authentifications (succès/rejet)", 1),
-    "",
-    "Tables Django (gestion applicative) :",
-    ("core_user — Utilisateurs du portail (extends AbstractUser)", 1),
-    ("core_profile — Profils de connexion (quotas, bande passante)", 1),
-    ("core_promotion — Groupes d'utilisateurs (classes, départements)", 1),
-    ("core_session, core_device, core_voucher, core_userquota...", 1),
-])
-
-# 27. Tables RADIUS code
-code_slide("PostgreSQL — Structure des Tables RADIUS", """-- Table radcheck : Authentification des utilisateurs
-CREATE TABLE radcheck (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(64) NOT NULL,
-    attribute VARCHAR(64) NOT NULL,        -- ex: 'Cleartext-Password'
-    op VARCHAR(2) DEFAULT ':=',
-    value VARCHAR(253) NOT NULL,           -- ex: 'motdepasse123'
-    statut BOOLEAN DEFAULT TRUE,           -- Extension: actif/désactivé
-    quota BIGINT                           -- Extension: quota en octets
-);
-
--- Table radreply : Attributs retournés après authentification
-CREATE TABLE radreply (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(64) NOT NULL,
-    attribute VARCHAR(64) NOT NULL,        -- ex: 'Session-Timeout'
-    op VARCHAR(2) DEFAULT '=',
-    value VARCHAR(253) NOT NULL            -- ex: '28800'
-);
-
--- Table radacct : Comptabilité des sessions
-CREATE TABLE radacct (
-    radacctid BIGSERIAL PRIMARY KEY,
-    username VARCHAR(64), nasipaddress VARCHAR(15),
-    acctstarttime TIMESTAMP, acctstoptime TIMESTAMP,
-    acctsessiontime INTEGER,               -- durée en secondes
-    acctinputoctets BIGINT,                -- octets reçus
-    acctoutputoctets BIGINT,               -- octets envoyés
-    callingstationid VARCHAR(50),          -- adresse MAC client
-    framedipaddress VARCHAR(15)            -- IP attribuée
-);""")
-
-# 28. Lien FreeRADIUS - PostgreSQL
-content_slide("PostgreSQL — Lien FreeRADIUS ↔ PostgreSQL", [
-    "Comment FreeRADIUS utilise PostgreSQL ?",
-    "",
-    "Phase Authorize (vérification) :",
-    ("SELECT username, attribute, value, op FROM radcheck WHERE username = ?", 1),
-    ("Vérifie : statut = true ET mot de passe correct", 1),
-    ("Récupère aussi les attributs du groupe via radusergroup + radgroupreply", 1),
-    "",
-    "Phase Post-Auth (journalisation) :",
-    ("INSERT INTO radpostauth (username, pass, reply, authdate) VALUES (...)", 1),
-    ("Enregistre chaque tentative d'authentification (succès ou rejet)", 1),
-    "",
-    "Phase Accounting (comptabilité) :",
-    ("Start : INSERT INTO radacct (...) — nouvelle session", 1),
-    ("Interim : UPDATE radacct SET acctinputoctets=..., acctupdatetime=... — mise à jour", 1),
-    ("Stop : UPDATE radacct SET acctstoptime=..., acctterminatecause=... — fin de session", 1),
-    "",
-    "Synchronisation Django → RADIUS :",
-    ("Quand un admin active un utilisateur, Django crée les entrées dans radcheck + radreply + radusergroup", 1),
-    ("Quand un profil est modifié, Django met à jour radgroupreply et radgroupcheck", 1),
-    ("Système de retry automatique en cas d'échec de synchronisation", 1),
-])
-
-# 29. Exemple données
-code_slide("PostgreSQL — Exemple de Données RADIUS", """-- Créer un groupe/profil (Étudiant : 5M upload, 10M download, 8h session)
-INSERT INTO radgroupreply (groupname, attribute, op, value) VALUES
-    ('profile_1_etudiant', 'Mikrotik-Rate-Limit', ':=', '5M/10M'),
-    ('profile_1_etudiant', 'Session-Timeout', ':=', '28800'),
-    ('profile_1_etudiant', 'Idle-Timeout', ':=', '600');
-
-INSERT INTO radgroupcheck (groupname, attribute, op, value) VALUES
-    ('profile_1_etudiant', 'Simultaneous-Use', ':=', '1');
-
--- Créer un utilisateur
-INSERT INTO radcheck (username, attribute, op, value, statut) VALUES
-    ('jean.dupont', 'Cleartext-Password', ':=', 'motdepasse123', true);
-
--- Associer l'utilisateur au profil
-INSERT INTO radusergroup (username, groupname, priority) VALUES
-    ('jean.dupont', 'profile_1_etudiant', 5);
-
--- Vérifier (test)
-SELECT rc.username, rc.value as password, rc.statut,
-       rug.groupname, rgr.attribute, rgr.value
-FROM radcheck rc
-JOIN radusergroup rug ON rc.username = rug.username
-JOIN radgroupreply rgr ON rug.groupname = rgr.groupname
-WHERE rc.username = 'jean.dupont';""")
-
-# 30. Flux complet
-content_slide("Flux d'Authentification Complet (Récapitulatif)", [
-    "1. Le client WiFi se connecte au réseau → reçoit une IP via DHCP (10.242.18.x)",
-    "",
-    "2. Le client ouvre un navigateur → redirection automatique vers la page de login",
-    ("MikroTik intercepte le trafic HTTP et redirige vers wifi.ucac-icam.cm/login", 1),
-    "",
-    "3. L'utilisateur entre son nom d'utilisateur et son mot de passe",
-    "",
-    "4. MikroTik envoie un Access-Request (RADIUS, UDP 1812) à FreeRADIUS",
-    ("Contient : User-Name, User-Password, NAS-IP, Calling-Station-Id (MAC)", 1),
-    "",
-    "5. FreeRADIUS interroge PostgreSQL (table radcheck)",
-    ("Vérifie : utilisateur existe, statut=true, mot de passe correct", 1),
-    "",
-    "6. FreeRADIUS retourne Access-Accept avec les attributs QoS",
-    ("Mikrotik-Rate-Limit=5M/10M, Session-Timeout=28800, Idle-Timeout=600", 1),
-    "",
-    "7. MikroTik autorise le client et applique les restrictions",
-    "",
-    "8. Accounting : MikroTik envoie les données de session toutes les 5 min",
-    ("Stockées dans radacct → synchronisées avec Django → vérification des quotas", 1),
-])
-
-# 31. Conclusion
-content_slide("Conclusion", [
-    "Ce projet implémente un portail captif WiFi complet et professionnel :",
-    "",
-    "MikroTik :",
-    ("Gère le hotspot, le DHCP, le NAT, le DNS et le contrôle d'accès", 1),
-    ("Communique avec FreeRADIUS pour l'authentification et l'accounting", 1),
-    "",
-    "FreeRADIUS :",
-    ("Serveur AAA central qui authentifie les utilisateurs via PostgreSQL", 1),
-    ("Retourne les attributs QoS (bande passante, durée de session)", 1),
-    "",
-    "PostgreSQL :",
-    ("Stocke les utilisateurs, les profils, les sessions et les quotas", 1),
-    ("Partagé entre FreeRADIUS (tables rad*) et Django (tables core_*)", 1),
-    "",
-    "Django + Vue.js :",
-    ("Interface d'administration complète pour gérer utilisateurs, profils et promotions", 1),
-    ("Synchronisation automatique avec FreeRADIUS et MikroTik", 1),
-    "",
-    "Résultat : Un système sécurisé, évolutif et adapté au contexte universitaire UCAC-ICAM",
-])
-
-# 32. Résumé final
-s_final = title_slide(
-    "Résumé Final",
-    "Architecture : MikroTik ↔ FreeRADIUS ↔ PostgreSQL ↔ Django"
-)
-txF = s_final.shapes.add_textbox(Inches(1.5), Inches(4.5), Inches(10.333), Inches(2.5))
-tf = txF.text_frame; tf.word_wrap = True
-items = [
-    "MikroTik : Hotspot + NAT + DHCP + DNS + Client RADIUS",
-    "FreeRADIUS : Authentification AAA (PAP/CHAP) via SQL",
-    "PostgreSQL : Tables radcheck, radreply, radacct, radusergroup + Django ORM",
-    "Django : API REST, gestion des profils/quotas, synchronisation RADIUS",
-    "Vue.js : Dashboard d'administration temps réel",
+sections = [
+    ("🌐", "Architecture\nRéseau", LIGHT_BLUE, MEDIUM_BLUE),
+    ("📡", "MikroTik\nHotspot", LIGHT_ORANGE, ORANGE),
+    ("🔐", "FreeRADIUS\nAuthentification", LIGHT_GREEN, GREEN),
+    ("🗄️", "PostgreSQL\nBase de données", LIGHT_PURPLE, PURPLE),
+    ("⚡", "Flux\nComplet", LIGHT_TEAL, TEAL),
+    ("🎯", "Conclusion", LIGHT_RED, RED),
 ]
-for i, item in enumerate(items):
-    p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-    p.text = "▸  " + item
-    p.font.size = Pt(16)
-    p.font.color.rgb = RGBColor(0xBF, 0xDB, 0xFE)
-    p.alignment = PP_ALIGN.CENTER
-    p.space_before = Pt(8)
 
-# 33. Merci
-s_end = title_slide("Merci pour votre attention", "Questions ?")
-txE = s_end.shapes.add_textbox(Inches(3), Inches(5), Inches(7.333), Inches(1))
-tf = txE.text_frame; tf.word_wrap = True
-p = tf.paragraphs[0]
-p.text = "Portail Captif WiFi — UCAC-ICAM — Janvier 2026"
-p.font.size = Pt(14)
-p.font.color.rgb = GRAY
-p.alignment = PP_ALIGN.CENTER
+for i, (icon, label, bg, border) in enumerate(sections):
+    col = i % 3
+    row = i // 3
+    left = Inches(1.2 + col * 3.8)
+    top = Inches(1.8 + row * 2.8)
+    card(slide, left, top, Inches(3.2), Inches(2.2), label, "", bg, border, icon_text=icon)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 3 — Architecture réseau (grand diagramme visuel)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "Architecture Réseau Globale")
+
+# Internet cloud at top center
+inet = add_shape(slide, Inches(5.2), Inches(1.3), Inches(3), Inches(1), LIGHT_ORANGE, ORANGE, MSO_SHAPE.CLOUD)
+add_text(slide, Inches(5.2), Inches(1.5), Inches(3), Inches(0.6),
+         "☁  INTERNET", size=16, bold=True, color=BLACK, align=PP_ALIGN.CENTER)
+
+# Arrow down from internet
+arrow_down(slide, Inches(6.5), Inches(2.35), Inches(0.5), ORANGE)
+
+# MikroTik router (center)
+mk = add_shape(slide, Inches(4.2), Inches(2.9), Inches(5), Inches(1.5), ACCENT_BLUE, MEDIUM_BLUE)
+tf = add_text(slide, Inches(4.2), Inches(3.0), Inches(5), Inches(0.5),
+              "📡  MikroTik RB951Ui-2HnD", size=18, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_para(tf, "Hotspot  •  NAT  •  DHCP  •  DNS  •  Client RADIUS", size=12, color=GRAY, align=PP_ALIGN.CENTER)
+add_para(tf, "10.242.18.6", size=13, bold=True, color=MEDIUM_BLUE, align=PP_ALIGN.CENTER)
+
+# Arrow down-left to server
+arrow_down(slide, Inches(4.5), Inches(4.45), Inches(0.5), GREEN)
+# Arrow down-right to clients
+arrow_down(slide, Inches(8.4), Inches(4.45), Inches(0.5), RED)
+
+# Server (bottom left)
+srv = add_shape(slide, Inches(0.5), Inches(5.1), Inches(5.5), Inches(2.0), LIGHT_GREEN, GREEN)
+tf2 = add_text(slide, Inches(0.5), Inches(5.2), Inches(5.5), Inches(0.5),
+               "🖥️  Serveur Backend", size=18, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_para(tf2, "Django REST  •  PostgreSQL  •  FreeRADIUS", size=12, color=GRAY, align=PP_ALIGN.CENTER)
+add_para(tf2, "RADIUS UDP 1812/1813  |  API HTTP 8000", size=11, color=GRAY, align=PP_ALIGN.CENTER)
+add_para(tf2, "Redis  •  Celery  •  Prometheus  •  Grafana", size=11, color=GRAY, align=PP_ALIGN.CENTER)
+
+# Arrow between server and mikrotik (horizontal)
+add_text(slide, Inches(2.2), Inches(4.55), Inches(2.5), Inches(0.4),
+         "◄── RADIUS ──►", size=11, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
+
+# Clients (bottom right)
+cl = add_shape(slide, Inches(7.3), Inches(5.1), Inches(5.5), Inches(2.0), LIGHT_RED, RED)
+tf3 = add_text(slide, Inches(7.3), Inches(5.2), Inches(5.5), Inches(0.5),
+               "📱  Clients WiFi", size=18, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_para(tf3, "DHCP : 10.242.18.100 — 10.242.18.200", size=12, color=GRAY, align=PP_ALIGN.CENTER)
+add_para(tf3, "Redirection captive → page de login", size=11, color=GRAY, align=PP_ALIGN.CENTER)
+add_para(tf3, "Auth RADIUS (PAP/CHAP)", size=11, color=GRAY, align=PP_ALIGN.CENTER)
+
+# Arrow between clients and mikrotik
+add_text(slide, Inches(8.8), Inches(4.55), Inches(2.5), Inches(0.4),
+         "◄── WiFi/DHCP ──►", size=11, bold=True, color=RED, align=PP_ALIGN.CENTER)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 4 — Section MikroTik
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+add_rect(slide, 0, 0, W, Inches(0.06), LIGHT_BLUE)
+
+circ = add_shape(slide, Inches(5.667), Inches(1.5), Inches(2), Inches(2), MEDIUM_BLUE, shape_type=MSO_SHAPE.OVAL)
+set_text(circ, "📡", size=48, align=PP_ALIGN.CENTER)
+
+add_text(slide, Inches(1), Inches(3.8), Inches(11.333), Inches(1),
+         "Configuration MikroTik", size=36, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(2), Inches(4.8), Inches(9.333), Inches(0.6),
+         "Interfaces  •  DHCP  •  Hotspot  •  NAT  •  DNS  •  Sécurité", size=18, color=GRAY, align=PP_ALIGN.CENTER)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 5 — MikroTik Interfaces (visual diagram)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "MikroTik — Interfaces et Adressage IP")
+
+# Central router box
+router = add_shape(slide, Inches(4.5), Inches(2.5), Inches(4.3), Inches(2.5), ACCENT_BLUE, MEDIUM_BLUE)
+add_text(slide, Inches(4.5), Inches(2.6), Inches(4.3), Inches(0.5),
+         "📡 MikroTik RB951Ui-2HnD", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(4.5), Inches(3.1), Inches(4.3), Inches(0.4),
+         "RouterOS v6/v7", size=12, color=GRAY, align=PP_ALIGN.CENTER)
+
+# ether1-WAN (left of router)
+wan = add_shape(slide, Inches(0.5), Inches(1.5), Inches(3.2), Inches(1.3), LIGHT_ORANGE, ORANGE)
+add_text(slide, Inches(0.5), Inches(1.6), Inches(3.2), Inches(0.4),
+         "☁  ether1-WAN", size=15, bold=True, color=BLACK, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(0.5), Inches(2.1), Inches(3.2), Inches(0.4),
+         "Connexion Internet (WAN)", size=12, color=GRAY, align=PP_ALIGN.CENTER)
+
+# Arrow WAN -> Router
+arrow_right(slide, Inches(3.8), Inches(2.8), Inches(0.6), ORANGE)
+
+# bridge-LAN box (inside router)
+bridge = add_shape(slide, Inches(4.8), Inches(3.6), Inches(3.7), Inches(1.1), LIGHT_GREEN, GREEN)
+add_text(slide, Inches(4.8), Inches(3.65), Inches(3.7), Inches(0.4),
+         "🔗 bridge-LAN", size=13, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(4.8), Inches(4.0), Inches(3.7), Inches(0.4),
+         "10.242.18.6/24", size=12, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
+
+# ether2-LAN (right)
+lan = add_shape(slide, Inches(9.5), Inches(2.5), Inches(3.3), Inches(1.3), LIGHT_TEAL, TEAL)
+add_text(slide, Inches(9.5), Inches(2.6), Inches(3.3), Inches(0.4),
+         "🔌 ether2-LAN", size=15, bold=True, color=BLACK, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(9.5), Inches(3.1), Inches(3.3), Inches(0.4),
+         "Réseau local (LAN)", size=12, color=GRAY, align=PP_ALIGN.CENTER)
+
+# Arrow Router -> LAN
+arrow_right(slide, Inches(8.85), Inches(2.8), Inches(0.6), TEAL)
+
+# DHCP Pool info (bottom)
+pool = add_shape(slide, Inches(3.5), Inches(5.5), Inches(6.3), Inches(1.2), LIGHT_PURPLE, PURPLE)
+add_text(slide, Inches(3.5), Inches(5.6), Inches(6.3), Inches(0.4),
+         "🏊 Pool DHCP : 10.242.18.100 — 10.242.18.200", size=14, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(3.5), Inches(6.05), Inches(6.3), Inches(0.4),
+         "101 adresses  •  Gateway: 10.242.18.6  •  DNS: 10.242.18.6", size=12, color=GRAY, align=PP_ALIGN.CENTER)
+
+# Arrow bridge -> pool
+arrow_down(slide, Inches(6.5), Inches(4.8), Inches(0.6), PURPLE)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 6 — DHCP (visual flow)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "MikroTik — Serveur DHCP")
+
+# DHCP flow: 4 steps horizontally
+steps = [
+    ("1", "📱 Client\nse connecte", "Le client WiFi\nrejoint le réseau", LIGHT_BLUE, MEDIUM_BLUE),
+    ("2", "📨 DHCP\nDiscover", "Demande d'adresse\nIP (broadcast)", LIGHT_ORANGE, ORANGE),
+    ("3", "📡 DHCP\nOffer", "Le routeur propose\nune IP du pool", LIGHT_GREEN, GREEN),
+    ("4", "✅ IP\nAttribuée", "10.242.18.x\nGateway + DNS", LIGHT_PURPLE, PURPLE),
+]
+
+for i, (num, title, desc, bg, border) in enumerate(steps):
+    left = Inches(0.5 + i * 3.2)
+    top = Inches(1.6)
+    # Number circle
+    circ = add_shape(slide, left + Inches(1), top, Inches(0.7), Inches(0.7), border, shape_type=MSO_SHAPE.OVAL)
+    set_text(circ, num, size=20, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+    # Card
+    box = add_shape(slide, left, top + Inches(0.9), Inches(2.7), Inches(2.0), bg, border)
+    add_text(slide, left + Inches(0.1), top + Inches(1.0), Inches(2.5), Inches(0.6),
+             title, size=15, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+    add_text(slide, left + Inches(0.1), top + Inches(1.8), Inches(2.5), Inches(0.8),
+             desc, size=12, color=GRAY, align=PP_ALIGN.CENTER)
+    # Arrow between steps
+    if i < 3:
+        arrow_right(slide, left + Inches(2.75), top + Inches(1.6), Inches(0.4), border)
+
+# Config summary at bottom
+cfg = add_shape(slide, Inches(1), Inches(5.5), Inches(11.333), Inches(1.3), LIGHT_GRAY, MEDIUM_BLUE)
+add_text(slide, Inches(1.3), Inches(5.6), Inches(10.7), Inches(0.4),
+         "Configuration DHCP", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+tf = add_text(slide, Inches(1.3), Inches(6.05), Inches(10.7), Inches(0.6),
+              "Pool : dhcp-pool  •  Plage : .100 à .200  •  Interface : bridge-LAN  •  Réseau : 10.242.18.0/24",
+              size=13, color=GRAY, align=PP_ALIGN.CENTER)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 7 — Hotspot (visual flow)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "MikroTik — Principe du Hotspot")
+
+# Visual: Client -> Redirect -> Login -> RADIUS -> Internet
+steps_h = [
+    ("📱", "Client WiFi", "Connexion au\nréseau UCAC", LIGHT_BLUE, MEDIUM_BLUE),
+    ("🔄", "Redirection", "Trafic HTTP\nintercepté", LIGHT_ORANGE, ORANGE),
+    ("🔑", "Page Login", "wifi.ucac-icam.cm\n/login", LIGHT_PURPLE, PURPLE),
+    ("🔐", "RADIUS", "Vérification\ncredentials", LIGHT_GREEN, GREEN),
+    ("🌐", "Internet", "Accès autorisé\navec QoS", LIGHT_TEAL, TEAL),
+]
+
+for i, (icon, title, desc, bg, border) in enumerate(steps_h):
+    left = Inches(0.3 + i * 2.6)
+    top = Inches(1.5)
+    # Icon circle
+    circ = add_shape(slide, left + Inches(0.6), top, Inches(1.2), Inches(1.2), border, shape_type=MSO_SHAPE.OVAL)
+    set_text(circ, icon, size=32, align=PP_ALIGN.CENTER)
+    # Label
+    add_text(slide, left, top + Inches(1.3), Inches(2.4), Inches(0.5),
+             title, size=14, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+    add_text(slide, left, top + Inches(1.8), Inches(2.4), Inches(0.6),
+             desc, size=11, color=GRAY, align=PP_ALIGN.CENTER)
+    # Arrow
+    if i < 4:
+        arrow_right(slide, left + Inches(2.15), top + Inches(0.4), Inches(0.4), border)
+
+# Hotspot profile details
+prof = add_shape(slide, Inches(0.5), Inches(4.2), Inches(6), Inches(2.8), ACCENT_BLUE, MEDIUM_BLUE)
+add_text(slide, Inches(0.7), Inches(4.3), Inches(5.6), Inches(0.5),
+         "📋 Profil : ucac-icam-profile", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.LEFT)
+tf = add_text(slide, Inches(0.7), Inches(4.85), Inches(5.6), Inches(2),
+              "• Adresse : 10.242.18.6", size=13, color=BLACK, align=PP_ALIGN.LEFT)
+add_para(tf, "• DNS : wifi.ucac-icam.cm", size=13, color=BLACK)
+add_para(tf, "• RADIUS : activé (auth + accounting)", size=13, color=BLACK)
+add_para(tf, "• Interim update : 5 minutes", size=13, color=BLACK)
+add_para(tf, "• Login : HTTP-CHAP + HTTP-PAP", size=13, color=BLACK)
+
+# Walled garden
+wg = add_shape(slide, Inches(7), Inches(4.2), Inches(5.8), Inches(2.8), LIGHT_GREEN, GREEN)
+add_text(slide, Inches(7.2), Inches(4.3), Inches(5.4), Inches(0.5),
+         "🏰 Walled Garden", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.LEFT)
+tf2 = add_text(slide, Inches(7.2), Inches(4.85), Inches(5.4), Inches(2),
+               "Pages accessibles SANS authentification :", size=13, color=BLACK, align=PP_ALIGN.LEFT)
+add_para(tf2, "• Serveur backend Django", size=13, color=BLACK)
+add_para(tf2, "• API d'enregistrement", size=13, color=BLACK)
+add_para(tf2, "• Page de login personnalisée", size=13, color=BLACK)
+add_para(tf2, "", size=8, color=BLACK)
+add_para(tf2, "Le hotspot crée auto. les règles\nfirewall, NAT et queues", size=12, color=GRAY)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 8 — NAT Masquerade (visual diagram)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "MikroTik — NAT Masquerade")
+
+# Visual: Private IP -> Router (NAT) -> Public IP -> Internet
+# Client
+cl_box = add_shape(slide, Inches(0.5), Inches(2.5), Inches(3), Inches(2.5), LIGHT_BLUE, MEDIUM_BLUE)
+add_text(slide, Inches(0.5), Inches(2.6), Inches(3), Inches(0.5),
+         "📱 Client WiFi", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(0.5), Inches(3.2), Inches(3), Inches(0.4),
+         "IP privée", size=13, color=GRAY, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(0.5), Inches(3.6), Inches(3), Inches(0.5),
+         "10.242.18.x", size=18, bold=True, color=MEDIUM_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(0.5), Inches(4.2), Inches(3), Inches(0.4),
+         "Source: 10.242.18.105:4532", size=11, color=GRAY, align=PP_ALIGN.CENTER)
+
+# Arrow
+arrow_right(slide, Inches(3.6), Inches(3.5), Inches(0.8), MEDIUM_BLUE)
+
+# Router NAT
+nat_box = add_shape(slide, Inches(4.5), Inches(2.2), Inches(4.3), Inches(3.2), LIGHT_ORANGE, ORANGE)
+add_text(slide, Inches(4.5), Inches(2.3), Inches(4.3), Inches(0.5),
+         "🔄 MikroTik — NAT", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(4.5), Inches(2.9), Inches(4.3), Inches(0.4),
+         "Masquerade", size=22, bold=True, color=ORANGE, align=PP_ALIGN.CENTER)
+
+# Visual: IP transformation
+tf_nat = add_text(slide, Inches(4.7), Inches(3.5), Inches(3.9), Inches(0.4),
+                  "10.242.18.105  →  IP publique WAN", size=13, color=BLACK, align=PP_ALIGN.CENTER)
+add_para(tf_nat, "", size=6, color=BLACK)
+add_para(tf_nat, "srcnat • out-interface=ether1-WAN", size=11, color=GRAY, align=PP_ALIGN.CENTER)
+add_para(tf_nat, "action=masquerade", size=11, bold=True, color=ORANGE, align=PP_ALIGN.CENTER)
+
+# Arrow
+arrow_right(slide, Inches(8.9), Inches(3.5), Inches(0.8), GREEN)
+
+# Internet
+inet_box = add_shape(slide, Inches(9.8), Inches(2.5), Inches(3), Inches(2.5), LIGHT_GREEN, GREEN)
+add_text(slide, Inches(9.8), Inches(2.6), Inches(3), Inches(0.5),
+         "☁ Internet", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(9.8), Inches(3.2), Inches(3), Inches(0.4),
+         "IP publique", size=13, color=GRAY, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(9.8), Inches(3.6), Inches(3), Inches(0.5),
+         "WAN IP", size=18, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(9.8), Inches(4.2), Inches(3), Inches(0.4),
+         "Source: IP_WAN:random", size=11, color=GRAY, align=PP_ALIGN.CENTER)
+
+# Explanation
+expl = add_shape(slide, Inches(1.5), Inches(5.8), Inches(10.3), Inches(1.0), LIGHT_GRAY, MEDIUM_BLUE)
+add_text(slide, Inches(1.7), Inches(5.9), Inches(9.9), Inches(0.7),
+         "Sans NAT, les clients en 10.242.18.x ne peuvent pas accéder à Internet. Le masquerade remplace l'IP source privée par l'IP publique du routeur.",
+         size=13, color=GRAY, align=PP_ALIGN.CENTER)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 9 — DNS & Sécurité (visual)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "MikroTik — DNS et Sécurité")
+
+# Left: DNS Configuration
+dns_box = add_shape(slide, Inches(0.5), Inches(1.4), Inches(6), Inches(2.8), LIGHT_BLUE, MEDIUM_BLUE)
+add_text(slide, Inches(0.7), Inches(1.5), Inches(5.6), Inches(0.5),
+         "🌐 Serveur DNS Local", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.LEFT)
+tf = add_text(slide, Inches(0.7), Inches(2.05), Inches(5.6), Inches(2),
+              "• Résolution DNS sur le routeur", size=13, color=BLACK)
+add_para(tf, "• Upstream : 8.8.8.8 + 1.1.1.1", size=13, color=BLACK)
+add_para(tf, "• Cache : 4096 KiB", size=13, color=BLACK)
+add_para(tf, "• Toutes les requêtes DNS redirigées localement", size=13, color=BLACK)
+
+# Right: Blocking
+block_box = add_shape(slide, Inches(6.9), Inches(1.4), Inches(5.9), Inches(2.8), LIGHT_RED, RED)
+add_text(slide, Inches(7.1), Inches(1.5), Inches(5.5), Inches(0.5),
+         "🚫 Blocage de Sites", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.LEFT)
+tf2 = add_text(slide, Inches(7.1), Inches(2.05), Inches(5.5), Inches(2),
+               "• DNS statique → 0.0.0.0", size=13, color=BLACK)
+add_para(tf2, "• Support regex (wildcard)", size=13, color=BLACK)
+add_para(tf2, "• Géré depuis le backend Django", size=13, color=BLACK)
+add_para(tf2, "• Ex: facebook.com → 0.0.0.0", size=13, color=BLACK)
+
+# Bottom: DNS forcing diagram
+force_box = add_shape(slide, Inches(0.5), Inches(4.5), Inches(6), Inches(2.5), LIGHT_ORANGE, ORANGE)
+add_text(slide, Inches(0.7), Inches(4.6), Inches(5.6), Inches(0.5),
+         "🔒 Forçage DNS", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.LEFT)
+tf3 = add_text(slide, Inches(0.7), Inches(5.15), Inches(5.6), Inches(1.5),
+               "• Redirection port 53 (UDP+TCP) → routeur", size=13, color=BLACK)
+add_para(tf3, "• Blocage DNS over TLS (port 853)", size=13, color=BLACK)
+add_para(tf3, "• Empêche le contournement du filtrage", size=13, color=BLACK)
+
+# API RouterOS
+api_box = add_shape(slide, Inches(6.9), Inches(4.5), Inches(5.9), Inches(2.5), LIGHT_PURPLE, PURPLE)
+add_text(slide, Inches(7.1), Inches(4.6), Inches(5.5), Inches(0.5),
+         "⚙️ API RouterOS", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.LEFT)
+tf4 = add_text(slide, Inches(7.1), Inches(5.15), Inches(5.5), Inches(1.5),
+               "• Port 8728 (API)", size=13, color=BLACK)
+add_para(tf4, "• Agent Node.js dédié", size=13, color=BLACK)
+add_para(tf4, "• Communication backend ↔ routeur", size=13, color=BLACK)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 10 — Section FreeRADIUS
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+add_rect(slide, 0, 0, W, Inches(0.06), LIGHT_BLUE)
+
+circ = add_shape(slide, Inches(5.667), Inches(1.5), Inches(2), Inches(2), GREEN, shape_type=MSO_SHAPE.OVAL)
+set_text(circ, "🔐", size=48, align=PP_ALIGN.CENTER)
+
+add_text(slide, Inches(1), Inches(3.8), Inches(11.333), Inches(1),
+         "Configuration FreeRADIUS", size=36, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(2), Inches(4.8), Inches(9.333), Inches(0.6),
+         "Serveur AAA  •  Authentication  •  Authorization  •  Accounting", size=18, color=GRAY, align=PP_ALIGN.CENTER)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 11 — FreeRADIUS AAA (3 colonnes visuelles)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "FreeRADIUS — Authentification, Autorisation, Accounting")
+
+# 3 big cards for A, A, A
+aaa = [
+    ("🔑", "Authentication", "Vérifier l'identité",
+     ["Username + Password", "Table radcheck (PostgreSQL)", "Statut actif vérifié", "PAP / CHAP supportés"],
+     LIGHT_GREEN, GREEN),
+    ("📋", "Authorization", "Définir les droits",
+     ["Bande passante (Rate-Limit)", "Durée session (Timeout)", "Tables radreply + radgroupreply", "Ex: 5M/10M, 8h session"],
+     LIGHT_BLUE, MEDIUM_BLUE),
+    ("📊", "Accounting", "Tracer l'activité",
+     ["Sessions : début, durée, fin", "Octets transférés (up/down)", "Table radacct", "Mise à jour toutes les 5 min"],
+     LIGHT_PURPLE, PURPLE),
+]
+
+for i, (icon, title, subtitle, items, bg, border) in enumerate(aaa):
+    left = Inches(0.4 + i * 4.3)
+    top = Inches(1.4)
+    box = add_shape(slide, left, top, Inches(3.8), Inches(5.5), bg, border)
+    # Icon
+    circ = add_shape(slide, left + Inches(1.3), top + Inches(0.2), Inches(1.2), Inches(1.2), border, shape_type=MSO_SHAPE.OVAL)
+    set_text(circ, icon, size=30, align=PP_ALIGN.CENTER)
+    # Title
+    add_text(slide, left + Inches(0.2), top + Inches(1.5), Inches(3.4), Inches(0.5),
+             title, size=18, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+    add_text(slide, left + Inches(0.2), top + Inches(2.0), Inches(3.4), Inches(0.4),
+             subtitle, size=13, color=GRAY, align=PP_ALIGN.CENTER)
+    # Items
+    y = top + Inches(2.6)
+    for item in items:
+        add_text(slide, left + Inches(0.3), y, Inches(3.2), Inches(0.35),
+                 "•  " + item, size=12, color=BLACK, align=PP_ALIGN.LEFT)
+        y += Inches(0.35)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 12 — FreeRADIUS flux auth (visual flow)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "FreeRADIUS — Flux d'Authentification")
+
+# Vertical flow
+flow_steps = [
+    ("1", "📱 Client envoie credentials", "Page de login hotspot (HTTP-CHAP / HTTP-PAP)", LIGHT_BLUE, MEDIUM_BLUE),
+    ("2", "📡 MikroTik → Access-Request", "User-Name, Password, NAS-IP, MAC  •  UDP 1812", LIGHT_ORANGE, ORANGE),
+    ("3", "🔍 FreeRADIUS → authorize (SQL)", "SELECT FROM radcheck WHERE username=? AND statut=true", LIGHT_GREEN, GREEN),
+    ("4", "🔑 FreeRADIUS → authenticate", "Comparaison mot de passe (PAP: clair, CHAP: MD5)", LIGHT_PURPLE, PURPLE),
+]
+
+for i, (num, title, desc, bg, border) in enumerate(flow_steps):
+    left_num = Inches(0.5)
+    left_card = Inches(1.5)
+    top = Inches(1.4 + i * 1.4)
+    # Number circle
+    circ = add_shape(slide, left_num, top + Inches(0.1), Inches(0.7), Inches(0.7), border, shape_type=MSO_SHAPE.OVAL)
+    set_text(circ, num, size=18, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+    # Card
+    box = add_shape(slide, left_card, top, Inches(7), Inches(1.0), bg, border)
+    add_text(slide, left_card + Inches(0.2), top + Inches(0.05), Inches(6.6), Inches(0.4),
+             title, size=14, bold=True, color=DARK_BLUE)
+    add_text(slide, left_card + Inches(0.2), top + Inches(0.5), Inches(6.6), Inches(0.4),
+             desc, size=11, color=GRAY)
+
+# Result boxes on the right
+accept = add_shape(slide, Inches(9), Inches(1.5), Inches(3.8), Inches(2.2), LIGHT_GREEN, GREEN)
+add_text(slide, Inches(9), Inches(1.6), Inches(3.8), Inches(0.5),
+         "✅ Access-Accept", size=16, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
+tf_a = add_text(slide, Inches(9.2), Inches(2.2), Inches(3.4), Inches(1.3),
+                "Attributs retournés :", size=12, bold=True, color=DARK_BLUE)
+add_para(tf_a, "• Mikrotik-Rate-Limit = 5M/10M", size=11, color=BLACK)
+add_para(tf_a, "• Session-Timeout = 28800", size=11, color=BLACK)
+add_para(tf_a, "• Idle-Timeout = 600", size=11, color=BLACK)
+
+reject = add_shape(slide, Inches(9), Inches(4.2), Inches(3.8), Inches(1.5), LIGHT_RED, RED)
+add_text(slide, Inches(9), Inches(4.3), Inches(3.8), Inches(0.5),
+         "❌ Access-Reject", size=16, bold=True, color=RED, align=PP_ALIGN.CENTER)
+tf_r = add_text(slide, Inches(9.2), Inches(4.9), Inches(3.4), Inches(0.6),
+                "Log dans radpostauth", size=12, color=BLACK)
+add_para(tf_r, "reply = 'Access-Reject'", size=11, color=GRAY)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 13 — FreeRADIUS config files (visual cards)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "FreeRADIUS — Fichiers de Configuration")
+
+files = [
+    ("📄", "clients.conf", "Client RADIUS (MikroTik)", "IP: 10.242.18.6\nSecret partagé\nnastype: other", LIGHT_ORANGE, ORANGE),
+    ("🗃️", "mods-enabled/sql", "Driver PostgreSQL", "rlm_sql_postgresql\nlocalhost:5432\ncaptive_portal", LIGHT_GREEN, GREEN),
+    ("⚙️", "sites-available/default", "Sites RADIUS", "Port 1812 (auth)\nPort 1813 (acct)\nPAP + CHAP", LIGHT_BLUE, MEDIUM_BLUE),
+    ("📖", "dictionary.mikrotik", "Attributs MikroTik", "Vendor ID: 14988\nRate-Limit (ID 8)\nTotal-Limit...", LIGHT_PURPLE, PURPLE),
+]
+
+for i, (icon, name, subtitle, desc, bg, border) in enumerate(files):
+    col = i % 2
+    row = i // 2
+    left = Inches(0.5 + col * 6.4)
+    top = Inches(1.4 + row * 2.9)
+    box = add_shape(slide, left, top, Inches(5.9), Inches(2.5), bg, border)
+    # Icon
+    circ = add_shape(slide, left + Inches(0.3), top + Inches(0.3), Inches(0.9), Inches(0.9), border, shape_type=MSO_SHAPE.OVAL)
+    set_text(circ, icon, size=22, align=PP_ALIGN.CENTER)
+    # Title
+    add_text(slide, left + Inches(1.5), top + Inches(0.3), Inches(4.1), Inches(0.4),
+             name, size=16, bold=True, color=DARK_BLUE)
+    add_text(slide, left + Inches(1.5), top + Inches(0.7), Inches(4.1), Inches(0.4),
+             subtitle, size=12, color=GRAY)
+    # Description
+    add_text(slide, left + Inches(1.5), top + Inches(1.2), Inches(4.1), Inches(1.2),
+             desc, size=12, color=BLACK)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 14 — Section PostgreSQL
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+add_rect(slide, 0, 0, W, Inches(0.06), LIGHT_BLUE)
+
+circ = add_shape(slide, Inches(5.667), Inches(1.5), Inches(2), Inches(2), PURPLE, shape_type=MSO_SHAPE.OVAL)
+set_text(circ, "🗄️", size=48, align=PP_ALIGN.CENTER)
+
+add_text(slide, Inches(1), Inches(3.8), Inches(11.333), Inches(1),
+         "Configuration PostgreSQL", size=36, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(2), Inches(4.8), Inches(9.333), Inches(0.6),
+         "Base de données captive_portal  •  Tables RADIUS  •  Tables Django", size=18, color=GRAY, align=PP_ALIGN.CENTER)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 15 — PostgreSQL tables (visual schema)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "PostgreSQL — Schéma des Tables")
+
+# Left: RADIUS tables
+add_text(slide, Inches(0.5), Inches(1.3), Inches(6), Inches(0.5),
+         "🔐 Tables RADIUS (FreeRADIUS)", size=16, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
+
+radius_tables = [
+    ("radcheck", "Auth: username, password, statut"),
+    ("radreply", "Réponse: attributs individuels"),
+    ("radusergroup", "Liens utilisateur → groupe"),
+    ("radgroupreply", "Réponse par groupe (QoS)"),
+    ("radacct", "Sessions: durée, octets, MAC"),
+    ("radpostauth", "Journal des authentifications"),
+]
+
+for i, (name, desc) in enumerate(radius_tables):
+    top = Inches(1.85 + i * 0.82)
+    box = add_shape(slide, Inches(0.5), top, Inches(6), Inches(0.7), LIGHT_GREEN, GREEN)
+    add_text(slide, Inches(0.7), top + Inches(0.05), Inches(2.2), Inches(0.35),
+             name, size=13, bold=True, color=DARK_BLUE)
+    add_text(slide, Inches(3), top + Inches(0.05), Inches(3.3), Inches(0.35),
+             desc, size=11, color=GRAY)
+
+# Right: Django tables
+add_text(slide, Inches(6.9), Inches(1.3), Inches(6), Inches(0.5),
+         "🖥️ Tables Django (Gestion)", size=16, bold=True, color=PURPLE, align=PP_ALIGN.CENTER)
+
+django_tables = [
+    ("core_user", "Utilisateurs (extends AbstractUser)"),
+    ("core_profile", "Profils (quotas, bande passante)"),
+    ("core_promotion", "Groupes (classes, départements)"),
+    ("core_userquota", "Quotas utilisateurs"),
+    ("core_blockedsite", "Sites bloqués (DNS)"),
+    ("mikrotik_config", "Config routeur MikroTik"),
+]
+
+for i, (name, desc) in enumerate(django_tables):
+    top = Inches(1.85 + i * 0.82)
+    box = add_shape(slide, Inches(6.9), top, Inches(6), Inches(0.7), LIGHT_PURPLE, PURPLE)
+    add_text(slide, Inches(7.1), top + Inches(0.05), Inches(2.2), Inches(0.35),
+             name, size=13, bold=True, color=DARK_BLUE)
+    add_text(slide, Inches(9.4), top + Inches(0.05), Inches(3.3), Inches(0.35),
+             desc, size=11, color=GRAY)
+
+# Connection arrow
+add_text(slide, Inches(4.5), Inches(7.0), Inches(4.3), Inches(0.4),
+         "◄── Synchronisation Django ↔ RADIUS ──►", size=12, bold=True, color=MEDIUM_BLUE, align=PP_ALIGN.CENTER)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 16 — PostgreSQL ↔ FreeRADIUS link (visual)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "PostgreSQL — Lien FreeRADIUS ↔ Django")
+
+# 3 phases as visual flow
+phases = [
+    ("🔍", "Authorize", "Vérification", "SELECT FROM radcheck\nWHERE username=?\nAND statut=true",
+     LIGHT_GREEN, GREEN),
+    ("📝", "Post-Auth", "Journalisation", "INSERT INTO radpostauth\n(username, reply, authdate)\nSuccès ou Rejet",
+     LIGHT_ORANGE, ORANGE),
+    ("📊", "Accounting", "Comptabilité", "Start → INSERT radacct\nInterim → UPDATE octets\nStop → UPDATE fin session",
+     LIGHT_BLUE, MEDIUM_BLUE),
+]
+
+for i, (icon, title, subtitle, desc, bg, border) in enumerate(phases):
+    left = Inches(0.4 + i * 4.3)
+    top = Inches(1.4)
+    box = add_shape(slide, left, top, Inches(3.8), Inches(3.5), bg, border)
+    circ = add_shape(slide, left + Inches(1.3), top + Inches(0.2), Inches(1.2), Inches(1.2), border, shape_type=MSO_SHAPE.OVAL)
+    set_text(circ, icon, size=28, align=PP_ALIGN.CENTER)
+    add_text(slide, left + Inches(0.2), top + Inches(1.5), Inches(3.4), Inches(0.5),
+             title, size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+    add_text(slide, left + Inches(0.2), top + Inches(1.95), Inches(3.4), Inches(0.35),
+             subtitle, size=12, color=GRAY, align=PP_ALIGN.CENTER)
+    add_text(slide, left + Inches(0.3), top + Inches(2.4), Inches(3.2), Inches(1),
+             desc, size=12, color=BLACK, align=PP_ALIGN.CENTER)
+
+# Django sync box
+sync = add_shape(slide, Inches(1), Inches(5.3), Inches(11.333), Inches(1.7), LIGHT_PURPLE, PURPLE)
+add_text(slide, Inches(1.2), Inches(5.4), Inches(10.9), Inches(0.5),
+         "🔄 Synchronisation Django → RADIUS", size=16, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+tf = add_text(slide, Inches(1.5), Inches(5.95), Inches(10.3), Inches(0.8),
+              "Admin active un utilisateur → Django crée radcheck + radreply + radusergroup", size=13, color=BLACK, align=PP_ALIGN.CENTER)
+add_para(tf, "Profil modifié → Django met à jour radgroupreply + radgroupcheck  •  Retry automatique en cas d'échec",
+         size=12, color=GRAY, align=PP_ALIGN.CENTER)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 17 — Flux complet (grand diagramme)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "Flux d'Authentification Complet")
+
+# 8 steps in a visual flow (2 rows of 4)
+steps_flow = [
+    ("1", "📱", "Connexion WiFi", "IP via DHCP\n10.242.18.x", LIGHT_BLUE, MEDIUM_BLUE),
+    ("2", "🔄", "Redirection", "HTTP intercepté\n→ page login", LIGHT_ORANGE, ORANGE),
+    ("3", "🔑", "Saisie credentials", "Username +\nPassword", LIGHT_PURPLE, PURPLE),
+    ("4", "📡", "Access-Request", "MikroTik → RADIUS\nUDP 1812", LIGHT_TEAL, TEAL),
+    ("5", "🗄️", "PostgreSQL", "radcheck :\nstatut + password", LIGHT_PURPLE, PURPLE),
+    ("6", "✅", "Access-Accept", "Rate-Limit\nTimeout", LIGHT_GREEN, GREEN),
+    ("7", "🌐", "Accès Internet", "QoS appliquée\n5M/10M", LIGHT_BLUE, MEDIUM_BLUE),
+    ("8", "📊", "Accounting", "Sessions radacct\nToutes les 5 min", LIGHT_ORANGE, ORANGE),
+]
+
+for i, (num, icon, title, desc, bg, border) in enumerate(steps_flow):
+    row = i // 4
+    col = i % 4
+    left = Inches(0.3 + col * 3.25)
+    top = Inches(1.4 + row * 3.0)
+    # Card
+    box = add_shape(slide, left, top, Inches(2.8), Inches(2.5), bg, border)
+    # Number
+    circ = add_shape(slide, left + Inches(0.1), top + Inches(0.1), Inches(0.5), Inches(0.5), border, shape_type=MSO_SHAPE.OVAL)
+    set_text(circ, num, size=14, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+    # Icon
+    add_text(slide, left, top + Inches(0.15), Inches(2.8), Inches(0.5),
+             icon, size=28, align=PP_ALIGN.CENTER)
+    # Title
+    add_text(slide, left + Inches(0.1), top + Inches(0.8), Inches(2.6), Inches(0.5),
+             title, size=14, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+    # Desc
+    add_text(slide, left + Inches(0.1), top + Inches(1.35), Inches(2.6), Inches(0.9),
+             desc, size=11, color=GRAY, align=PP_ALIGN.CENTER)
+    # Arrow
+    if col < 3:
+        arrow_right(slide, left + Inches(2.85), top + Inches(1.0), Inches(0.35), border)
+
+# Arrow from row 1 to row 2 (down)
+arrow_down(slide, Inches(12.25), Inches(3.95), Inches(0.4), TEAL)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 18 — Conclusion (visual summary)
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, WHITE)
+header_bar(slide, "Conclusion")
+
+components = [
+    ("📡", "MikroTik", "Hotspot • NAT • DHCP\nDNS • Client RADIUS", LIGHT_ORANGE, ORANGE),
+    ("🔐", "FreeRADIUS", "Serveur AAA central\nPAP/CHAP via SQL", LIGHT_GREEN, GREEN),
+    ("🗄️", "PostgreSQL", "Tables RADIUS + Django\nUtilisateurs & Sessions", LIGHT_PURPLE, PURPLE),
+    ("⚙️", "Django REST", "API de gestion\nSync RADIUS & MikroTik", LIGHT_BLUE, MEDIUM_BLUE),
+    ("🖥️", "Vue.js 3", "Dashboard admin\nTemps réel", LIGHT_TEAL, TEAL),
+]
+
+for i, (icon, title, desc, bg, border) in enumerate(components):
+    left = Inches(0.3 + i * 2.6)
+    top = Inches(1.5)
+    box = add_shape(slide, left, top, Inches(2.3), Inches(3.0), bg, border)
+    circ = add_shape(slide, left + Inches(0.55), top + Inches(0.2), Inches(1.2), Inches(1.2), border, shape_type=MSO_SHAPE.OVAL)
+    set_text(circ, icon, size=30, align=PP_ALIGN.CENTER)
+    add_text(slide, left + Inches(0.1), top + Inches(1.5), Inches(2.1), Inches(0.4),
+             title, size=14, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+    add_text(slide, left + Inches(0.1), top + Inches(1.95), Inches(2.1), Inches(0.8),
+             desc, size=11, color=GRAY, align=PP_ALIGN.CENTER)
+
+# Result box
+result = add_shape(slide, Inches(1.5), Inches(5.0), Inches(10.333), Inches(1.8), ACCENT_BLUE, MEDIUM_BLUE)
+add_text(slide, Inches(1.7), Inches(5.1), Inches(9.9), Inches(0.5),
+         "🎯 Résultat", size=20, bold=True, color=DARK_BLUE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(1.7), Inches(5.65), Inches(9.9), Inches(0.9),
+         "Un système WiFi sécurisé, évolutif et adapté au contexte universitaire UCAC-ICAM\nOrchestration Docker Compose de 11 services",
+         size=15, color=GRAY, align=PP_ALIGN.CENTER)
+
+footer_bar(slide)
+
+# ═══════════════════════════════════════════════════════════════
+# SLIDE 19 — Merci
+# ═══════════════════════════════════════════════════════════════
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide, DARK_BLUE)
+add_rect(slide, 0, 0, W, Inches(0.08), LIGHT_BLUE)
+
+add_text(slide, Inches(1), Inches(2.5), Inches(11.333), Inches(1.2),
+         "Merci pour votre attention", size=44, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+add_text(slide, Inches(1), Inches(3.8), Inches(11.333), Inches(0.8),
+         "Questions ?", size=28, color=RGBColor(0xBF, 0xDB, 0xFE), align=PP_ALIGN.CENTER)
+
+add_text(slide, Inches(3), Inches(5.5), Inches(7.333), Inches(0.5),
+         "Portail Captif WiFi — UCAC-ICAM — Janvier 2026", size=14, color=GRAY, align=PP_ALIGN.CENTER)
+
+add_rect(slide, 0, Inches(7.42), W, Inches(0.08), LIGHT_BLUE)
 
 # Save
 output_path = "/home/user/captive-portal/Presentation_Portail_Captif_UCAC_ICAM.pptx"
